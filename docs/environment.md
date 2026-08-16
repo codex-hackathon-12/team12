@@ -58,5 +58,6 @@ secret으로만 관리한다.
 `GENERATION_WORKFLOW`는 환경변수가 아니라 Cloudflare Workflow binding이다.
 실제 생성 기능을 배포하기 전에 Worker에 binding을 추가해야 한다.
 
-`OPENAI_API_KEY`와 `OPENAI_MODEL`은 생성 Workflow가 OpenAI를 호출할 때 사용한다.
+`OPENAI_API_KEY`와 `OPENAI_MODEL`은 생성 Workflow가 OpenAI Responses API를 호출할 때 사용한다.
+기본 모델은 `gpt-5.6-luna`이며, 생성 결과는 한국어 strict JSON schema로 검증한다.
 현재 생성 API는 Workflow binding이 없으면 실패 상태를 기록한다.

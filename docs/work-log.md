@@ -2,6 +2,15 @@
 
 이 문서는 사용자 요청, 주요 결정, 실제 반영 내용과 검증 결과를 시간순으로 추적한다. 요청은 원문을 그대로 복사하지 않고 목표, 제약조건과 완료 기준이 드러나도록 정제한다. 최신 항목을 위에 추가하며 통합 담당자만 수정한다.
 
+## 2026-08-16-22 — OpenAI 포트폴리오 생성 Workflow 구현
+
+- 상태: 완료
+- 반영 내용: GitHub README와 최근 커밋·PR 제목을 일시 근거로 수집하고,
+  OpenAI Responses API의 strict JSON output을 포트폴리오 콘텐츠로 저장한다.
+- 보안: 원본 코드와 활동 본문은 저장하지 않으며, OpenAI 오류 원문을 사용자에게 노출하지 않는다.
+- 수정 파일: `server/openai/**`, `server/github/evidence.ts`, `server/generation/runner.ts`, `worker/**`
+- 검증: TypeScript와 ESLint 검사를 수행한다.
+
 ## 2026-08-16-21 — 원격 develop rebase 동기화
 
 - 상태: 완료
