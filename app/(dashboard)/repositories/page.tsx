@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type {
   GitRepositoryDto,
@@ -23,10 +23,12 @@ const formatDate = (value: string) =>
   }).format(new Date(value));
 
 export default function RepositoriesPage() {
+  const router = useRouter();
   const [repositories, setRepositories] = useState<GitRepositoryDto[] | null>(null);
   const [query, setQuery] = useState("");
   const [visibility, setVisibility] = useState<RepositoryVisibility | "all">("all");
   const [syncing, setSyncing] = useState(false);
+  const [selectedRepositoryIds, setSelectedRepositoryIds] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -45,21 +47,30 @@ export default function RepositoriesPage() {
     setSyncing(false);
   };
 
+  const toggleRepository = (repositoryId: string) => {
+    setSelectedRepositoryIds((current) =>
+      current.includes(repositoryId)
+        ? current.filter((id) => id !== repositoryId)
+        : [...current, repositoryId],
+    );
+  };
+
+  const continueToPrompt = () => {
+    if (selectedRepositoryIds.length === 0) return;
+    const queryString = new URLSearchParams({
+      repositories: selectedRepositoryIds.join(","),
+    }).toString();
+    router.push(`/create/${selectedRepositoryIds[0]}/prompt?${queryString}`);
+  };
+
   return (
     <div className="page-container repositories-page">
-      <header className="page-heading repository-heading">
+      <header className="repository-topbar">
         <div>
           <p className="eyebrow">STEP 01 · SELECT SOURCE</p>
-          <h1>어떤 코드에서<br />이야기를 찾을까요?</h1>
-          <p>GitHub에 연결된 저장소 중 포트폴리오로 만들 프로젝트를 선택하세요.</p>
-        </div>
-        <div className="github-account-card">
-          <span className="github-glyph">GH</span>
-          <div>
-            <span>Connected as</span>
-            <strong>@frontend-builder</strong>
-          </div>
-          <span className="connected-state">연결됨</span>
+          <p className="repository-instruction">
+            포트폴리오에 담을 저장소를 하나 이상 선택하세요.
+          </p>
         </div>
       </header>
 
@@ -104,36 +115,57 @@ export default function RepositoriesPage() {
             <span>{repositories.length} repositories</span>
             <span>최근 업데이트 순</span>
           </div>
-          {repositories.map((repository, index) => (
-            <Link
-              href={`/create/${repository.id}/prompt`}
-              className="repository-row"
-              key={repository.id}
-            >
-              <span className="repository-index">{String(index + 1).padStart(2, "0")}</span>
-              <div className="repository-main">
-                <div className="repository-title-line">
-                  <h2>{repository.name}</h2>
-                  <span className={`visibility-badge ${repository.visibility}`}>
-                    {repository.visibility === "public" ? "Public" : "Private"}
-                  </span>
+          {repositories.map((repository, index) => {
+            const isSelected = selectedRepositoryIds.includes(repository.id);
+            return (
+              <button
+                type="button"
+                className={`repository-row ${isSelected ? "selected" : ""}`}
+                key={repository.id}
+                aria-pressed={isSelected}
+                onClick={() => toggleRepository(repository.id)}
+              >
+                <span className="repository-index">{String(index + 1).padStart(2, "0")}</span>
+                <div className="repository-main">
+                  <div className="repository-title-line">
+                    <h2>{repository.name}</h2>
+                    <span className={`visibility-badge ${repository.visibility}`}>
+                      {repository.visibility === "public" ? "Public" : "Private"}
+                    </span>
+                  </div>
+                  <p>{repository.description}</p>
+                  <div className="repository-meta">
+                    <span><i className="language-dot" />{repository.primaryLanguage}</span>
+                    <span>★ {repository.starCount}</span>
+                    <span>⑂ {repository.forkCount}</span>
+                    <span>{formatDate(repository.pushedAt)} 업데이트</span>
+                  </div>
                 </div>
-                <p>{repository.description}</p>
-                <div className="repository-meta">
-                  <span><i className="language-dot" />{repository.primaryLanguage}</span>
-                  <span>★ {repository.starCount}</span>
-                  <span>⑂ {repository.forkCount}</span>
-                  <span>{formatDate(repository.pushedAt)} 업데이트</span>
+                <div className="repository-select">
+                  <span>{isSelected ? "선택됨" : "선택하기"}</span>
+                  <strong aria-hidden="true">{isSelected ? "✓" : "+"}</strong>
                 </div>
-              </div>
-              <div className="repository-select">
-                <span>선택하기</span>
-                <strong aria-hidden="true">→</strong>
-              </div>
-            </Link>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
+
+      <div className={`repository-selection-bar ${selectedRepositoryIds.length > 0 ? "visible" : ""}`}>
+        <div>
+          <span>선택한 저장소</span>
+          <strong>{selectedRepositoryIds.length}개</strong>
+          <small>예상 비용 {selectedRepositoryIds.length * 30} 크레딧 · 실제 차감 없음</small>
+        </div>
+        <button
+          className="button primary"
+          type="button"
+          disabled={selectedRepositoryIds.length === 0}
+          onClick={continueToPrompt}
+        >
+          선택 완료 <span aria-hidden="true">→</span>
+        </button>
+      </div>
     </div>
   );
 }

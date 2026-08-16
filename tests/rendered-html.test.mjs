@@ -87,7 +87,7 @@ test("server-renders the folio.ai dashboard shell", async (context) => {
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
-test("removes the disposable starter and keeps mock mode as the default", async () => {
+test("keeps the public landing anonymous-only and mock mode as the default", async () => {
   const [page, layout, packageJson, apiClient] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -95,7 +95,14 @@ test("removes the disposable starter and keeps mock mode as the default", async 
     readFile(new URL("../lib/api-client/index.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /redirect\("\/dashboard"\)/);
+  assert.match(page, /className="landing-page"/);
+  assert.match(page, /GITHUB TO CAREER STORY/);
+  assert.match(page, /TASTE THE RESULT/);
+  assert.match(page, /router\.replace\("\/dashboard"\)/);
+  assert.match(page, /preview"\) === "landing"/);
+  assert.match(page, /"localhost", "127\.0\.0\.1"/);
+  assert.match(page, /GitHub 로그인/);
+  assert.doesNotMatch(page, /대시보드로 이동/);
   assert.match(layout, /\/og\.png/);
   assert.doesNotMatch(layout, /codex-preview|_sites-preview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);

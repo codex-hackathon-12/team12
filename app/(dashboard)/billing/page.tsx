@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type {
   BillingProductDto,
-  CreditSummaryDto,
   MockPaymentDto,
 } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
@@ -22,7 +21,6 @@ const formatDate = (value: string) =>
 
 export default function BillingPage() {
   const router = useRouter();
-  const [credits, setCredits] = useState<CreditSummaryDto | null>(null);
   const [products, setProducts] = useState<BillingProductDto[] | null>(null);
   const [payments, setPayments] = useState<MockPaymentDto[]>([]);
   const [selected, setSelected] = useState("credit_300");
@@ -30,11 +28,9 @@ export default function BillingPage() {
 
   useEffect(() => {
     Promise.all([
-      apiClient.getCredits(),
       apiClient.getBillingProducts(),
       apiClient.getPayments(),
-    ]).then(([creditData, productData, paymentData]) => {
-      setCredits(creditData);
+    ]).then(([productData, paymentData]) => {
       setProducts(productData.products);
       setPayments(paymentData.payments);
     });
@@ -46,27 +42,10 @@ export default function BillingPage() {
     router.push(`${result.redirectPath}?checkoutId=${result.checkoutId}`);
   };
 
-  if (!credits || !products) return <LoadingState label="크레딧 정보를 준비하고 있어요" />;
+  if (!products) return <LoadingState label="크레딧 정보를 준비하고 있어요" />;
 
   return (
     <div className="page-container billing-page">
-      <header className="page-heading billing-heading">
-        <div>
-          <p className="eyebrow">CREDITS · MOCK BILLING</p>
-          <h1>필요할 때,<br />필요한 만큼만.</h1>
-        </div>
-        <div className="credit-balance-card">
-          <span>현재 보유 크레딧</span>
-          <strong>{credits.balance}<small> credits</small></strong>
-          <p>포트폴리오 1회 예상 비용은 {credits.costPerRepository}크레딧입니다.</p>
-        </div>
-      </header>
-
-      <div className="mock-notice" role="note">
-        <span>DEMO MODE</span>
-        <p>현재는 결제 흐름을 확인하기 위한 화면입니다. 실제 결제와 크레딧 지급 또는 차감은 발생하지 않아요.</p>
-      </div>
-
       <section className="billing-products">
         <div className="section-title-row compact-title">
           <div>

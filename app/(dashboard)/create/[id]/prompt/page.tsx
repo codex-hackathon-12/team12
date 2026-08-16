@@ -1,17 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { GitRepositoryDto, PortfolioTone } from "@/contracts/api-contract";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, apiMode } from "@/lib/api-client";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function PromptPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const repositoryId = String(params.id);
-  const [repository, setRepository] = useState<GitRepositoryDto | null>(null);
+  const repositoryQuery = searchParams.get("repositories");
+  const repositoryIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (repositoryQuery ? repositoryQuery.split(",") : [repositoryId])
+            .map((id) => id.trim())
+            .filter(Boolean),
+        ),
+      ),
+    [repositoryId, repositoryQuery],
+  );
+  const [repositories, setRepositories] = useState<GitRepositoryDto[] | null>(null);
   const [targetRole, setTargetRole] = useState("Frontend Engineer");
   const [tone, setTone] = useState<PortfolioTone>("professional");
   const [highlights, setHighlights] = useState("사용자 경험, 협업 방식");
@@ -21,12 +34,16 @@ export default function PromptPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    apiClient.getRepository(repositoryId).then(setRepository);
-  }, [repositoryId]);
+    Promise.all(repositoryIds.map((id) => apiClient.getRepository(id))).then(
+      setRepositories,
+    );
+  }, [repositoryIds]);
+
+  const multipleHttpUnavailable = apiMode === "http" && repositoryIds.length > 1;
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || multipleHttpUnavailable) return;
     setSubmitting(true);
     const job = await apiClient.createGeneration({
       repositoryId,
@@ -41,7 +58,9 @@ export default function PromptPage() {
     router.push(`/create/${job.jobId}/processing`);
   };
 
-  if (!repository) return <LoadingState label="선택한 저장소를 확인하고 있어요" />;
+  if (!repositories) return <LoadingState label="선택한 저장소를 확인하고 있어요" />;
+
+  const estimatedCost = repositories.length * 30;
 
   return (
     <div className="page-container prompt-page">
@@ -66,15 +85,22 @@ export default function PromptPage() {
 
       <div className="prompt-layout">
         <aside className="selected-repository">
-          <span className="mono-label">SELECTED REPOSITORY</span>
-          <div className="repo-icon">{repository.name.slice(0, 2).toUpperCase()}</div>
-          <h2>{repository.name}</h2>
-          <p>{repository.description}</p>
-          <dl>
-            <div><dt>Language</dt><dd>{repository.primaryLanguage}</dd></div>
-            <div><dt>Branch</dt><dd>{repository.defaultBranch}</dd></div>
-            <div><dt>Visibility</dt><dd>{repository.visibility}</dd></div>
-          </dl>
+          <div className="selected-repository-heading">
+            <span className="mono-label">SELECTED REPOSITORIES</span>
+            <strong>{repositories.length}</strong>
+          </div>
+          <div className="selected-repository-list">
+            {repositories.map((repository, index) => (
+              <div className="selected-repository-item" key={repository.id}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div>
+                  <strong>{repository.name}</strong>
+                  <small>{repository.primaryLanguage ?? "Language unknown"}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p>선택한 프로젝트의 공통 강점과 서로 다른 역할을 한 흐름으로 정리합니다.</p>
           <Link className="text-link" href="/repositories">← 저장소 다시 선택</Link>
         </aside>
 
@@ -130,14 +156,25 @@ export default function PromptPage() {
             <div>
               <span className="signal-dot" />
               <div>
-                <strong>예상 비용 30 크레딧</strong>
+                <strong>예상 비용 {estimatedCost} 크레딧</strong>
                 <p>MVP에서는 실제로 차감되지 않아요.</p>
               </div>
             </div>
             <span>100 → 100</span>
           </div>
 
-          <button className="button primary submit-button" type="submit" disabled={submitting}>
+          {multipleHttpUnavailable && (
+            <p className="integration-note" role="status">
+              여러 저장소를 합치는 실제 분석 API는 연결 중입니다. 현재 다중 선택은
+              mock 미리보기에서 확인할 수 있어요.
+            </p>
+          )}
+
+          <button
+            className="button primary submit-button"
+            type="submit"
+            disabled={submitting || multipleHttpUnavailable}
+          >
             {submitting ? "생성 준비 중…" : "이 내용으로 포트폴리오 만들기"}
             {!submitting && <span aria-hidden="true">→</span>}
           </button>
