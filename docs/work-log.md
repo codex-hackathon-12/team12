@@ -2,6 +2,27 @@
 
 이 문서는 사용자 요청, 주요 결정, 실제 반영 내용과 검증 결과를 시간순으로 추적한다. 요청은 원문을 그대로 복사하지 않고 목표, 제약조건과 완료 기준이 드러나도록 정제한다. 최신 항목을 위에 추가하며 통합 담당자만 수정한다.
 
+## 2026-08-16-09 — Supabase 저장소 기반 전환
+
+- 상태: 완료
+- 정제된 요청: Cloudflare Worker 실행 구조는 유지하고, 관계형 데이터와 PDF 저장소를
+  Supabase Postgres와 Supabase Storage로 전환한다.
+- 결정사항:
+  - 서버는 Workers의 server-only Supabase client로 Postgres와 Storage에 접근한다.
+  - Supabase Auth는 사용하지 않고 GitHub OAuth와 세션 관리는 기존 Workers 서버가 담당한다.
+  - D1, R2와 Drizzle 의존성은 백엔드 구현에서 제거한다.
+- 반영 내용:
+  - `@supabase/supabase-js`를 추가하고 Drizzle 의존성과 생성 스크립트를 제거했다.
+  - 아키텍처와 PDF 다운로드 계약의 저장소 기준을 Supabase로 갱신했다.
+- 수정 파일:
+  - `package.json`
+  - `package-lock.json`
+  - `architecture.md`
+  - `docs/api-contract.md`
+  - `docs/work-log.md`
+- 검증: 의존성 설치 후 문서 diff 검사를 수행한다.
+- 남은 항목: Postgres migration, server-only client와 API 구현을 추가한다.
+
 ## 2026-08-16-08 — Cloudflare 백엔드와 PDF 이력서 기준 확정
 
 - 상태: 완료

@@ -404,7 +404,7 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 }
 ```
 
-`completed`는 PDF 이력서가 R2에 저장된 뒤에만 반환한다. PDF 처리에 실패하면
+`completed`는 PDF 이력서가 Supabase Storage에 저장된 뒤에만 반환한다. PDF 처리에 실패하면
 작업은 `failed`가 되며 `resumePdfAvailable`은 `false`다.
 
 실패한 job도 HTTP 조회 자체는 성공했으므로 `200`을 반환하고 `data.status`를 `failed`로 설정한다.
@@ -596,8 +596,8 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 
 `GET /api/v1/portfolios/{portfolioId}/resume.pdf`
 
-소유자만 호출할 수 있다. 서버는 R2의 비공개 PDF를 `application/pdf`로 반환하며,
-다른 사용자의 결과 또는 PDF가 아직 없는 결과에는 `404`를 반환한다. R2 object key,
+소유자만 호출할 수 있다. 서버는 Supabase Storage의 비공개 PDF를 `application/pdf`로 반환하며,
+다른 사용자의 결과 또는 PDF가 아직 없는 결과에는 `404`를 반환한다. Storage object path,
 signed URL, GitHub token과 내부 오류 정보는 노출하지 않는다.
 
 ### 8.4 포트폴리오 목록
@@ -889,7 +889,7 @@ mocks/api/
 - 모든 `CreditQuote`는 MVP 동안 `willCharge: false`, `isMock: true`를 반환한다.
 - mock checkout은 결제 SDK나 외부 결제 API를 호출하지 않는다.
 - 실제 AI 연결 전에는 동일한 `GenerationJob` 상태 계약을 유지하는 mock 생성기로 대체할 수 있다.
-- 실제 생성에서는 Route Handler가 D1 작업을 만든 뒤 Cloudflare Workflow를 시작한다. GitHub 분석, AI 호출, Browser Rendering과 R2 저장은 Workflow에서 수행한다.
-- GitHub token은 Worker secret으로 암호화한 서버 전용 값으로만 저장한다. access token, 암호화 키와 R2 object key는 API 응답과 로그에 포함하지 않는다.
-- `completed` 작업은 PDF가 R2에 저장된 경우에만 반환한다. PDF는 소유자 검증을 수행하는 다운로드 endpoint로만 제공한다.
+- 실제 생성에서는 Route Handler가 Supabase Postgres 작업을 만든 뒤 Cloudflare Workflow를 시작한다. GitHub 분석, AI 호출, Browser Rendering과 Storage 저장은 Workflow에서 수행한다.
+- GitHub token은 Worker secret으로 암호화한 서버 전용 값으로만 저장한다. access token, 암호화 키와 Storage object path는 API 응답과 로그에 포함하지 않는다.
+- `completed` 작업은 PDF가 Supabase Storage에 저장된 경우에만 반환한다. PDF는 소유자 검증을 수행하는 다운로드 endpoint로만 제공한다.
 - 로그에는 GitHub token, 세션 쿠키, 비공개 저장소 내용과 사용자 프롬프트 전문을 남기지 않는다.
