@@ -1,12 +1,6 @@
-import { env } from "cloudflare:workers";
 import { encryptSecret } from "@/server/auth/crypto";
+import { getGitHubEnvironment } from "@/server/config/env";
 import { getSupabaseClient } from "@/server/supabase/client";
-
-type GitHubEnv = {
-  GITHUB_CLIENT_ID?: string;
-  GITHUB_CLIENT_SECRET?: string;
-  GITHUB_OAUTH_REDIRECT_URI?: string;
-};
 
 type GitHubTokenResponse = {
   access_token?: string;
@@ -26,16 +20,8 @@ type GitHubUserResponse = {
   html_url: string;
 };
 
-function getConfig(): Required<GitHubEnv> {
-  const config = env as GitHubEnv;
-  if (!config.GITHUB_CLIENT_ID || !config.GITHUB_CLIENT_SECRET || !config.GITHUB_OAUTH_REDIRECT_URI) {
-    throw new Error("GitHub OAuth configuration is unavailable.");
-  }
-  return {
-    GITHUB_CLIENT_ID: config.GITHUB_CLIENT_ID,
-    GITHUB_CLIENT_SECRET: config.GITHUB_CLIENT_SECRET,
-    GITHUB_OAUTH_REDIRECT_URI: config.GITHUB_OAUTH_REDIRECT_URI,
-  };
+function getConfig() {
+  return getGitHubEnvironment();
 }
 
 export function getGitHubAuthorizationUrl(state: string): string {

@@ -1,9 +1,4 @@
-import { env } from "cloudflare:workers";
-
-type OpenAIEnv = {
-  OPENAI_API_KEY?: string;
-  OPENAI_MODEL?: string;
-};
+import { getOpenAIEnvironment } from "@/server/config/env";
 
 export type PortfolioEvidence = {
   repository: {
@@ -80,11 +75,7 @@ const schema = {
 } as const;
 
 function getConfiguration(): { apiKey: string; model: string } {
-  const configuration = env as OpenAIEnv;
-  if (!configuration.OPENAI_API_KEY) {
-    throw new Error("OpenAI API key is unavailable.");
-  }
-  return { apiKey: configuration.OPENAI_API_KEY, model: configuration.OPENAI_MODEL || "gpt-5.6-luna" };
+  return getOpenAIEnvironment();
 }
 
 function extractOutputText(response: unknown): string {

@@ -1,8 +1,4 @@
-import { env } from "cloudflare:workers";
-
-type CryptoEnv = {
-  TOKEN_ENCRYPTION_KEY?: string;
-};
+import { getTokenEncryptionKey } from "@/server/config/env";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -39,10 +35,7 @@ export async function hashToken(value: string): Promise<string> {
 }
 
 async function getEncryptionKey(): Promise<CryptoKey> {
-  const keyValue = (env as CryptoEnv).TOKEN_ENCRYPTION_KEY;
-  if (!keyValue) {
-    throw new Error("Token encryption key is unavailable.");
-  }
+  const keyValue = getTokenEncryptionKey();
 
   const rawKey = fromBase64(keyValue);
   if (rawKey.byteLength !== 32) {

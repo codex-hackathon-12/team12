@@ -1,32 +1,82 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { access, readFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 
 const templateRoot = new URL("../", import.meta.url);
 
-async function render(pathname = "/dashboard") {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  return worker.fetch(
-    new Request(`http://localhost${pathname}`, {
-      headers: { accept: "text/html", host: "localhost" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
+async function getAvailablePort() {
+  const server = createServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("Unable to reserve a local test port.");
+  }
+  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  return address.port;
 }
 
-test("server-renders the folio.ai dashboard shell", async () => {
-  const response = await render();
+async function stopServer(server) {
+  if (server.exitCode !== null) {
+    return;
+  }
+  server.kill("SIGTERM");
+  await Promise.race([once(server, "exit"), delay(5000)]);
+  if (server.exitCode === null) {
+    server.kill("SIGKILL");
+    await once(server, "exit");
+  }
+}
+
+async function render(pathname = "/dashboard") {
+  const port = await getAvailablePort();
+  const nextCli = fileURLToPath(new URL("../node_modules/next/dist/bin/next", import.meta.url));
+  const server = spawn(process.execPath, [nextCli, "start", "-p", String(port)], {
+    cwd: fileURLToPath(templateRoot),
+    env: { ...process.env, NEXT_PUBLIC_API_MODE: "mock" },
+    stdio: "pipe",
+  });
+  let output = "";
+  server.stdout.on("data", (chunk) => { output += chunk.toString(); });
+  server.stderr.on("data", (chunk) => { output += chunk.toString(); });
+
+  try {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (server.exitCode !== null) {
+        throw new Error(`Next.js test server exited early: ${output}`);
+      }
+      try {
+        return await fetch(`http://127.0.0.1:${port}${pathname}`, {
+          headers: { accept: "text/html", host: "localhost" },
+        });
+      } catch {
+        await delay(100);
+      }
+    }
+    throw new Error(`Next.js test server did not start: ${output}`);
+  } finally {
+    await stopServer(server);
+  }
+}
+
+test("server-renders the folio.ai dashboard shell", async (context) => {
+  let response;
+  try {
+    response = await render();
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "EPERM") {
+      context.skip("The current sandbox does not allow local TCP listeners.");
+      return;
+    }
+    throw error;
+  }
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
@@ -49,6 +99,9 @@ test("removes the disposable starter and keeps mock mode as the default", async 
   assert.match(layout, /\/og\.png/);
   assert.doesNotMatch(layout, /codex-preview|_sites-preview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
+  assert.match(packageJson, /"next"/);
+  assert.match(packageJson, /"workflow"/);
+  assert.doesNotMatch(packageJson, /"vinext"|"wrangler"|"@cloudflare\/vite-plugin"/);
   assert.match(apiClient, /=== "http" \? "http" : "mock"/);
 
   await assert.rejects(
@@ -59,5 +112,6 @@ test("removes the disposable starter and keeps mock mode as the default", async 
   await access(new URL("../mocks/api/fixtures/index.ts", import.meta.url));
   await access(new URL("../lib/api-client/adapters/http/index.ts", import.meta.url));
   await access(new URL("../lib/api-client/adapters/mock/index.ts", import.meta.url));
+  await access(new URL("../.next/server/app/.well-known/workflow/v1/flow/route.js", import.meta.url));
   await access(templateRoot);
 });

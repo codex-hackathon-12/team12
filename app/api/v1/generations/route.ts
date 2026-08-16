@@ -2,6 +2,8 @@ import { requireUser } from "@/server/auth/require-user";
 import { ActiveGenerationError, createJob } from "@/server/generation/jobs";
 import { failure, success } from "@/server/http";
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request): Promise<Response> {
   const authentication = await requireUser(request);
   if ("response" in authentication) return authentication.response;

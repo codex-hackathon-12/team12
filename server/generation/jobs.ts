@@ -1,6 +1,7 @@
-import { env } from "cloudflare:workers";
+import { start } from "workflow/api";
 import { getRepository } from "@/server/github/repositories";
 import { getSupabaseClient } from "@/server/supabase/client";
+import { generatePortfolioWorkflow } from "@/workflows/generate-portfolio";
 
 type Input = {
   repositoryId: string;
@@ -9,12 +10,6 @@ type Input = {
   tone?: "professional" | "concise" | "storytelling";
   highlights?: string[];
 };
-
-type WorkflowBinding = {
-  create(options: { params: { jobId: string } }): Promise<{ id: string }>;
-};
-
-type WorkflowEnv = { GENERATION_WORKFLOW?: WorkflowBinding };
 
 export class ActiveGenerationError extends Error {}
 
@@ -86,12 +81,8 @@ export async function createJob(userId: string, input: Input) {
   }
 
   try {
-    const workflow = (env as WorkflowEnv).GENERATION_WORKFLOW;
-    if (!workflow) {
-      throw new Error("Generation workflow binding is unavailable.");
-    }
-    const instance = await workflow.create({ params: { jobId: data.id } });
-    await getSupabaseClient().from("generation_jobs").update({ workflow_instance_id: instance.id }).eq("id", data.id);
+    const workflow = await start(generatePortfolioWorkflow, [data.id]);
+    await getSupabaseClient().from("generation_jobs").update({ workflow_instance_id: workflow.runId }).eq("id", data.id);
   } catch {
     await getSupabaseClient()
       .from("generation_jobs")

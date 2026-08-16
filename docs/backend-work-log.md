@@ -5,6 +5,28 @@
 위에 추가한다. 아래 기존 기록의 `docs/work-log.md` 표기는 작업 당시 사용한
 통합 로그 경로를 의미한다.
 
+## 2026-08-16-23 — Vercel 런타임과 Workflow 전환
+
+- 상태: 완료
+- 정제된 요청: Cloudflare 의존성을 제거하고 Vercel 기반으로 전환한다.
+  프론트엔드 화면과 REST API 계약은 유지한다.
+- 반영 내용:
+  - `vinext`, Vite, Wrangler와 Cloudflare Worker 진입점을 표준 Next.js 16과
+    Vercel Workflow SDK로 교체했다.
+  - 서버 환경 변수 접근을 `process.env` 기반 서버 모듈로 통일하고, 생성 요청은
+    Vercel Workflow run ID를 기존 `workflow_instance_id`에 저장하도록 변경했다.
+  - Workflow 재시도 중 결과가 중복 저장되지 않도록 포트폴리오 저장을
+    `generation_job_id` 기준 upsert로 처리했다.
+  - Vercel 환경 변수, GitHub OAuth callback, Production/Preview 설정을 문서화했다.
+- 수정 파일: 런타임 설정, `server/**`, `workflows/**`, 생성 API, 환경·아키텍처 문서와
+  렌더링 테스트.
+- 검증:
+  - `git diff --check`, `npx tsc --noEmit`, `npm run lint`를 통과했다.
+  - `next build --webpack`에서 Vercel Workflow 내부 route 3개 생성을 확인했다.
+  - Node 테스트는 1건 통과했고, TCP listener가 차단된 Codex sandbox에서는
+    실제 Next 서버 렌더링 테스트 1건을 skip 처리했다. 일반 로컬 환경에서는 해당
+    테스트가 `next start`로 대시보드를 검증한다.
+
 ## 2026-08-16-22 — OpenAI 포트폴리오 생성 Workflow 구현
 
 - 상태: 완료

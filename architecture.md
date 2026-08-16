@@ -309,9 +309,8 @@ flowchart LR
     ROUTES --> SERVICES["server/services"]
     SERVICES --> REPOS["server/repositories"]
     REPOS --> DB["Supabase Postgres"]
-    SERVICES --> FLOW["Cloudflare Workflows"]
-    FLOW --> RENDER["Browser Rendering"]
-    RENDER --> STORAGE["Supabase Storage"]
+    SERVICES --> FLOW["Vercel Workflows"]
+    FLOW --> STORAGE["Supabase Storage"]
     SERVICES --> GIT["Git Provider API"]
     SERVICES --> AI["AI 생성 API"]
     SERVICES --> PAY["Mock 결제 서비스"]
@@ -330,25 +329,23 @@ flowchart LR
 
 ### 8.2 백엔드 실행 구조
 
-MVP 백엔드는 Cloudflare Workers와 Supabase Postgres를 기준으로 구현한다. 장시간 실행되는
-저장소 분석과 AI 생성은 HTTP 요청 안에서 처리하지 않고 Cloudflare Workflow로
-실행한다.
+MVP 백엔드는 Vercel Functions와 Supabase Postgres를 기준으로 구현한다. 장시간 실행되는
+저장소 분석과 AI 생성은 HTTP 요청 안에서 처리하지 않고 Vercel Workflow로 실행한다.
 
 | 구성 요소 | 책임 |
 | --- | --- |
-| Cloudflare Workers | REST Route Handler, 세션 검증, 입력 검증과 응답 변환 |
+| Vercel Functions | REST Route Handler, 세션 검증, 입력 검증과 응답 변환 |
 | Supabase Postgres | 사용자, Git 연결, 저장소 메타데이터, 생성 작업과 결과 저장 |
-| Cloudflare Workflows | 분석, 콘텐츠 생성, 웹 렌더링, PDF 렌더링 단계 실행과 재시도 |
+| Vercel Workflows | 분석, 콘텐츠 생성과 포트폴리오 저장 단계 실행 및 재시도 |
 | Supabase Storage | 생성된 PDF 이력서와 향후 사용자 업로드 문서의 비공개 저장 |
-| Cloudflare Browser Rendering | 완성된 포트폴리오 HTML을 PDF 이력서로 렌더링 |
 
 생성 흐름은 다음 순서를 따른다.
 
 1. `POST /api/v1/generations`가 Postgres에 `queued` 작업을 만들고 Workflow를 시작한다.
 2. Workflow가 Postgres의 단계와 진행률을 갱신하며 GitHub 데이터를 분석한다.
 3. AI 생성 결과를 구조화된 포트폴리오 콘텐츠로 저장한다.
-4. 포트폴리오 HTML을 렌더링하고 Browser Rendering으로 PDF를 생성한다.
-5. PDF를 Supabase Storage의 비공개 객체로 저장한 뒤 작업을 `completed`로, 결과를 조회 가능 상태로 갱신한다.
+4. 포트폴리오 결과를 저장한 뒤 작업을 `completed`로, 결과를 조회 가능 상태로 갱신한다.
+5. PDF 이력서는 후속 렌더링 단계에서 Supabase Storage의 비공개 객체로 저장한다.
 
 재시도는 실패한 작업에 새 Workflow와 새 `GenerationJob`을 만들며, 기존 작업의
 결과를 덮어쓰지 않는다. 프론트엔드는 기존 polling 계약으로 Postgres에 저장된 상태를
@@ -356,7 +353,7 @@ MVP 백엔드는 Cloudflare Workers와 Supabase Postgres를 기준으로 구현�
 
 GitHub OAuth callback은 access token을 API 응답이나 로그에 포함하지 않는다.
 `GitConnection`에는 암호화된 token, 암호화 초기화 벡터, 권한 범위와 연결 시각을
-서버 전용으로 저장한다. 암호화 키는 Worker secret으로만 제공하고 `NEXT_PUBLIC_`
+서버 전용으로 저장한다. 암호화 키는 Vercel Environment Variable로만 제공하고 `NEXT_PUBLIC_`
 환경변수나 클라이언트 모듈에 두지 않는다.
 
 PDF 원본은 Supabase Storage public bucket에 두지 않는다. 소유자 요청을 검증하는
