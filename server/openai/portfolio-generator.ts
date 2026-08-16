@@ -1,22 +1,7 @@
 import { getOpenAIEnvironment } from "@/server/config/env";
+import { buildPortfolioPrompt, type PortfolioEvidence } from "@/server/openai/portfolio-prompt";
 
-export type PortfolioEvidence = {
-  repository: {
-    name: string;
-    description: string | null;
-    url: string;
-    primaryLanguage: string | null;
-    starCount: number;
-    forkCount: number;
-  };
-  targetRole: string;
-  prompt: string;
-  highlights: string[];
-  languages: Array<{ name: string; percentage: number }>;
-  readme: string;
-  commitTitles: string[];
-  pullRequestTitles: string[];
-};
+export type { PortfolioEvidence } from "@/server/openai/portfolio-prompt";
 
 export type GeneratedPortfolioDraft = {
   title: string;
@@ -98,13 +83,14 @@ function isDraft(value: unknown): value is GeneratedPortfolioDraft {
 
 export async function generatePortfolioDraft(evidence: PortfolioEvidence): Promise<GeneratedPortfolioDraft> {
   const configuration = getConfiguration();
+  const prompt = buildPortfolioPrompt(evidence);
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { Authorization: `Bearer ${configuration.apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: configuration.model,
-      instructions: "당신은 취업 포트폴리오 작성 도우미입니다. 반드시 한국어로 작성하세요. 제공된 근거에 없는 수치, 역할, 기술, 성과를 만들지 마세요. 불확실하면 일반적인 표현을 사용하고 빈 배열을 반환하세요.",
-      input: JSON.stringify(evidence),
+      instructions: prompt.instructions,
+      input: prompt.input,
       text: { format: { type: "json_schema", name: "portfolio_draft", strict: true, schema } },
     }),
   });

@@ -1,6 +1,6 @@
 import { decryptSecret } from "@/server/auth/crypto";
 import { getRepository } from "@/server/github/repositories";
-import type { PortfolioEvidence } from "@/server/openai/portfolio-generator";
+import type { PortfolioEvidence, PortfolioTone } from "@/server/openai/portfolio-prompt";
 import { getSupabaseClient } from "@/server/supabase/client";
 
 const MAX_README_LENGTH = 6000;
@@ -24,7 +24,7 @@ async function requestGitHub(accessToken: string, path: string, accept = "applic
 export async function collectPortfolioEvidence(
   userId: string,
   repositoryId: string,
-  request: { prompt: string; targetRole?: string | null; highlights?: string[] },
+  request: { prompt: string; targetRole?: string | null; tone?: PortfolioTone | null; highlights?: string[] },
 ): Promise<PortfolioEvidence> {
   const repository = await getRepository(userId, repositoryId);
   if (!repository) throw new Error("Repository is unavailable.");
@@ -44,6 +44,7 @@ export async function collectPortfolioEvidence(
   return {
     repository: { name: repository.name, description: repository.description, url: repository.htmlUrl, primaryLanguage: repository.primaryLanguage, starCount: repository.starCount, forkCount: repository.forkCount },
     targetRole: request.targetRole || "개발자",
+    tone: request.tone || "professional",
     prompt: request.prompt,
     highlights: request.highlights || [],
     languages,

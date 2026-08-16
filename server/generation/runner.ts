@@ -1,5 +1,6 @@
 import { collectPortfolioEvidence } from "@/server/github/evidence";
 import { generatePortfolioDraft } from "@/server/openai/portfolio-generator";
+import type { PortfolioTone } from "@/server/openai/portfolio-prompt";
 import { getSupabaseClient } from "@/server/supabase/client";
 
 type JobRecord = {
@@ -8,6 +9,7 @@ type JobRecord = {
   repository_id: string;
   prompt: string;
   target_role: string | null;
+  tone: PortfolioTone | null;
   highlights: unknown;
   status: string;
   portfolio_id: string | null;
@@ -21,7 +23,7 @@ async function updateJob(jobId: string, values: Record<string, unknown>): Promis
 export async function runGenerationJob(jobId: string): Promise<void> {
   const { data, error } = await getSupabaseClient()
     .from("generation_jobs")
-    .select("id, user_id, repository_id, prompt, target_role, highlights, status, portfolio_id")
+    .select("id, user_id, repository_id, prompt, target_role, tone, highlights, status, portfolio_id")
     .eq("id", jobId)
     .maybeSingle();
   if (error || !data) throw new Error("Generation job is unavailable.");
@@ -40,6 +42,7 @@ export async function runGenerationJob(jobId: string): Promise<void> {
   const evidence = await collectPortfolioEvidence(job.user_id, job.repository_id, {
     prompt: job.prompt,
     targetRole: job.target_role,
+    tone: job.tone,
     highlights: Array.isArray(job.highlights) ? job.highlights.filter((value): value is string => typeof value === "string") : [],
   });
 
