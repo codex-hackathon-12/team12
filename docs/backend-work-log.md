@@ -5,6 +5,53 @@
 위에 추가한다. 아래 기존 기록의 `docs/work-log.md` 표기는 작업 당시 사용한
 통합 로그 경로를 의미한다.
 
+## 2026-08-16-25 — 도메인별 API 오류 로그와 요청 추적 추가
+
+- 상태: 완료
+- 정제된 요청: 프론트엔드가 인증, 저장소, 생성, 포트폴리오 API와 연결될 때
+  실패 위치를 서버 로그에서 빠르게 식별할 수 있게 한다.
+- 결정사항:
+  - Vercel console에서 검색 가능한 JSON 로그에 domain, operation, route template,
+    HTTP method, status, error code, request ID와 처리 시간을 기록한다.
+  - 요청 본문, query string, cookie, access token과 원본 오류 stack은 로그에
+    남기지 않으며 오류 메시지의 Bearer token·key·secret 값은 마스킹한다.
+  - 모든 API 응답에 `x-request-id`를 넣고, 오류 응답에는 기존 JSON body를
+    유지한 채 `x-api-error-code` 헤더를 추가한다.
+- 반영 내용:
+  - auth, repositories, generations, portfolios Route Handler 전체를 공통 로거로
+    감쌌다.
+  - GitHub OAuth callback, 저장소 동기화, 생성 작업 생성과 Workflow 시작·실행
+    실패에 원인과 job ID를 포함한 도메인 로그를 추가했다.
+- 수정 파일: `server/observability/api-logging.ts`, `server/http.ts`, `app/api/v1/**`,
+  `server/generation/jobs.ts`, `workflows/generate-portfolio.ts`,
+  `tests/api-logging.test.mjs`
+- 검증: `node --experimental-strip-types --test tests/portfolio-prompt.test.mjs
+  tests/api-logging.test.mjs`, `npx tsc --noEmit`, `npm run lint`, `npm test`를
+  통과했다. Codex sandbox의 TCP 제한으로 기존 렌더링 테스트 1건은 skip됐다.
+
+## 2026-08-16-24 — 근거 기반 OpenAI 포트폴리오 프롬프트 고도화
+
+- 상태: 완료
+- 정제된 요청: 프론트엔드와 REST API 계약을 변경하지 않고, GitHub 근거를
+  우선하는 채용형 포트폴리오 생성 품질을 높인다.
+- 결정사항:
+  - 사용자 프롬프트와 강조 항목은 표현 우선순위에만 사용하고, 저장소 근거와
+    충돌할 경우 사실로 반영하지 않는다.
+  - README, 커밋·PR 제목과 사용자 입력은 참고 자료로 구분해 포함된 지시를
+    실행하지 않도록 한다.
+  - 기존 `tone` 값은 `professional`, `concise`, `storytelling` 문체 규칙으로
+    실제 OpenAI 지침에 반영한다.
+- 반영 내용:
+  - 선호도와 저장소 근거를 분리하는 프롬프트 빌더를 추가했다.
+  - 수치·역할·기술·성과 환각 방지, 단일 저장소 단일 프로젝트, 근거 부족 시
+    빈 배열 반환과 중립적 역할 표현 규칙을 추가했다.
+  - 생성 Workflow가 저장된 `tone`을 조회해 GitHub 근거 수집과 OpenAI 요청에
+    전달하도록 연결했다.
+- 수정 파일: `server/openai/**`, `server/github/evidence.ts`,
+  `server/generation/runner.ts`, `tests/portfolio-prompt.test.mjs`
+- 검증: `node --experimental-strip-types --test tests/portfolio-prompt.test.mjs`,
+  `npx tsc --noEmit`, `npm run lint`를 통과했다.
+
 ## 2026-08-16-23 — Vercel 런타임과 Workflow 전환
 
 - 상태: 완료

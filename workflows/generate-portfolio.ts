@@ -1,11 +1,18 @@
 import { markGenerationJobFailed, runGenerationJob } from "@/server/generation/runner";
+import { logOperationFailure } from "@/server/observability/api-logging";
 
 export async function generatePortfolioWorkflow(jobId: string): Promise<void> {
   "use workflow";
 
   try {
     await runGenerationStep(jobId);
-  } catch {
+  } catch (error) {
+    logOperationFailure({
+      domain: "generations",
+      operation: "workflow.run",
+      jobId,
+      error,
+    });
     await markGenerationFailedStep(jobId);
   }
 }

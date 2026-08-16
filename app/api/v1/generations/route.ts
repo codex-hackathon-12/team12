@@ -1,10 +1,11 @@
 import { requireUser } from "@/server/auth/require-user";
 import { ActiveGenerationError, createJob } from "@/server/generation/jobs";
 import { failure, success } from "@/server/http";
+import { getRequestId, logOperationFailure, withApiLogging } from "@/server/observability/api-logging";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request): Promise<Response> {
+async function handlePOST(request: Request): Promise<Response> {
   const authentication = await requireUser(request);
   if ("response" in authentication) return authentication.response;
   let body: Record<string, unknown>;
@@ -31,8 +32,20 @@ export async function POST(request: Request): Promise<Response> {
     });
     return job ? success(job, 202) : failure("NOT_FOUND", "저장소를 찾을 수 없습니다.", 404);
   } catch (error) {
-    return error instanceof ActiveGenerationError
-      ? failure("GENERATION_IN_PROGRESS", "진행 중인 생성 작업이 있습니다.", 409)
-      : failure("INTERNAL_ERROR", "생성 요청을 처리하지 못했습니다.", 500);
+    if (error instanceof ActiveGenerationError) {
+      return failure("GENERATION_IN_PROGRESS", "진행 중인 생성 작업이 있습니다.", 409);
+    }
+    logOperationFailure({
+      domain: "generations",
+      operation: "job.create",
+      requestId: getRequestId(request),
+      error,
+    });
+    return failure("INTERNAL_ERROR", "생성 요청을 처리하지 못했습니다.", 500);
   }
 }
+
+export const POST = withApiLogging(
+  { domain: "generations", operation: "job.create", route: "/api/v1/generations" },
+  handlePOST,
+);

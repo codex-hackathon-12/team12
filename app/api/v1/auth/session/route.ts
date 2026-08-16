@@ -1,7 +1,8 @@
 import { getSessionUser } from "@/server/auth/session";
 import { success } from "@/server/http";
+import { withApiLogging } from "@/server/observability/api-logging";
 
-export async function GET(request: Request): Promise<Response> {
+async function handleGET(request: Request): Promise<Response> {
   const user = await getSessionUser(request);
   return success({
     authenticated: Boolean(user),
@@ -21,3 +22,8 @@ export async function GET(request: Request): Promise<Response> {
       : null,
   });
 }
+
+export const GET = withApiLogging(
+  { domain: "auth", operation: "session.read", route: "/api/v1/auth/session" },
+  handleGET,
+);

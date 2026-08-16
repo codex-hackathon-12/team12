@@ -1,5 +1,6 @@
 import { start } from "workflow/api";
 import { getRepository } from "@/server/github/repositories";
+import { logOperationFailure } from "@/server/observability/api-logging";
 import { getSupabaseClient } from "@/server/supabase/client";
 import { generatePortfolioWorkflow } from "@/workflows/generate-portfolio";
 
@@ -83,7 +84,13 @@ export async function createJob(userId: string, input: Input) {
   try {
     const workflow = await start(generatePortfolioWorkflow, [data.id]);
     await getSupabaseClient().from("generation_jobs").update({ workflow_instance_id: workflow.runId }).eq("id", data.id);
-  } catch {
+  } catch (error) {
+    logOperationFailure({
+      domain: "generations",
+      operation: "workflow.start",
+      jobId: data.id,
+      error,
+    });
     await getSupabaseClient()
       .from("generation_jobs")
       .update({ status: "failed", stage: "failed", error_code: "GENERATION_FAILED", error_message: "생성 작업을 시작하지 못했습니다." })

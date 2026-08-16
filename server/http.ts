@@ -29,7 +29,11 @@ export function failure(
   status: number,
   details?: Record<string, unknown>,
 ): Response {
-  return json({ error: { code, message, ...(details ? { details } : {}) } }, status);
+  return json(
+    { error: { code, message, ...(details ? { details } : {}) } },
+    status,
+    { "x-api-error-code": code },
+  );
 }
 
 export function parseCookie(request: Request, name: string): string | null {

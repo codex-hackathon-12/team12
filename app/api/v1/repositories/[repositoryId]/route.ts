@@ -1,8 +1,9 @@
 import { requireUser } from "@/server/auth/require-user";
 import { failure, success } from "@/server/http";
 import { getRepository } from "@/server/github/repositories";
+import { withApiLogging } from "@/server/observability/api-logging";
 
-export async function GET(
+async function handleGET(
   request: Request,
   context: { params: Promise<{ repositoryId: string }> },
 ): Promise<Response> {
@@ -19,3 +20,8 @@ export async function GET(
 
   return success(repository);
 }
+
+export const GET = withApiLogging(
+  { domain: "repositories", operation: "repository.read", route: "/api/v1/repositories/[repositoryId]" },
+  handleGET,
+);

@@ -1,8 +1,9 @@
 import { requireUser } from "@/server/auth/require-user";
 import { failure, success } from "@/server/http";
 import { decodeCursor, encodeCursor, listRepositories } from "@/server/github/repositories";
+import { withApiLogging } from "@/server/observability/api-logging";
 
-export async function GET(request: Request): Promise<Response> {
+async function handleGET(request: Request): Promise<Response> {
   const authentication = await requireUser(request);
   if ("response" in authentication) {
     return authentication.response;
@@ -29,3 +30,8 @@ export async function GET(request: Request): Promise<Response> {
     { nextCursor: encodeCursor(result.nextOffset), hasNextPage: result.hasNextPage },
   );
 }
+
+export const GET = withApiLogging(
+  { domain: "repositories", operation: "repository.list", route: "/api/v1/repositories" },
+  handleGET,
+);

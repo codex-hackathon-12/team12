@@ -1,8 +1,9 @@
 import { requireUser } from "@/server/auth/require-user";
 import { failure } from "@/server/http";
+import { withApiLogging } from "@/server/observability/api-logging";
 import { downloadResume } from "@/server/portfolio/resume";
 
-export async function GET(
+async function handleGET(
   request: Request,
   context: { params: Promise<{ portfolioId: string }> },
 ): Promise<Response> {
@@ -19,3 +20,8 @@ export async function GET(
     },
   });
 }
+
+export const GET = withApiLogging(
+  { domain: "portfolios", operation: "resume.download", route: "/api/v1/portfolios/[portfolioId]/resume.pdf" },
+  handleGET,
+);
