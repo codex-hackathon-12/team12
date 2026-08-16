@@ -2,6 +2,128 @@
 
 이 문서는 사용자 요청, 주요 결정, 실제 반영 내용과 검증 결과를 시간순으로 추적한다. 요청은 원문을 그대로 복사하지 않고 목표, 제약조건과 완료 기준이 드러나도록 정제한다. 최신 항목을 위에 추가하며 통합 담당자만 수정한다.
 
+## 2026-08-16-20 — 프론트엔드 MVP 기준점 커밋
+
+- 상태: 완료
+- 정제된 요청: 지금까지 구현한 프론트엔드 MVP와 Pretendard 적용 내용을
+  `develop` 브랜치의 중간 기준점으로 커밋한다.
+- 제약조건:
+  - 백엔드 담당 파일과 미완성 REST API 구현은 포함하지 않는다.
+  - 프론트엔드, mock adapter, 화면 자산과 관련 문서만 명시적으로 stage한다.
+  - 원격 push는 이번 작업 범위에 포함하지 않는다.
+- 결정사항:
+  - 대시보드부터 결과까지의 전체 사용자 흐름이 하나의 시연 가능한 기능을
+    이루므로 `feat(frontend)` 커밋 하나로 묶는다.
+  - 초기 skeleton 제거와 의존성 정리는 완성된 제품 화면 전환에 필요한 변경으로
+    같은 커밋에 포함한다.
+- 검증:
+  - vinext production build와 렌더링 테스트 2건을 통과했다.
+  - ESLint와 diff 검사를 통과했다.
+- 남은 항목: 백엔드 통합 후 HTTP adapter 전환과 실 API 흐름을 검증한다.
+
+## 2026-08-16-19 — Pretendard 전역 글꼴 적용
+
+- 상태: 완료
+- 정제된 요청: `public/fonts/pretendard`에 추가된 WOFF2 파일을 사용해
+  서비스의 기본 글꼴을 Pretendard로 변경한다.
+- 결정사항:
+  - Thin부터 Black까지 제공된 9개 굵기를 각각 실제 font weight에 연결한다.
+  - 본문과 폼 요소는 Pretendard를 사용하고 코드·식별자 표현을 위해 의도적으로
+    지정한 고정폭 글꼴은 기존 디자인 표현으로 유지한다.
+  - 폰트 로딩 중 텍스트가 보이지 않는 시간을 줄이기 위해 `font-display: swap`을
+    사용한다.
+- 반영 내용:
+  - Pretendard WOFF2 9개 파일의 `@font-face`를 등록했다.
+  - 전역 Pretendard font stack 변수를 만들고 `body`에 적용했다.
+  - 실제 폰트 파일이 배치되어 더 이상 필요하지 않은 `.gitkeep`을 제거했다.
+- 수정 파일: `app/globals.css`, `public/fonts/**`, `docs/work-log.md`
+- 검증: 폰트 파일명과 weight 매핑을 확인하고 production build를 수행한다.
+- 남은 항목: 없음
+
+## 2026-08-16-18 — Pretendard 폰트 디렉터리 준비
+
+- 상태: 완료
+- 정제된 요청: 사용자가 준비한 Pretendard 로컬 폰트 파일을 배치할 수
+  있도록 프론트엔드 정적 자산 영역에 전용 디렉터리를 만든다.
+- 결정사항: 브라우저에서 `/fonts/**` 경로로 제공할 수 있도록
+  `public/fonts`를 사용한다.
+- 반영 내용: 빈 디렉터리가 Git에서도 유지되도록 `.gitkeep`을 추가했다.
+- 수정 파일: `public/fonts/.gitkeep`, `docs/work-log.md`
+- 검증: `public/fonts` 디렉터리 생성과 Git 추적 가능 상태를 확인했다.
+- 남은 항목: Pretendard 폰트 파일 배치 후 `@font-face`와 전역
+  `font-family`를 적용한다.
+
+## 2026-08-16-17 — 로컬 개발 서버 모듈 로딩 복구
+
+- 상태: 완료
+- 정제된 요청: 대시보드 확인 중 발생한 `DashboardShell.tsx` 동적 모듈
+  로딩 오류의 원인을 확인하고 로컬 화면을 다시 열 수 있는 상태로 복구한다.
+- 원인:
+  - 이전 vinext 개발 서버가 터미널 세션과 분리된 채 남아 있었고, 브라우저의
+    기존 Vite HMR 모듈 참조가 유효한 응답을 받지 못했다.
+  - `DashboardShell` 코드나 production build의 오류는 아니었다.
+- 조치:
+  - 분리된 개발 서버 프로세스를 정상 종료했다.
+  - 프로젝트 요구 버전에 맞는 Node.js 런타임으로 개발 서버를 다시 실행했다.
+- 검증:
+  - `http://localhost:3000/dashboard` 요청이 HTTP 200으로 응답함을 확인했다.
+  - 서버 재시작 후 화면 모듈이 다시 컴파일되는 것을 확인했다.
+  - 브라우저 확장 프로그램이 추가한 `cz-shortcut-listen` 속성으로 인한 개발용
+    hydration 경고는 애플리케이션 오류가 아니며 화면 동작에 영향을 주지 않는다.
+- 수정 파일: `docs/work-log.md`
+- 남은 항목: 브라우저에 이전 오류 화면이 남아 있으면 한 번 새로고침한다.
+
+## 2026-08-16-16 — 프론트엔드 MVP 구현
+
+- 상태: 완료
+- 정제된 요청: 확정된 아키텍처와 API 계약을 기준으로 대시보드부터
+  저장소 선택, 프롬프트 입력, 생성 대기, 결과, 결제와 갤러리까지의
+  프론트엔드 MVP를 구현한다. 백엔드 개발 중에는 계약 기반 mock을 사용하고
+  화면 수정 없이 실제 REST API로 전환할 수 있게 구성한다.
+- 제약조건:
+  - 프론트엔드는 `app/api/**`, 백엔드 파일과 공유 API 계약을 수정하지 않는다.
+  - GitHub 로그인, 결제와 크레딧 차감은 MVP에서 mock으로만 표현한다.
+  - 신규 크레딧 100과 생성 예상 비용 30을 표시하되 실제로 차감하지 않는다.
+  - 백엔드가 확정한 PDF 이력서 필드를 mock과 결과 화면에도 동일하게 반영한다.
+- 결정사항:
+  - 따뜻한 아이보리, 짙은 초록과 라임을 사용하는 편집형 대시보드 디자인을
+    모든 화면에 일관되게 적용한다.
+  - UI는 `lib/api-client/index.ts`의 client만 사용하고 기본 adapter는 mock으로
+    고정한다. 실제 연동은 `NEXT_PUBLIC_API_MODE=http` 설정으로 전환한다.
+  - vinext의 같은 계층 동적 매개변수 이름 제한에 맞춰 생성 경로를 `[id]`로
+    통일한다. prompt 화면에서는 저장소 ID, processing 화면에서는 작업 ID로
+    해석하며 외부 URL 구조는 유지한다.
+  - 생성 mock은 queued부터 completed까지 polling 상태를 재현하고 완료 시
+    포트폴리오 결과로 이동한다.
+- 반영 내용:
+  - 대시보드, 저장소 선택, 프롬프트, 생성 대기, 결과, 결제 성공·취소,
+    갤러리 목록·상세와 공지 상세 화면을 구현했다.
+  - 반응형 공통 shell, 모바일 하단 내비게이션, 로딩 상태와 포트폴리오
+    미리보기 컴포넌트를 추가했다.
+  - 공유 DTO를 사용하는 mock fixture, 생성 시나리오, mock adapter와 HTTP
+    adapter를 구현했다.
+  - 요청 호스트 기반 metadata, Open Graph 정보와 전용 소셜 이미지를 추가했다.
+  - 초기 preview 컴포넌트, 기본 SVG와 사용하지 않는 skeleton 의존성을 제거했다.
+- 수정 파일:
+  - `app/**`
+  - `components/**`
+  - `lib/api-client/**`
+  - `mocks/api/**`
+  - `public/og.png`
+  - `architecture.md`
+  - `package.json`
+  - `package-lock.json`
+  - `tests/rendered-html.test.mjs`
+  - `docs/work-log.md`
+- 검증:
+  - vinext 프로덕션 빌드를 통과했고 12개 애플리케이션 경로 생성을 확인했다.
+  - 대시보드 SSR과 초기 템플릿 제거·mock 기본값 테스트 2건을 통과했다.
+  - 전체 ESLint 검사를 오류 없이 통과했다.
+  - 전체 TypeScript 검사에서 프론트엔드 오류는 없으며, 백엔드 담당 영역의
+    Cloudflare Worker 전역 타입(`cloudflare:workers`, `Fetcher`, `D1Database`)
+    미설정 오류만 남아 있다.
+- 남은 항목: 백엔드 REST API 구현 후 환경 설정을 HTTP adapter로 바꾸고
+  GitHub OAuth, 실제 결제와 PDF 다운로드 endpoint를 통합 검증한다.
 ## 2026-08-16-15 — 서버 환경 변수 가이드 추가
 
 - 상태: 완료

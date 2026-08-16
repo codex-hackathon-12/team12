@@ -68,8 +68,9 @@ app/
 │   ├── dashboard/page.tsx
 │   ├── repositories/page.tsx
 │   ├── create/
-│   │   ├── [repositoryId]/prompt/page.tsx
-│   │   └── [jobId]/processing/page.tsx
+│   │   └── [id]/
+│   │       ├── prompt/page.tsx
+│   │       └── processing/page.tsx
 │   ├── portfolios/[portfolioId]/page.tsx
 │   ├── billing/
 │   │   ├── page.tsx
@@ -81,6 +82,10 @@ app/
 ├── announcements/[announcementId]/page.tsx
 └── api/v1/
 ```
+
+Next.js는 같은 동적 경로 위치에 서로 다른 parameter 이름을 허용하지 않는다.
+따라서 파일 시스템에서는 공통 `[id]`를 사용하고, `prompt` 페이지는 이를
+`repositoryId`로, `processing` 페이지는 `jobId`로 해석한다.
 
 ## 5. 공통 대시보드 레이아웃
 
