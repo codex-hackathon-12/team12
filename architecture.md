@@ -480,11 +480,14 @@ mocks/api/
 
 | 모델 | 주요 필드 | 설명 |
 | --- | --- | --- |
-| `User` | `id`, `email`, `name`, `creditBalance`, `createdAt` | 사용자와 크레딧 잔액 |
-| `GitConnection` | `id`, `userId`, `provider`, `providerUserId` | Git 계정 연결 정보 |
+| `User` | `id`, `githubUserId`, `email`, `name`, `createdAt` | GitHub 계정 기반 사용자 |
+| `Session` | `id`, `userId`, `tokenHash`, `expiresAt`, `revokedAt` | 서버 전용 로그인 세션 |
+| `GitConnection` | `id`, `userId`, `providerUserId`, `encryptedToken`, `scopes`, `expiresAt` | 암호화된 GitHub 연결 정보 |
 | `Repository` | `id`, `userId`, `providerRepoId`, `name`, `url`, `language`, `isPrivate`, `updatedAt` | 동기화된 저장소 |
-| `GenerationJob` | `id`, `userId`, `repositoryId`, `prompt`, `status`, `stage`, `errorCode`, `portfolioId`, `createdAt` | 비동기 생성 작업 |
+| `RepositoryAnalysis` | `id`, `repositoryId`, `languageBreakdown`, `commitCount`, `pullRequestCount`, `summary` | 원본 코드 없이 보관한 분석 요약 |
+| `GenerationJob` | `id`, `userId`, `repositoryId`, `workflowInstanceId`, `prompt`, `status`, `stage`, `errorCode`, `portfolioId`, `createdAt` | 비동기 생성 작업 |
 | `Portfolio` | `id`, `userId`, `repositoryId`, `title`, `content`, `style`, `resumePdfPath`, `resumePdfGeneratedAt`, `createdAt` | 생성 결과와 PDF 위치 |
+| `AccountDeletionJob` | `id`, `userId`, `workflowInstanceId`, `status`, `errorCode` | 계정과 Storage 파일의 비동기 삭제 작업 |
 | `GalleryExample` | `id`, `title`, `role`, `techStack`, `thumbnailUrl`, `portfolioContent`, `isPublished` | 공개 예시 |
 | `CreditLedger` | `id`, `userId`, `amount`, `reason`, `referenceId`, `createdAt` | 실제 크레딧 도입 시 사용할 증감 원장. MVP에서는 저장하지 않음 |
 | `Payment` | `id`, `userId`, `provider`, `providerPaymentId`, `amount`, `credits`, `status`, `createdAt` | 실제 결제 도입 시 사용할 결제 기록. MVP에서는 저장하지 않음 |

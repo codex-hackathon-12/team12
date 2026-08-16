@@ -2,6 +2,34 @@
 
 이 문서는 사용자 요청, 주요 결정, 실제 반영 내용과 검증 결과를 시간순으로 추적한다. 요청은 원문을 그대로 복사하지 않고 목표, 제약조건과 완료 기준이 드러나도록 정제한다. 최신 항목을 위에 추가하며 통합 담당자만 수정한다.
 
+## 2026-08-16-10 — Supabase 초기 스키마와 서버 client 추가
+
+- 상태: 완료
+- 정제된 요청: 프론트엔드 코드를 변경하지 않고 GitHub OAuth, 저장소 분석,
+  생성 작업, PDF와 계정 삭제를 지원하는 Supabase 초기 스키마를 추가한다.
+- 제약조건:
+  - GitHub 원본 코드와 커밋 본문은 저장하지 않는다.
+  - Storage PDF는 private bucket에 보관하고 서버 API로만 제공한다.
+  - 모든 데이터 접근은 Workers의 server-only Supabase client를 사용한다.
+- 결정사항:
+  - 활성 생성 작업은 사용자당 하나만 허용하는 부분 unique index로 강제한다.
+  - RLS를 모든 public 테이블과 Storage object에 적용하고, 브라우저 직접 접근 정책은 만들지 않는다.
+  - 계정 삭제는 완료 후 사용자 데이터를 지울 수 있도록 별도 작업 테이블로 관리한다.
+- 반영 내용:
+  - Postgres enum, 테이블, 인덱스, trigger, RLS와 private `resumes` bucket migration을 추가했다.
+  - Workers 전용 Supabase client와 Cloudflare module 타입 선언을 추가했다.
+  - 더 이상 사용하지 않는 D1 예제와 Worker DB binding을 제거했다.
+- 수정 파일:
+  - `supabase/migrations/202608160001_initial_backend.sql`
+  - `server/supabase/client.ts`
+  - `server/supabase/types.ts`
+  - `types/backend/cloudflare-workers.d.ts`
+  - `worker/index.ts`
+  - `architecture.md`
+  - `docs/work-log.md`
+- 검증: TypeScript와 SQL migration 검사를 수행한다.
+- 남은 항목: GitHub OAuth, 저장소 동기화와 생성 API를 구현한다.
+
 ## 2026-08-16-09 — Supabase 저장소 기반 전환
 
 - 상태: 완료
