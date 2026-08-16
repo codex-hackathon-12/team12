@@ -2,6 +2,26 @@
 
 이 문서는 사용자 요청, 주요 결정, 실제 반영 내용과 검증 결과를 시간순으로 추적한다. 요청은 원문을 그대로 복사하지 않고 목표, 제약조건과 완료 기준이 드러나도록 정제한다. 최신 항목을 위에 추가하며 통합 담당자만 수정한다.
 
+## 2026-08-16-11 — GitHub OAuth와 서버 세션 API 구현
+
+- 상태: 완료
+- 정제된 요청: private GitHub 저장소 접근에 필요한 OAuth 연결과 서버 세션 API를
+  프론트엔드 코드 변경 없이 구현한다.
+- 결정사항:
+  - OAuth scope는 `read:user`, `user:email`, `repo`, `read:org`로 고정한다.
+  - OAuth state는 짧은 만료의 HttpOnly cookie로 검증한다.
+  - GitHub token은 AES-GCM으로 암호화하고, 세션 token은 해시만 저장한다.
+- 반영 내용:
+  - GitHub 로그인 시작·callback·세션 조회·로그아웃 endpoint를 구현했다.
+  - GitHub 사용자와 암호화 연결 정보를 Supabase에 upsert하고 서버 세션을 발급한다.
+- 수정 파일:
+  - `app/api/v1/auth/**`
+  - `server/auth/**`
+  - `server/http.ts`
+  - `docs/work-log.md`
+- 검증: TypeScript와 lint 검사를 수행한다.
+- 남은 항목: 저장소 동기화와 생성 작업 API를 구현한다.
+
 ## 2026-08-16-10 — Supabase 초기 스키마와 서버 client 추가
 
 - 상태: 완료
