@@ -28,38 +28,110 @@ import {
 } from "@/contracts/api-contract";
 import type { ApiClient } from "@/lib/api-client/client";
 
-class ApiClientError extends Error {
+export class ApiClientError extends Error {
   constructor(
     message: string,
     public readonly status: number,
     public readonly response?: ApiErrorResponse,
+    public readonly requestId?: string,
   ) {
     super(message);
     this.name = "ApiClientError";
   }
+
+  get code() {
+    return this.response?.error.code;
+  }
 }
 
-const request = async <TData>(url: string, init?: RequestInit) => {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-    credentials: "include",
-  });
-  const body = (await response.json()) as
-    | ApiSuccessResponse<TData, CursorPaginationMeta>
-    | ApiErrorResponse;
+type ApiResponse<TData> =
+  | ApiSuccessResponse<TData, CursorPaginationMeta>
+  | ApiErrorResponse;
 
-  if (!response.ok || "error" in body) {
-    const error = "error" in body ? body : undefined;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value && typeof value === "object" && !Array.isArray(value));
+
+const isApiErrorResponse = (value: unknown): value is ApiErrorResponse => {
+  if (!isRecord(value) || !isRecord(value.error)) return false;
+  return (
+    typeof value.error.code === "string" &&
+    typeof value.error.message === "string"
+  );
+};
+
+const isApiSuccessResponse = <TData>(
+  value: unknown,
+): value is ApiSuccessResponse<TData, CursorPaginationMeta> =>
+  isRecord(value) && "data" in value;
+
+const parseBody = async <TData>(
+  response: Response,
+): Promise<ApiResponse<TData> | null> => {
+  if (response.status === 204) return null;
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) return null;
+
+  try {
+    return (await response.json()) as ApiResponse<TData>;
+  } catch {
+    return null;
+  }
+};
+
+const redirectToGitHubLogin = () => {
+  if (typeof window === "undefined") return;
+
+  const returnTo = `${window.location.pathname}${window.location.search}`;
+  window.location.assign(
+    withQuery(API_ROUTES.auth.githubStart, { returnTo }),
+  );
+};
+
+const request = async <TData>(url: string, init?: RequestInit) => {
+  const headers = new Headers(init?.headers);
+  headers.set("Accept", "application/json");
+  if (init?.body !== undefined && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...init,
+      headers,
+      credentials: "include",
+    });
+  } catch {
+    throw new ApiClientError(
+      "서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요.",
+      0,
+    );
+  }
+
+  const body = await parseBody<TData>(response);
+  const requestId = response.headers.get("x-request-id") ?? undefined;
+
+  if (!response.ok || isApiErrorResponse(body)) {
+    const error = isApiErrorResponse(body) ? body : undefined;
+    if (response.status === 401) redirectToGitHubLogin();
     throw new ApiClientError(
       error?.error.message ?? "요청을 처리하지 못했습니다.",
       response.status,
       error,
+      requestId,
     );
   }
+
+  if (!isApiSuccessResponse<TData>(body)) {
+    throw new ApiClientError(
+      "서버 응답 형식을 확인하지 못했습니다.",
+      response.status,
+      undefined,
+      requestId,
+    );
+  }
+
   return body;
 };
 

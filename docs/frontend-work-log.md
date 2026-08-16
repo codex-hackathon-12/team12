@@ -5,6 +5,36 @@ client 등 프론트엔드 담당 작업을 기록한다. 프론트엔드 로그
 수정하며 최신 항목을 위에 추가한다. 아래 기존 기록의 `docs/work-log.md`
 표기는 작업 당시 사용한 통합 로그 경로를 의미한다.
 
+## 2026-08-16-30 — REST API 연결 시작
+
+- 상태: 진행 중
+- 정제된 요청: 구현이 완료된 REST API를 프론트 API client에 연결하고,
+  실제 HTTP 응답과 오류를 화면 계층에 안전하게 전달할 수 있는 기반을 만든다.
+- 제약조건:
+  - 페이지와 컴포넌트는 기존 `apiClient` 인터페이스만 사용한다.
+  - 백엔드 Route Handler, 서버 서비스와 공유 계약은 수정하지 않는다.
+  - 다중 저장소는 합의된 단일 `repositoryId` HTTP 계약을 유지한다.
+- 결정사항:
+  - 로컬 환경의 `NEXT_PUBLIC_API_MODE=http` 설정을 사용한다.
+  - 서버가 제공하는 `x-request-id`를 `ApiClientError`에 보존해 오류 추적에
+    사용할 수 있게 한다.
+  - 네트워크 오류, JSON이 아닌 응답과 잘못된 envelope를 서로 구분한다.
+- 반영 내용:
+  - HTTP adapter가 요청 body가 있을 때만 JSON Content-Type을 지정하도록 했다.
+  - 연결 실패, 비 JSON 응답과 계약에 맞지 않는 성공 응답을 안전하게
+    `ApiClientError`로 변환했다.
+  - 보호 API가 `401`을 반환하면 현재 경로를 `returnTo`로 보존해 GitHub
+    로그인 endpoint로 이동하도록 했다.
+  - HTTP 상태, API 오류 코드와 request ID를 상위 화면에서 확인할 수 있게 했다.
+- 수정 파일: `lib/api-client/adapters/http/index.ts`,
+  `lib/api-client/index.ts`, `docs/frontend-work-log.md`
+- 검증:
+  - 실제 로컬 REST 요청에서 공개 API 5개의 `200`, 보호 API 3개의 `401`과
+    모든 응답의 request ID를 확인했다.
+  - ESLint와 production build를 통과했다.
+- 남은 항목: GitHub 로그인 후 저장소 동기화부터 생성 결과까지의 인증 흐름,
+  실제 PDF 생성과 다중 저장소 계약을 확인한다.
+
 ## 2026-08-16-29 — 로컬 랜딩 미리보기 경로 추가
 
 - 상태: 완료
