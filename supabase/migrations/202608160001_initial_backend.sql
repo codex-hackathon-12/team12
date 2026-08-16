@@ -201,4 +201,3 @@ alter table public.repository_analyses enable row level security;
 alter table public.generation_jobs enable row level security;
 alter table public.portfolios enable row level security;
 alter table public.account_deletion_jobs enable row level security;
-alter table storage.objects enable row level security;
