@@ -44,7 +44,7 @@ function toStage(value: string) {
 }
 
 function toDto(record: Record<string, unknown>) {
-  const portfolios = record.portfolios as { resume_pdf_path: string | null }[] | null;
+  const portfolio = record.portfolio as { resume_pdf_path: string | null } | null;
   return {
     jobId: record.id as string,
     repositoryId: record.repository_id as string,
@@ -53,7 +53,7 @@ function toDto(record: Record<string, unknown>) {
     progress: record.progress as number,
     message: record.message as string,
     portfolioId: record.portfolio_id as string | null,
-    resumePdfAvailable: Boolean(portfolios?.[0]?.resume_pdf_path),
+    resumePdfAvailable: Boolean(portfolio?.resume_pdf_path),
     creditQuote: quote,
     error: record.error_code
       ? { code: record.error_code, message: record.error_message || "생성에 실패했습니다.", retryable: record.status === "failed" }
@@ -82,11 +82,14 @@ function toRetryHighlights(value: unknown): string[] {
 async function getJob(userId: string, jobId: string) {
   const { data, error } = await getSupabaseClient()
     .from("generation_jobs")
-    .select("id, repository_id, status, stage, progress, message, portfolio_id, error_code, error_message, created_at, updated_at, portfolios(resume_pdf_path)")
+    .select("id, repository_id, status, stage, progress, message, portfolio_id, error_code, error_message, created_at, updated_at, portfolio:portfolios!generation_jobs_portfolio_id_fkey(resume_pdf_path)")
     .eq("id", jobId)
     .eq("user_id", userId)
     .maybeSingle();
-  return error || !data ? null : toDto(data as Record<string, unknown>);
+  if (error) {
+    throw new Error("Unable to load generation job.");
+  }
+  return data ? toDto(data as Record<string, unknown>) : null;
 }
 
 export async function createJob(userId: string, input: Input) {

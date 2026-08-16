@@ -1,5 +1,6 @@
 import { requireUser } from "@/server/auth/require-user";
 import { ActiveGenerationError, createJob } from "@/server/generation/jobs";
+import { RepositoryLookupError } from "@/server/github/repositories";
 import { failure, success } from "@/server/http";
 import { getRequestId, logOperationFailure, withApiLogging } from "@/server/observability/api-logging";
 
@@ -41,6 +42,9 @@ async function handlePOST(request: Request): Promise<Response> {
       requestId: getRequestId(request),
       error,
     });
+    if (error instanceof RepositoryLookupError) {
+      return failure("INTERNAL_ERROR", "저장소 정보를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.", 500);
+    }
     return failure("INTERNAL_ERROR", "생성 요청을 처리하지 못했습니다.", 500);
   }
 }

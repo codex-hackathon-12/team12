@@ -64,6 +64,18 @@ export class GitHubApiError extends Error {
   }
 }
 
+export class RepositoryLookupError extends Error {
+  constructor(
+    public readonly repositoryId: string,
+    public readonly providerCode?: string,
+  ) {
+    super(
+      `Repository lookup failed for ${repositoryId}${providerCode ? ` (code: ${providerCode})` : ""}.`,
+    );
+    this.name = "RepositoryLookupError";
+  }
+}
+
 function mapRepository(record: RepositoryRecord): RepositoryDto {
   return {
     id: record.id,
@@ -200,18 +212,27 @@ export async function listRepositories(
 }
 
 export async function getRepository(userId: string, repositoryId: string): Promise<RepositoryDto | null> {
-  const { data, error } = await getSupabaseClient()
+  const loadRepository = () => getSupabaseClient()
     .from("repositories")
     .select("id, github_repository_id, owner_username, owner_avatar_url, name, full_name, description, html_url, default_branch, primary_language, visibility, star_count, fork_count, pushed_at, synced_at")
     .eq("user_id", userId)
     .eq("id", repositoryId)
     .maybeSingle();
 
-  if (error || !data) {
+  let result = await loadRepository();
+  if (result.error) {
+    result = await loadRepository();
+  }
+
+  if (result.error) {
+    throw new RepositoryLookupError(repositoryId, result.error.code);
+  }
+
+  if (!result.data) {
     return null;
   }
 
-  return mapRepository(data as RepositoryRecord);
+  return mapRepository(result.data as RepositoryRecord);
 }
 
 export function encodeCursor(offset: number | null): string | null {
