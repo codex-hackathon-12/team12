@@ -10,6 +10,29 @@
 - 백엔드: `docs/backend-work-log.md`
 - 역할 분리 이전 보관본: `docs/work-log-archive.md`
 
+## 2026-08-16-05 — 최종 프로젝트 문서와 대화 이력 정리
+
+- 상태: 완료
+- 정제된 요청: 처음 프로젝트를 접하는 사람이 제품 목적, 실행 방법과 현재
+  MVP 제약을 한 문서에서 이해할 수 있도록 README를 완성하고, 프로젝트 진행
+  중 Codex에 전달한 요청과 결정 과정을 별도 Markdown 문서로 보존한다.
+- 제약조건:
+  - 실제 구현, `architecture.md`, API 계약과 환경 변수 가이드를 기준으로 한다.
+  - 대화 원문이나 내부 추론 대신 요청, 결정, 결과와 후속 과제를 정리한다.
+  - 비밀 키, OAuth token, cookie와 개인 로컬 경로를 기록하지 않는다.
+- 반영 내용:
+  - README에 기능, 사용자 흐름, 라우트, 기술 스택, mock·HTTP 실행 방법,
+    환경 변수, 시스템 레이어, MVP 제약과 협업 문서를 통합했다.
+  - `docs/codex-chat-history.md`에 기획부터 퍼블리싱, REST 연결, 녹화 브랜치와
+    결과 디자인까지의 대화 결정을 시간순으로 기록했다.
+  - 실제 OAuth end-to-end, 다중 저장소 계약과 결과 데이터 QA를 후속 항목으로
+    분리했다.
+- 수정 파일: `README.md`, `docs/codex-chat-history.md`,
+  `docs/work-log.md`
+- 검증: 문서 링크, 구현 경로, 환경 변수명, commit hash와 Markdown 공백을
+  저장소 기준으로 확인했다.
+- 남은 항목: 없음.
+
 ## 2026-08-16-04 — 원격 develop 재통합과 잠금 파일 복구
 
 - 상태: 완료
