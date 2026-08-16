@@ -14,123 +14,208 @@ export function PortfolioPreview({
       (total, group) => total + group.skills.length,
       0,
     );
+    const initials =
+      content.profile.displayName.replace(/\s/gu, "").slice(0, 2).toUpperCase() ||
+      "PF";
+    const topSkills = Array.from(
+      new Set(content.skills.flatMap((group) => group.skills)),
+    ).slice(0, 4);
+    const contactHref = content.contact.email
+      ? `mailto:${content.contact.email}`
+      : content.contact.githubUrl;
 
     return (
       <article className="portfolio-preview result-portfolio-preview">
-        <header className="result-portfolio-hero">
-          <div className="result-portfolio-meta">
-            <span>PORTFOLIO · 2026</span>
-            <span>{content.profile.targetRole}</span>
+        <nav className="result-portfolio-nav" aria-label="포트폴리오 목차">
+          <a className="result-portfolio-brand" href="#portfolio-top">
+            <span>{initials}</span>
+            <strong>{content.profile.displayName}</strong>
+          </a>
+          <div>
+            <a href="#portfolio-about">About</a>
+            <a href="#portfolio-work">Work</a>
+            <a href="#portfolio-expertise">Expertise</a>
           </div>
-          <div className="result-portfolio-intro">
-            <div>
-              <h1>{content.profile.displayName}</h1>
-              <p>{content.profile.headline}</p>
-            </div>
-            <div className="result-contact-card">
-              <span>CONTACT</span>
+          <a className="result-nav-contact" href={contactHref}>
+            Contact ↗
+          </a>
+        </nav>
+
+        <header className="result-portfolio-hero" id="portfolio-top">
+          <div className="result-hero-copy">
+            <p className="result-hero-kicker">
+              <span /> OPEN TO OPPORTUNITIES · 2026
+            </p>
+            <h1>
+              <span>안녕하세요, {content.profile.displayName}입니다.</span>
+              {content.profile.headline}
+            </h1>
+            <p className="result-hero-description">{content.introduction}</p>
+            <div className="result-hero-actions">
+              <a href="#portfolio-work">프로젝트 보기 ↓</a>
               <a href={content.contact.githubUrl} target="_blank" rel="noreferrer">
                 GitHub ↗
               </a>
-              {content.contact.email && (
-                <a href={`mailto:${content.contact.email}`}>{content.contact.email}</a>
-              )}
             </div>
           </div>
+
+          <aside className="result-profile-panel" aria-label="프로필 요약">
+            <div className="result-profile-panel-top">
+              <span>PROFILE / 01</span>
+              <span>FOLIO.AI</span>
+            </div>
+            <div className="result-profile-monogram" aria-hidden="true">
+              {initials}
+            </div>
+            <dl className="result-profile-details">
+              <div>
+                <dt>Role</dt>
+                <dd>{content.profile.targetRole}</dd>
+              </div>
+              <div>
+                <dt>Based in</dt>
+                <dd>{content.contact.location ?? "Seoul · Remote"}</dd>
+              </div>
+              <div>
+                <dt>Core</dt>
+                <dd>{topSkills.join(" · ")}</dd>
+              </div>
+            </dl>
+          </aside>
         </header>
 
-        <section className="result-overview-section">
-          <div className="result-section-label">
-            <span>01</span>
-            <strong>소개</strong>
+        <dl className="result-metric-strip" aria-label="포트폴리오 핵심 지표">
+          <div>
+            <dt>Selected projects</dt>
+            <dd>{String(content.projects.length).padStart(2, "0")}</dd>
           </div>
           <div>
-            <p className="result-introduction">{content.introduction}</p>
-            <dl className="result-summary-grid">
-              <div><dt>프로젝트</dt><dd>{content.projects.length}</dd></div>
-              <div><dt>핵심 기술</dt><dd>{skillCount}</dd></div>
-              <div><dt>주요 언어</dt><dd>{content.gitAnalysis.primaryLanguage}</dd></div>
-            </dl>
+            <dt>Core skills</dt>
+            <dd>{String(skillCount).padStart(2, "0")}</dd>
+          </div>
+          <div>
+            <dt>Primary language</dt>
+            <dd>{content.gitAnalysis.primaryLanguage ?? "—"}</dd>
+          </div>
+          <div>
+            <dt>GitHub signal</dt>
+            <dd>{content.gitAnalysis.starCount}★ · {content.gitAnalysis.forkCount}⑂</dd>
+          </div>
+        </dl>
+
+        <section
+          className="result-portfolio-section result-about-section"
+          id="portfolio-about"
+        >
+          <div className="result-section-heading-block">
+            <span>01 / ABOUT</span>
+            <h2>기술보다 먼저,<br />문제를 이해합니다.</h2>
+          </div>
+          <div className="result-about-content">
+            <p>{content.introduction}</p>
+            <div className="result-about-details">
+              <div>
+                <span>현재 목표</span>
+                <strong>{content.profile.targetRole}</strong>
+              </div>
+              <div>
+                <span>주요 관심사</span>
+                <strong>{topSkills.slice(0, 3).join(", ")}</strong>
+              </div>
+              <div>
+                <span>연락하기</span>
+                <a href={contactHref}>
+                  {content.contact.email ?? "GitHub profile"} ↗
+                </a>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="result-content-section">
-          <div className="result-section-label">
-            <span>02</span>
-            <strong>역량</strong>
-          </div>
-          <div>
-            <div className="result-section-heading">
-              <p>문제를 해결하기 위해 선택한 기술과 협업 방식입니다.</p>
-            </div>
-            <div className="result-skill-groups">
-              {content.skills.map((group) => (
-                <div className="result-skill-group" key={group.category}>
-                  <h2>{group.category}</h2>
-                  <div>
-                    {group.skills.map((skill) => (
-                      <span key={skill}>{skill}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="result-content-section result-project-section">
-          <div className="result-section-label">
-            <span>03</span>
-            <strong>프로젝트</strong>
+        <section
+          className="result-portfolio-section result-project-section"
+          id="portfolio-work"
+        >
+          <div className="result-section-heading-block result-project-heading">
+            <span>02 / SELECTED WORK</span>
+            <h2>결과 뒤에 있는<br />판단을 보여줍니다.</h2>
+            <p>문제를 정의하고, 기술을 선택하고, 결과를 만든 과정을 프로젝트별로 정리했습니다.</p>
           </div>
           <div className="result-project-list">
             {content.projects.map((project, index) => (
               <article className="result-project-card" key={project.id}>
                 <div className="result-project-header">
-                  <div>
-                    <span>PROJECT {String(index + 1).padStart(2, "0")}</span>
-                    <h2>{project.title}</h2>
-                    <p>{project.role}</p>
-                  </div>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
                   <a href={project.repositoryUrl} target="_blank" rel="noreferrer">
-                    저장소 보기 ↗
+                    View repository ↗
                   </a>
                 </div>
-                <p className="result-project-description">{project.description}</p>
-                <div className="result-story-list">
+                <div className="result-project-title-row">
                   <div>
-                    <span>문제</span>
-                    <p>{project.challenges[0]}</p>
+                    <p>{project.role}</p>
+                    <h3>{project.title}</h3>
                   </div>
-                  <div>
-                    <span>접근</span>
-                    <p>{project.solutions[0]}</p>
-                  </div>
-                  <div>
-                    <span>결과</span>
-                    <p>{project.impact[0]}</p>
+                  <div className="result-tech-list">
+                    {project.techStack.map((tech) => <span key={tech}>{tech}</span>)}
                   </div>
                 </div>
-                <div className="result-tech-list">
-                  {project.techStack.map((tech) => <span key={tech}>{tech}</span>)}
+                <p className="result-project-description">{project.description}</p>
+
+                {project.highlights.length > 0 && (
+                  <div className="result-highlight-list">
+                    {project.highlights.map((highlight) => (
+                      <p key={highlight}><span>✓</span>{highlight}</p>
+                    ))}
+                  </div>
+                )}
+
+                <div className="result-story-list">
+                  <div>
+                    <span>01 · Challenge</span>
+                    {project.challenges.map((challenge) => (
+                      <p key={challenge}>{challenge}</p>
+                    ))}
+                  </div>
+                  <div>
+                    <span>02 · Approach</span>
+                    {project.solutions.map((solution) => (
+                      <p key={solution}>{solution}</p>
+                    ))}
+                  </div>
+                  <div>
+                    <span>03 · Impact</span>
+                    {project.impact.map((impact) => (
+                      <p key={impact}>{impact}</p>
+                    ))}
+                  </div>
                 </div>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="result-content-section result-analysis-section">
-          <div className="result-section-label">
-            <span>04</span>
-            <strong>Git 분석</strong>
+        <section
+          className="result-expertise-section"
+          id="portfolio-expertise"
+        >
+          <div className="result-section-heading-block result-expertise-heading">
+            <span>03 / EXPERTISE</span>
+            <h2>도구를 넘어<br />완성도를 만듭니다.</h2>
+            <p>{content.gitAnalysis.summary}</p>
           </div>
-          <div className="result-analysis-content">
-            <h2>{content.gitAnalysis.summary}</h2>
-            <div className="result-pattern-list">
-              {content.gitAnalysis.notablePatterns.map((pattern) => (
-                <span key={pattern}>✓ {pattern}</span>
+          <div className="result-expertise-content">
+            <div className="result-skill-groups">
+              {content.skills.map((group, index) => (
+                <div className="result-skill-group" key={group.category}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <h3>{group.category}</h3>
+                    <p>{group.skills.join(" · ")}</p>
+                  </div>
+                </div>
               ))}
             </div>
+
             <div className="result-language-list" aria-label="언어 사용 비율">
               {content.gitAnalysis.languages.map((language) => (
                 <div key={language.name}>
@@ -139,14 +224,30 @@ export function PortfolioPreview({
                 </div>
               ))}
             </div>
+
+            <div className="result-pattern-list">
+              {content.gitAnalysis.notablePatterns.map((pattern) => (
+                <span key={pattern}>↳ {pattern}</span>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="result-contact-section">
+          <p>LET&apos;S BUILD SOMETHING MEANINGFUL</p>
+          <h2>좋은 코드는,<br />설명될 때 더 큰 기회가 됩니다.</h2>
+          <div>
+            <a href={contactHref}>함께 이야기하기 ↗</a>
+            <a href={content.contact.githubUrl} target="_blank" rel="noreferrer">
+              GitHub에서 더 보기 ↗
+            </a>
           </div>
         </section>
 
         <footer className="result-portfolio-footer">
-          <p>{content.profile.displayName} · {content.profile.targetRole}</p>
-          <a href={content.contact.githubUrl} target="_blank" rel="noreferrer">
-            GitHub profile ↗
-          </a>
+          <p>© 2026 {content.profile.displayName}</p>
+          <span>{content.profile.targetRole} PORTFOLIO</span>
+          <a href="#portfolio-top">Back to top ↑</a>
         </footer>
       </article>
     );
