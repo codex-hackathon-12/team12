@@ -1,0 +1,264 @@
+import type {
+  GitRepositoryDto,
+  PortfolioContentDto,
+  PortfolioDto,
+  PortfolioSummaryDto,
+} from "@/contracts/api-contract";
+
+export type PortfolioRepositoryRecord = {
+  id: string;
+  github_repository_id: number | string;
+  owner_username: string;
+  owner_avatar_url: string;
+  name: string;
+  full_name: string;
+  description: string | null;
+  html_url: string;
+  default_branch: string;
+  primary_language: string | null;
+  visibility: "public" | "private";
+  star_count: number;
+  fork_count: number;
+  pushed_at: string;
+  synced_at: string;
+};
+
+export type PortfolioRecord = {
+  id: string;
+  generation_job_id: string;
+  title: string;
+  target_role: string;
+  content: unknown;
+  style: string;
+  resume_pdf_path: string | null;
+  resume_pdf_generated_at: string | null;
+  created_at: string;
+  updated_at: string;
+  repositories: PortfolioRepositoryRecord | PortfolioRepositoryRecord[] | null;
+};
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function readString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function readNullableString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function readNumber(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function readRepository(record: PortfolioRecord): PortfolioRepositoryRecord | null {
+  if (Array.isArray(record.repositories)) {
+    return record.repositories[0] ?? null;
+  }
+  return record.repositories;
+}
+
+function mapSkills(value: unknown): PortfolioContentDto["skills"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (!isRecord(item)) {
+      return [];
+    }
+
+    return [{
+      category: readString(item.category),
+      skills: readStringArray(item.skills),
+    }];
+  });
+}
+
+function mapProjects(
+  value: unknown,
+  repository: GitRepositoryDto,
+  targetRole: string,
+): PortfolioContentDto["projects"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item, index) => {
+    if (!isRecord(item)) {
+      return [];
+    }
+
+    return [{
+      id: readString(item.id, `project-${index + 1}`),
+      title: readString(item.title),
+      description: readString(item.description),
+      repositoryUrl: readString(item.repositoryUrl, repository.htmlUrl),
+      role: readString(item.role, targetRole),
+      techStack: readStringArray(item.techStack),
+      highlights: readStringArray(item.highlights),
+      challenges: readStringArray(item.challenges),
+      solutions: readStringArray(item.solutions),
+      impact: readStringArray(item.impact),
+    }];
+  });
+}
+
+function mapLanguages(value: unknown): PortfolioContentDto["gitAnalysis"]["languages"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (!isRecord(item) || typeof item.name !== "string" || item.name.trim().length === 0) {
+      return [];
+    }
+
+    return [{ name: item.name, percentage: readNumber(item.percentage) }];
+  });
+}
+
+export function mapRepository(record: PortfolioRepositoryRecord): GitRepositoryDto {
+  return {
+    id: record.id,
+    githubRepositoryId: String(record.github_repository_id),
+    owner: {
+      username: record.owner_username,
+      avatarUrl: record.owner_avatar_url,
+    },
+    name: record.name,
+    fullName: record.full_name,
+    description: record.description,
+    htmlUrl: record.html_url,
+    defaultBranch: record.default_branch,
+    primaryLanguage: record.primary_language,
+    visibility: record.visibility,
+    starCount: record.star_count,
+    forkCount: record.fork_count,
+    pushedAt: record.pushed_at,
+    syncedAt: record.synced_at,
+  };
+}
+
+export function mapPortfolioContent(
+  content: unknown,
+  repository: GitRepositoryDto,
+  targetRole: string,
+): PortfolioContentDto {
+  const source = isRecord(content) ? content : {};
+  const profile = isRecord(source.profile) ? source.profile : {};
+  const gitAnalysis = isRecord(source.gitAnalysis) ? source.gitAnalysis : {};
+  const contact = isRecord(source.contact) ? source.contact : {};
+
+  return {
+    profile: {
+      displayName: readString(profile.displayName),
+      headline: readString(profile.headline),
+      targetRole: readString(profile.targetRole, targetRole),
+      avatarUrl: readNullableString(profile.avatarUrl),
+    },
+    introduction: readString(source.introduction),
+    skills: mapSkills(source.skills),
+    projects: mapProjects(source.projects, repository, targetRole),
+    gitAnalysis: {
+      summary: readString(gitAnalysis.summary),
+      primaryLanguage: readNullableString(gitAnalysis.primaryLanguage),
+      languages: mapLanguages(gitAnalysis.languages),
+      starCount: readNumber(gitAnalysis.starCount),
+      forkCount: readNumber(gitAnalysis.forkCount),
+      notablePatterns: readStringArray(gitAnalysis.notablePatterns),
+    },
+    contact: {
+      githubUrl: readString(contact.githubUrl, repository.htmlUrl),
+      email: readNullableString(contact.email),
+      location: readNullableString(contact.location),
+    },
+  };
+}
+
+export function extractTechStack(content: PortfolioContentDto): string[] {
+  const values = [
+    ...content.gitAnalysis.languages.map((language) => language.name),
+    ...content.projects.flatMap((project) => project.techStack),
+    ...content.skills.flatMap((skillGroup) => skillGroup.skills),
+  ];
+  const unique = new Set<string>();
+
+  for (const value of values) {
+    const normalized = value.trim();
+    if (normalized) {
+      unique.add(normalized);
+    }
+  }
+
+  return [...unique].slice(0, 12);
+}
+
+export function mapPortfolioSummary(record: PortfolioRecord): PortfolioSummaryDto | null {
+  const repositoryRecord = readRepository(record);
+  if (!repositoryRecord) {
+    return null;
+  }
+
+  const repository = mapRepository(repositoryRecord);
+  const content = mapPortfolioContent(record.content, repository, record.target_role);
+  return {
+    id: record.id,
+    title: record.title,
+    targetRole: record.target_role,
+    repositoryName: repository.name,
+    techStack: extractTechStack(content),
+    createdAt: record.created_at,
+  };
+}
+
+export function mapPortfolio(record: PortfolioRecord): PortfolioDto | null {
+  const summary = mapPortfolioSummary(record);
+  const repositoryRecord = readRepository(record);
+  if (!summary || !repositoryRecord) {
+    return null;
+  }
+
+  const repository = mapRepository(repositoryRecord);
+  return {
+    ...summary,
+    generationJobId: record.generation_job_id,
+    repository,
+    style: "default",
+    resumePdf: record.resume_pdf_path
+      ? {
+          downloadUrl: `/api/v1/portfolios/${record.id}/resume.pdf`,
+          generatedAt: record.resume_pdf_generated_at ?? record.updated_at,
+        }
+      : null,
+    content: mapPortfolioContent(record.content, repository, record.target_role),
+    updatedAt: record.updated_at,
+  };
+}
+
+export function encodePortfolioCursor(offset: number | null): string | null {
+  return offset === null ? null : btoa(String(offset));
+}
+
+export function decodePortfolioCursor(value: string | null): number {
+  if (!value) {
+    return 0;
+  }
+
+  try {
+    const offset = Number(atob(value));
+    return Number.isInteger(offset) && offset >= 0 ? offset : 0;
+  } catch {
+    return 0;
+  }
+}
