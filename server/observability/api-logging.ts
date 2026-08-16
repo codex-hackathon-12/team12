@@ -1,4 +1,14 @@
-export type ApiDomain = "auth" | "repositories" | "generations" | "portfolios";
+export type ApiDomain =
+  | "auth"
+  | "repositories"
+  | "generations"
+  | "portfolios"
+  | "dashboard"
+  | "credits"
+  | "billing"
+  | "gallery"
+  | "announcements"
+  | "taste";
 
 type ApiRouteContext = {
   domain: ApiDomain;

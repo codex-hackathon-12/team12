@@ -5,6 +5,28 @@
 위에 추가한다. 아래 기존 기록의 `docs/work-log.md` 표기는 작업 당시 사용한
 통합 로그 경로를 의미한다.
 
+## 2026-08-16-26 — 프론트 HTTP 연결용 API 완성
+
+- 상태: 완료
+- 정제된 요청: 프론트엔드 코드를 수정하지 않고 HTTP adapter가 사용하는
+  남은 대시보드, 포트폴리오, 결제 mock과 공개 콘텐츠 API를 구현한다.
+- 결정사항:
+  - 갤러리, 공지와 맛보기는 DB migration 없이 서버 전용 정적 카탈로그로 제공한다.
+  - 결제 mock은 실제 승인, 잔액 변경과 DB 결제 이력 저장을 수행하지 않는다.
+  - 계정 삭제 Workflow는 현재 프론트 연결 범위에서 제외한다.
+- 반영 내용:
+  - 대시보드, 크레딧, 결제 상품·checkout·내역, 맛보기, 갤러리와 공지 API를
+    계약 DTO로 구현했다.
+  - 소유자 기준 포트폴리오 목록·상세와 실패 생성 작업 재시도 API를 추가했다.
+  - 정적 공개 데이터는 개인 연락처와 비공개 저장소 URL을 포함하지 않으며,
+    모든 새 Route에 domain별 구조화 오류 로그와 request ID를 적용했다.
+- 수정 파일: `app/api/v1/**`, `server/auth/session.ts`, `server/billing/**`,
+  `server/content/**`, `server/dashboard/**`, `server/generation/jobs.ts`,
+  `server/portfolio/**`, `server/observability/api-logging.ts`, 백엔드 테스트.
+- 검증: `node --experimental-strip-types --test`로 백엔드 단위 테스트 17건,
+  `npx tsc --noEmit`, `npm run lint`, `npm test`, `git diff --check`를 통과했다.
+  Codex sandbox의 TCP 제한으로 기존 렌더링 테스트 1건은 skip됐다.
+
 ## 2026-08-16-25 — 도메인별 API 오류 로그와 요청 추적 추가
 
 - 상태: 완료

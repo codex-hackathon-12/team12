@@ -10,7 +10,23 @@ type Input = {
   targetRole?: string;
   tone?: "professional" | "concise" | "storytelling";
   highlights?: string[];
+  message?: string;
 };
+
+type RetrySourceJobRecord = {
+  id: string;
+  repository_id: string;
+  prompt: string;
+  target_role: string | null;
+  tone: string | null;
+  highlights: unknown;
+  status: string;
+};
+
+export type RetryJobResult =
+  | { kind: "not_found" }
+  | { kind: "not_retryable" }
+  | { kind: "created"; previousJobId: string; job: ReturnType<typeof toDto> };
 
 export class ActiveGenerationError extends Error {}
 
@@ -47,6 +63,22 @@ function toDto(record: Record<string, unknown>) {
   };
 }
 
+export function isRetryableGenerationStatus(status: string): boolean {
+  return status === "failed";
+}
+
+function toRetryTone(value: string | null): Input["tone"] {
+  return value === "professional" || value === "concise" || value === "storytelling"
+    ? value
+    : undefined;
+}
+
+function toRetryHighlights(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
 async function getJob(userId: string, jobId: string) {
   const { data, error } = await getSupabaseClient()
     .from("generation_jobs")
@@ -70,7 +102,7 @@ export async function createJob(userId: string, input: Input) {
       target_role: input.targetRole || null,
       tone: input.tone || null,
       highlights: input.highlights || [],
-      message: "생성 요청을 접수했습니다.",
+      message: input.message ?? "생성 요청을 접수했습니다.",
     })
     .select("id")
     .single();
@@ -97,6 +129,43 @@ export async function createJob(userId: string, input: Input) {
       .eq("id", data.id);
   }
   return getJob(userId, data.id);
+}
+
+export async function retryJob(userId: string, jobId: string): Promise<RetryJobResult> {
+  const { data, error } = await getSupabaseClient()
+    .from("generation_jobs")
+    .select("id, repository_id, prompt, target_role, tone, highlights, status")
+    .eq("id", jobId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Unable to load generation job for retry.");
+  }
+
+  if (!data) {
+    return { kind: "not_found" };
+  }
+
+  const source = data as RetrySourceJobRecord;
+  if (!isRetryableGenerationStatus(source.status)) {
+    return { kind: "not_retryable" };
+  }
+
+  const job = await createJob(userId, {
+    repositoryId: source.repository_id,
+    prompt: source.prompt,
+    targetRole: source.target_role ?? undefined,
+    tone: toRetryTone(source.tone),
+    highlights: toRetryHighlights(source.highlights),
+    message: "재시도 요청을 접수했습니다.",
+  });
+
+  if (!job) {
+    throw new Error("Retry generation repository is unavailable.");
+  }
+
+  return { kind: "created", previousJobId: source.id, job };
 }
 
 export { getJob };

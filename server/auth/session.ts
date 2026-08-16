@@ -1,6 +1,7 @@
 import { getSupabaseClient } from "@/server/supabase/client";
 import { hashToken, randomToken } from "@/server/auth/crypto";
 import { parseCookie, serializeCookie } from "@/server/http";
+import type { AuthSessionDto } from "@/contracts/api-contract";
 
 export const SESSION_COOKIE_NAME = "portfolio_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
@@ -15,6 +16,26 @@ export type AuthenticatedUser = {
   profileUrl: string;
   createdAt: string;
 };
+
+export function toAuthSessionDto(user: AuthenticatedUser | null): AuthSessionDto {
+  return {
+    authenticated: Boolean(user),
+    provider: user ? "github" : null,
+    user: user
+      ? {
+          id: user.id,
+          githubUserId: user.githubUserId,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          profileUrl: user.profileUrl,
+          email: user.email,
+          creditBalance: 100,
+          createdAt: user.createdAt,
+        }
+      : null,
+  };
+}
 
 export async function createSession(userId: string): Promise<{ token: string; maxAge: number }> {
   const token = randomToken();
