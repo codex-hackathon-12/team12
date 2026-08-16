@@ -44,6 +44,7 @@ export const API_ROUTES = {
   announcement: (announcementId: string) =>
     `${API_PREFIX}/announcements/${announcementId}`,
   tasteSample: `${API_PREFIX}/taste/sample`,
+  account: `${API_PREFIX}/account`,
 } as const;
 
 export type EntityId = string;
@@ -63,8 +64,10 @@ export type ApiErrorCode =
   | "NOT_FOUND"
   | "GITHUB_CONNECTION_ERROR"
   | "GITHUB_RATE_LIMITED"
+  | "GENERATION_IN_PROGRESS"
   | "GENERATION_FAILED"
   | "JOB_NOT_RETRYABLE"
+  | "ACCOUNT_DELETION_IN_PROGRESS"
   | "MOCK_PAYMENT_FAILED"
   | "INTERNAL_ERROR";
 
@@ -229,6 +232,11 @@ export interface GenerationJobDto {
 export interface RetryGenerationDto {
   previousJobId: EntityId;
   job: GenerationJobDto;
+}
+
+export interface AccountDeletionDto {
+  deletionJobId: EntityId;
+  status: "queued";
 }
 
 // Generated portfolio

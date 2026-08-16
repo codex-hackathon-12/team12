@@ -2,6 +2,14 @@
 
 이 문서는 사용자 요청, 주요 결정, 실제 반영 내용과 검증 결과를 시간순으로 추적한다. 요청은 원문을 그대로 복사하지 않고 목표, 제약조건과 완료 기준이 드러나도록 정제한다. 최신 항목을 위에 추가하며 통합 담당자만 수정한다.
 
+## 2026-08-16-13 — 생성 작업 polling API 구현
+
+- 상태: 완료
+- 반영 내용: 생성 작업 생성과 상태 조회 API를 추가하고, 사용자당 활성 작업 하나를
+  Postgres unique index와 `409 GENERATION_IN_PROGRESS` 응답으로 제한했다.
+- 수정 파일: `app/api/v1/generations/**`, `server/generation/jobs.ts`, 공유 API 계약
+- 검증: TypeScript와 lint 검사를 수행한다.
+
 ## 2026-08-16-12 — GitHub 저장소 동기화 API 구현
 
 - 상태: 완료

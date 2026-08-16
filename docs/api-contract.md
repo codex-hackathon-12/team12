@@ -141,6 +141,22 @@ MVP 확정 정책:
 }
 ```
 
+### 3.5 계정 삭제
+
+`DELETE /api/v1/account`
+
+로그인 사용자의 세션, GitHub 연결, 생성 결과와 PDF를 비동기 삭제한다. 진행 중인
+삭제 요청이 있으면 `409 ACCOUNT_DELETION_IN_PROGRESS`를 반환한다.
+
+```json
+{
+  "data": {
+    "deletionJobId": "deletion_123",
+    "status": "queued"
+  }
+}
+```
+
 ## 4. 대시보드
 
 ### 4.1 대시보드 데이터 조회
@@ -406,6 +422,8 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 
 `completed`는 PDF 이력서가 Supabase Storage에 저장된 뒤에만 반환한다. PDF 처리에 실패하면
 작업은 `failed`가 되며 `resumePdfAvailable`은 `false`다.
+
+활성 작업이 이미 있으면 생성 요청은 `409 GENERATION_IN_PROGRESS`를 반환한다.
 
 실패한 job도 HTTP 조회 자체는 성공했으므로 `200`을 반환하고 `data.status`를 `failed`로 설정한다.
 
