@@ -304,6 +304,9 @@ flowchart LR
     ROUTES --> SERVICES["server/services"]
     SERVICES --> REPOS["server/repositories"]
     REPOS --> DB["D1 + Drizzle"]
+    SERVICES --> FLOW["Cloudflare Workflows"]
+    FLOW --> RENDER["Browser Rendering"]
+    RENDER --> STORAGE["R2"]
     SERVICES --> GIT["Git Provider API"]
     SERVICES --> AI["AI 생성 API"]
     SERVICES --> PAY["Mock 결제 서비스"]
@@ -319,6 +322,41 @@ flowchart LR
 - DB 쿼리는 `server/repositories/**` 또는 `db/**`로 제한한다.
 - 외부 Git과 AI 제공자 코드는 adapter로 분리한다. 실제 결제를 연결할 때도 동일한 adapter 경계를 사용한다.
 - 외부 서비스의 응답 타입을 UI나 DB 모델로 직접 사용하지 않는다.
+
+### 8.2 백엔드 실행 구조
+
+MVP 백엔드는 Cloudflare Workers와 D1을 기준으로 구현한다. 장시간 실행되는
+저장소 분석과 AI 생성은 HTTP 요청 안에서 처리하지 않고 Cloudflare Workflow로
+실행한다.
+
+| 구성 요소 | 책임 |
+| --- | --- |
+| Cloudflare Workers | REST Route Handler, 세션 검증, 입력 검증과 응답 변환 |
+| D1 + Drizzle | 사용자, Git 연결, 저장소 메타데이터, 생성 작업과 결과 저장 |
+| Cloudflare Workflows | 분석, 콘텐츠 생성, 웹 렌더링, PDF 렌더링 단계 실행과 재시도 |
+| Cloudflare R2 | 생성된 PDF 이력서와 향후 사용자 업로드 문서의 비공개 저장 |
+| Cloudflare Browser Rendering | 완성된 포트폴리오 HTML을 PDF 이력서로 렌더링 |
+
+생성 흐름은 다음 순서를 따른다.
+
+1. `POST /api/v1/generations`가 D1에 `queued` 작업을 만들고 Workflow를 시작한다.
+2. Workflow가 D1의 단계와 진행률을 갱신하며 GitHub 데이터를 분석한다.
+3. AI 생성 결과를 구조화된 포트폴리오 콘텐츠로 저장한다.
+4. 포트폴리오 HTML을 렌더링하고 Browser Rendering으로 PDF를 생성한다.
+5. PDF를 R2의 비공개 객체로 저장한 뒤 작업을 `completed`로, 결과를 조회 가능 상태로 갱신한다.
+
+재시도는 실패한 작업에 새 Workflow와 새 `GenerationJob`을 만들며, 기존 작업의
+결과를 덮어쓰지 않는다. 프론트엔드는 기존 polling 계약으로 D1에 저장된 상태를
+조회한다.
+
+GitHub OAuth callback은 access token을 API 응답이나 로그에 포함하지 않는다.
+`GitConnection`에는 암호화된 token, 암호화 초기화 벡터, 권한 범위와 연결 시각을
+서버 전용으로 저장한다. 암호화 키는 Worker secret으로만 제공하고 `NEXT_PUBLIC_`
+환경변수나 클라이언트 모듈에 두지 않는다.
+
+PDF 원본은 R2 public bucket에 두지 않는다. 소유자 요청을 검증하는
+`GET /api/v1/portfolios/{portfolioId}/resume.pdf` Route Handler만 PDF를 반환한다.
+이 URL은 `PortfolioDto.resumePdf.downloadUrl`로 제공한다.
 
 ### 8.1 프론트엔드 Mock 우선 구조
 
@@ -446,7 +484,7 @@ mocks/api/
 | `GitConnection` | `id`, `userId`, `provider`, `providerUserId` | Git 계정 연결 정보 |
 | `Repository` | `id`, `userId`, `providerRepoId`, `name`, `url`, `language`, `isPrivate`, `updatedAt` | 동기화된 저장소 |
 | `GenerationJob` | `id`, `userId`, `repositoryId`, `prompt`, `status`, `stage`, `errorCode`, `portfolioId`, `createdAt` | 비동기 생성 작업 |
-| `Portfolio` | `id`, `userId`, `repositoryId`, `title`, `content`, `style`, `createdAt` | 생성 결과 |
+| `Portfolio` | `id`, `userId`, `repositoryId`, `title`, `content`, `style`, `resumePdfKey`, `resumePdfGeneratedAt`, `createdAt` | 생성 결과와 PDF 위치 |
 | `GalleryExample` | `id`, `title`, `role`, `techStack`, `thumbnailUrl`, `portfolioContent`, `isPublished` | 공개 예시 |
 | `CreditLedger` | `id`, `userId`, `amount`, `reason`, `referenceId`, `createdAt` | 실제 크레딧 도입 시 사용할 증감 원장. MVP에서는 저장하지 않음 |
 | `Payment` | `id`, `userId`, `provider`, `providerPaymentId`, `amount`, `credits`, `status`, `createdAt` | 실제 결제 도입 시 사용할 결제 기록. MVP에서는 저장하지 않음 |
@@ -508,7 +546,9 @@ components/
 - 저장소 선택 화면
 - 프롬프트 입력 화면
 - 생성 대기와 polling
-- 포트폴리오 결과 화면
+- GitHub OAuth와 수동 저장소 동기화
+- GitHub 로그 기반 분석과 AI 콘텐츠 생성
+- 포트폴리오 결과 화면과 PDF 이력서 다운로드
 - 결제 상품 화면과 checkout 진입
 - 신규 사용자 100크레딧과 생성 예상 비용 30의 mock 표시
 - 갤러리 그리드와 상세 화면
@@ -516,8 +556,6 @@ components/
 
 ### P1
 
-- 실제 Git 저장소 연동
-- 실제 AI 생성 연결
 - 최근 작업과 생성 재시도
 
 ### P2
@@ -535,8 +573,7 @@ components/
 다음 항목은 구현 전에 제품 결정이 필요하지만, 현재 화면 골격 구현을 막지는 않는다.
 
 1. 맛보기에서 실제 AI를 호출할지, 준비된 결과를 보여줄지 여부
-2. 결과물 다운로드 형식: PDF, 정적 웹 페이지 또는 둘 다
-3. 실제 결제 도입 시 사용할 결제 제공자와 상품 가격
-4. 실제 크레딧 차감 도입 시 생성 실패 환불 정책
+2. 실제 결제 도입 시 사용할 결제 제공자와 상품 가격
+3. 실제 크레딧 차감 도입 시 생성 실패 환불 정책
 
-MVP는 GitHub OAuth 단일 로그인, 기본 표시 잔액 100, 저장소당 예상 비용 30, 실제 차감 없는 mock 결제, 하나의 포트폴리오 스타일과 웹 미리보기를 기본값으로 사용한다.
+MVP는 GitHub OAuth 단일 로그인, 기본 표시 잔액 100, 저장소당 예상 비용 30, 실제 차감 없는 mock 결제, 하나의 포트폴리오 스타일, 웹 미리보기와 PDF 이력서를 기본값으로 사용한다.

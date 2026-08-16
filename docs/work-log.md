@@ -2,6 +2,32 @@
 
 이 문서는 사용자 요청, 주요 결정, 실제 반영 내용과 검증 결과를 시간순으로 추적한다. 요청은 원문을 그대로 복사하지 않고 목표, 제약조건과 완료 기준이 드러나도록 정제한다. 최신 항목을 위에 추가하며 통합 담당자만 수정한다.
 
+## 2026-08-16-08 — Cloudflare 백엔드와 PDF 이력서 기준 확정
+
+- 상태: 완료
+- 정제된 요청: 프론트엔드가 mock 계약을 기준으로 병렬 개발할 수 있도록
+  Cloudflare 기반 백엔드 실행 구조와 PDF 이력서 결과 계약을 확정한다.
+- 제약조건:
+  - 기존 `vinext`와 Cloudflare Workers + D1 기반을 유지한다.
+  - GitHub access token, R2 object key와 암호화 키를 API 응답이나 로그에 노출하지 않는다.
+  - PDF 이력서는 MVP 결과물에 포함하고, 크레딧과 결제는 계속 mock으로 유지한다.
+- 결정사항:
+  - 비동기 분석·AI 생성·PDF 렌더링은 Cloudflare Workflows가 수행한다.
+  - PDF는 Cloudflare Browser Rendering으로 생성해 R2 비공개 객체로 저장한다.
+  - PDF는 소유자 검증을 하는 `/api/v1/portfolios/{portfolioId}/resume.pdf`로만 제공한다.
+  - 생성 완료 상태에는 `resumePdfAvailable`을, 포트폴리오 결과에는 `resumePdf`를 포함한다.
+- 반영 내용:
+  - Worker, D1, Workflow, R2와 Browser Rendering 책임 및 생성 단계를 아키텍처에 추가했다.
+  - PDF 렌더링 단계를 생성 상태와 공유 TypeScript DTO에 반영했다.
+  - 프론트엔드가 사용할 PDF 다운로드 URL과 접근 제어 규칙을 API 계약에 명시했다.
+- 수정 파일:
+  - `architecture.md`
+  - `contracts/api-contract.ts`
+  - `docs/api-contract.md`
+  - `docs/work-log.md`
+- 검증: 공유 계약 TypeScript 검사와 문서 diff 검사를 수행한다.
+- 남은 항목: Cloudflare Browser Rendering, R2와 Workflow binding을 배포 환경에 설정한다.
+
 ## 2026-08-16-07 — 개발 기준 문서 기준점 커밋
 
 - 상태: 완료
