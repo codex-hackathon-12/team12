@@ -10,6 +10,26 @@
 - 백엔드: `docs/backend-work-log.md`
 - 역할 분리 이전 보관본: `docs/work-log-archive.md`
 
+## 2026-08-16-04 — 원격 develop 재통합과 잠금 파일 복구
+
+- 상태: 완료
+- 정제된 요청: 원격 `develop` 변경을 로컬 프론트엔드 커밋과 통합하고,
+  충돌 또는 빌드 설정 불일치가 있으면 해결한 뒤 커밋 가능한 상태로 만든다.
+- 확인 결과:
+  - 원격 3개 커밋 위로 로컬 2개 커밋이 충돌 없이 rebase됐다.
+  - 원격 Vercel·Next.js 전환 커밋의 `package.json`과 `package-lock.json`이
+    일치하지 않아 `npm ci`가 누락 의존성 오류로 중단됐다.
+- 반영 내용:
+  - `npm install`로 누락된 Next.js 전환 의존성을 잠금 파일에 반영했다.
+  - 기존 vinext 개발 서버를 종료하고 Next.js 기준으로 전체 검증했다.
+- 수정 파일: `package-lock.json`, `docs/work-log.md`
+- 검증:
+  - ESLint와 Next.js production build를 통과했다.
+  - 렌더링 정책 테스트 1건은 통과했고, 로컬 TCP listener가 필요한 1건은
+    sandbox 제약에 따라 테스트 자체의 명시적 skip 조건으로 처리됐다.
+- 남은 항목: `npm install`이 보고한 패키지 보안 경고는 별도 범위에서
+  영향도와 호환성을 검토한다.
+
 ## 2026-08-16-03 — 로그인 사용자 랜딩 접근 정책 확정
 
 - 상태: 완료
