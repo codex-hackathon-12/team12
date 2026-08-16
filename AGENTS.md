@@ -13,7 +13,8 @@
 7. 담당 영역을 넘어서는 변경이 필요하면 직접 구현하지 말고 필요한 변경사항을 보고한다.
 8. 별도 지시가 없다면 작업 에이전트는 `git commit`, `git pull`, `git rebase`, `git push`를 실행하지 않는다.
 9. 모든 구현은 저장소 루트의 `architecture.md`를 반드시 따라야 한다.
-10. 통합 담당자는 완료한 작업을 `docs/work-log.md`에 정제된 형태로 기록한다.
+10. 각 담당자는 완료한 작업을 자신의 역할별 작업 로그에 정제된 형태로
+    기록하고, 통합 담당자는 공통 작업만 `docs/work-log.md`에 기록한다.
 11. 모든 커밋 메시지와 커밋 단위는 `docs/commit-policy.md`를 반드시 따른다.
 
 ## 아키텍처 준수 정책
@@ -46,6 +47,7 @@
 - `lib/api-client/**`
 - `mocks/api/**`
 - `types/frontend/**`
+- `docs/frontend-work-log.md`
 
 수정 금지 영역:
 
@@ -57,6 +59,8 @@
 - `worker/**`
 - `app/chatgpt-auth.ts`
 - `lib/server/**`
+- `docs/backend-work-log.md`
+- `docs/work-log.md`
 
 프론트엔드 추가 규칙:
 
@@ -87,6 +91,7 @@
 - `app/chatgpt-auth.ts`
 - `lib/server/**`
 - `types/backend/**`
+- `docs/backend-work-log.md`
 - 사전에 합의된 API 계약 파일
 
 수정 금지 영역:
@@ -100,6 +105,8 @@
 - `public/**`
 - `lib/api-client/**`
 - `mocks/api/**`
+- `docs/frontend-work-log.md`
+- `docs/work-log.md`
 
 백엔드 추가 규칙:
 
@@ -128,6 +135,7 @@
 - `architecture.md`
 - `docs/commit-policy.md`
 - `docs/work-log.md`
+- `docs/work-log-archive.md`
 - `shared/**`
 - `contracts/**`
 - `docs/api-contract.md`
@@ -277,7 +285,20 @@ git push origin develop
 
 ## 작업 로그 정책
 
-`docs/work-log.md`는 사용자의 요청과 실제 반영 내용을 추적하는 상세 작업 기록이다. 충돌 방지를 위해 통합 담당자만 작업이 끝난 뒤 갱신한다.
+작업 로그는 담당 영역별로 분리하며 한 작업에서 하나의 역할 로그만 수정한다.
+
+- `docs/frontend-work-log.md`: 프론트엔드 화면, 상태, mock과 API client 작업.
+  프론트엔드 담당자만 수정한다.
+- `docs/backend-work-log.md`: REST API, 인증, DB, 외부 연동과 Worker 작업.
+  백엔드 담당자만 수정한다.
+- `docs/work-log.md`: 아키텍처, 계약, 정책, Git 동기화와 통합 검증 작업.
+  통합 담당자만 수정한다.
+- `docs/work-log-archive.md`: 역할 분리 이전 기록의 읽기 전용 보관본.
+  누구도 새 항목을 추가하거나 기존 내용을 수정하지 않는다.
+
+프론트엔드와 백엔드는 상대 역할의 로그 또는 통합 로그를 수정하지 않는다.
+두 영역에 걸친 작업은 각 담당자가 자기 로그에 담당 결과를 남기고, 통합
+담당자가 통합 결과만 `docs/work-log.md`에 별도로 기록한다.
 
 - 사용자 요청 원문을 그대로 복사하지 않고 의도와 범위를 명확한 문장으로 정제한다.
 - 정제된 요청에는 목표, 제약조건과 완료 기준을 포함한다.
@@ -285,7 +306,9 @@ git push origin develop
 - 구현하지 않은 내용이나 실패한 검증을 완료로 기록하지 않는다.
 - API 또는 아키텍처 결정이 바뀌면 이전 기록을 삭제하지 않고 새 항목에 변경 이유를 남긴다.
 - 토큰, 쿠키, 사용자 개인정보, 비공개 저장소 내용과 프롬프트 전문은 기록하지 않는다.
-- 일반 작업 에이전트는 로그 파일을 직접 수정하지 않고 완료 보고만 전달한다.
+- 역할별 로그의 항목 번호는 각 파일 안에서만 최신 순서로 관리한다.
+- 같은 역할의 여러 작업자가 동시에 같은 로그를 수정하지 않는다. 로그 작성
+  담당자 한 명을 정하고 나머지는 완료 보고만 전달한다.
 
 로그 항목 형식:
 
