@@ -1,5 +1,7 @@
 # folio.ai
 
+https://youtu.be/08R_W-f0S8Q
+
 GitHub 저장소의 코드와 활동 기록을 분석해 취업용 개발자 포트폴리오와
 이력서 초안을 만드는 AI 서비스입니다. 사용자는 GitHub로 로그인하고,
 저장소와 강조할 경험을 선택한 뒤 생성 과정을 거쳐 하나의 포트폴리오
@@ -40,32 +42,32 @@ mock이며 실제 승인, 지급 또는 차감이 발생하지 않습니다.
 
 ## 화면과 라우트
 
-| 경로 | 접근 | 역할 |
-| --- | --- | --- |
-| `/` | 공개 | 서비스 소개, GitHub 로그인과 정적 맛보기 |
-| `/dashboard` | 로그인 | 최근 작업, 공지, 크레딧과 생성 진입점 |
-| `/repositories` | 로그인 | 저장소 검색, 필터와 다중 선택 UI |
-| `/create/[id]/prompt` | 로그인 | 생성 목적과 프롬프트 입력 |
-| `/create/[id]/processing` | 로그인 | 생성 상태 polling과 재시도 |
-| `/portfolios/[portfolioId]` | 소유자 | 완성 포트폴리오와 PDF 다운로드 |
-| `/billing` | 로그인 | 크레딧 상품과 mock 결제 |
-| `/gallery` | 공개 | 포트폴리오 예시 그리드 |
-| `/gallery/[exampleId]` | 공개 | 포트폴리오 예시 상세 |
-| `/announcements/[announcementId]` | 공개 | 공지와 이벤트 상세 |
+| 경로                              | 접근   | 역할                                     |
+| --------------------------------- | ------ | ---------------------------------------- |
+| `/`                               | 공개   | 서비스 소개, GitHub 로그인과 정적 맛보기 |
+| `/dashboard`                      | 로그인 | 최근 작업, 공지, 크레딧과 생성 진입점    |
+| `/repositories`                   | 로그인 | 저장소 검색, 필터와 다중 선택 UI         |
+| `/create/[id]/prompt`             | 로그인 | 생성 목적과 프롬프트 입력                |
+| `/create/[id]/processing`         | 로그인 | 생성 상태 polling과 재시도               |
+| `/portfolios/[portfolioId]`       | 소유자 | 완성 포트폴리오와 PDF 다운로드           |
+| `/billing`                        | 로그인 | 크레딧 상품과 mock 결제                  |
+| `/gallery`                        | 공개   | 포트폴리오 예시 그리드                   |
+| `/gallery/[exampleId]`            | 공개   | 포트폴리오 예시 상세                     |
+| `/announcements/[announcementId]` | 공개   | 공지와 이벤트 상세                       |
 
 ## 기술 스택
 
-| 영역 | 기술 |
-| --- | --- |
-| 프론트엔드 | Next.js 16 App Router, React 19, TypeScript 5 |
-| 스타일 | Tailwind CSS 4 기반 설정, 전역 CSS, Pretendard WOFF2 |
-| API | Next.js Route Handlers, REST `/api/v1`, JSON envelope |
-| 인증·Git | GitHub OAuth, 암호화된 access token, 서버 세션 |
-| 데이터 | Supabase Postgres, private Supabase Storage |
-| 비동기 생성 | Vercel Workflow |
-| AI | OpenAI Responses API, strict JSON schema 출력 |
-| 검증 | ESLint, TypeScript, Node.js test runner, Next.js build |
-| 배포 | Vercel Preview·Production |
+| 영역        | 기술                                                   |
+| ----------- | ------------------------------------------------------ |
+| 프론트엔드  | Next.js 16 App Router, React 19, TypeScript 5          |
+| 스타일      | Tailwind CSS 4 기반 설정, 전역 CSS, Pretendard WOFF2   |
+| API         | Next.js Route Handlers, REST `/api/v1`, JSON envelope  |
+| 인증·Git    | GitHub OAuth, 암호화된 access token, 서버 세션         |
+| 데이터      | Supabase Postgres, private Supabase Storage            |
+| 비동기 생성 | Vercel Workflow                                        |
+| AI          | OpenAI Responses API, strict JSON schema 출력          |
+| 검증        | ESLint, TypeScript, Node.js test runner, Next.js build |
+| 배포        | Vercel Preview·Production                              |
 
 ## 실행 방법
 
@@ -109,17 +111,17 @@ npm run dev
 
 실제 API 모드에서는 다음 값이 필요합니다.
 
-| 환경 변수 | 공개 여부 | 용도 |
-| --- | --- | --- |
-| `SUPABASE_URL` | 서버 전용 | Supabase 프로젝트 URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | 비밀 | DB와 private Storage 접근 |
-| `GITHUB_CLIENT_ID` | 서버 전용 | GitHub OAuth App |
-| `GITHUB_CLIENT_SECRET` | 비밀 | GitHub OAuth App |
-| `GITHUB_OAUTH_REDIRECT_URI` | 서버 전용 | OAuth callback URL |
-| `TOKEN_ENCRYPTION_KEY` | 비밀 | GitHub token AES-GCM 암호화 |
-| `OPENAI_API_KEY` | 비밀 | 포트폴리오 콘텐츠 생성 |
-| `OPENAI_MODEL` | 서버 전용 | 생성 모델 선택 |
-| `NEXT_PUBLIC_API_MODE` | 공개 | `mock` 또는 `http` adapter 선택 |
+| 환경 변수                   | 공개 여부 | 용도                            |
+| --------------------------- | --------- | ------------------------------- |
+| `SUPABASE_URL`              | 서버 전용 | Supabase 프로젝트 URL           |
+| `SUPABASE_SERVICE_ROLE_KEY` | 비밀      | DB와 private Storage 접근       |
+| `GITHUB_CLIENT_ID`          | 서버 전용 | GitHub OAuth App                |
+| `GITHUB_CLIENT_SECRET`      | 비밀      | GitHub OAuth App                |
+| `GITHUB_OAUTH_REDIRECT_URI` | 서버 전용 | OAuth callback URL              |
+| `TOKEN_ENCRYPTION_KEY`      | 비밀      | GitHub token AES-GCM 암호화     |
+| `OPENAI_API_KEY`            | 비밀      | 포트폴리오 콘텐츠 생성          |
+| `OPENAI_MODEL`              | 서버 전용 | 생성 모델 선택                  |
+| `NEXT_PUBLIC_API_MODE`      | 공개      | `mock` 또는 `http` adapter 선택 |
 
 비밀값은 브라우저 코드나 `NEXT_PUBLIC_` 변수에 넣지 않으며 `.env*` 파일은
 커밋하지 않습니다.
