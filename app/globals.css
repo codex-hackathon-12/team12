@@ -2073,7 +2073,7 @@ a {
 
 .result-project-title-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(min(100%, 320px), 1fr) minmax(0, auto);
   gap: 32px;
   align-items: end;
   padding-top: 34px;
@@ -2431,7 +2431,7 @@ a {
 @media (max-width: 1050px) {
   .result-portfolio-nav { padding-right: 45px; padding-left: 45px; }
   .result-portfolio-hero {
-    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-columns: minmax(min(100%, 320px), 1fr) minmax(0, 300px);
     gap: 46px;
     padding: 68px 45px 64px;
   }
