@@ -1605,238 +1605,6 @@ a {
 .portfolio-footer span { color: #59645d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; letter-spacing: 0.1em; }
 .portfolio-footer a { font-size: 14px; font-weight: 750; border-bottom: 1px solid currentColor; }
 
-/* Result-only portfolio design. Gallery previews keep the original style. */
-
-.result-portfolio-preview {
-  overflow: hidden;
-  border: 0;
-  border-radius: 3px;
-  background: #fffefa;
-  box-shadow: 0 24px 70px rgb(23 35 29 / 12%);
-}
-
-.result-portfolio-hero {
-  padding: 62px 64px 54px;
-  border-bottom: 1px solid #d9ddd5;
-}
-
-.result-portfolio-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #17231d;
-  color: #59645d;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-}
-
-.result-portfolio-intro {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 230px;
-  gap: 54px;
-  align-items: end;
-  padding-top: 52px;
-}
-
-.result-portfolio-intro h1 {
-  margin: 0 0 16px;
-  font-size: clamp(52px, 7vw, 82px);
-  font-weight: 600;
-  letter-spacing: -0.06em;
-  line-height: 1;
-}
-
-.result-portfolio-intro > div:first-child > p {
-  max-width: 720px;
-  margin: 0;
-  color: #35453c;
-  font-size: clamp(21px, 2.5vw, 30px);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.4;
-}
-
-.result-contact-card {
-  display: grid;
-  gap: 10px;
-  padding: 20px;
-  border: 1px solid #c8cec7;
-  background: #f7f7f1;
-}
-
-.result-contact-card > span {
-  margin-bottom: 4px;
-  color: #66736b;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.12em;
-}
-
-.result-contact-card a {
-  overflow: hidden;
-  font-size: 13px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.result-overview-section,
-.result-content-section {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 42px;
-  padding: 54px 64px;
-  border-bottom: 1px solid #d9ddd5;
-}
-
-.result-section-label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-start;
-  color: #5f6d64;
-}
-
-.result-section-label span {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
-}
-
-.result-section-label strong { font-size: 14px; }
-
-.result-introduction {
-  max-width: 820px;
-  margin: 0;
-  font-size: clamp(22px, 2.7vw, 32px);
-  font-weight: 550;
-  letter-spacing: -0.035em;
-  line-height: 1.55;
-}
-
-.result-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin: 40px 0 0;
-  border-top: 1px solid #d9ddd5;
-}
-
-.result-summary-grid > div {
-  display: grid;
-  gap: 8px;
-  padding: 18px 22px 0 0;
-}
-
-.result-summary-grid dt { color: #68756e; font-size: 11px; }
-.result-summary-grid dd { margin: 0; font-size: 18px; font-weight: 650; }
-
-.result-section-heading p {
-  max-width: 680px;
-  margin: 0 0 30px;
-  color: #4f5e55;
-  font-size: 17px;
-  line-height: 1.7;
-}
-
-.result-skill-groups { display: grid; gap: 12px; }
-
-.result-skill-group {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 24px;
-  align-items: start;
-  padding: 20px 0;
-  border-top: 1px solid #d9ddd5;
-}
-
-.result-skill-group:last-child { border-bottom: 1px solid #d9ddd5; }
-.result-skill-group h2 { margin: 4px 0 0; font-size: 16px; }
-.result-skill-group > div { display: flex; flex-wrap: wrap; gap: 8px; }
-.result-skill-group span,
-.result-tech-list span {
-  padding: 8px 10px;
-  border: 1px solid #cbd1ca;
-  border-radius: 999px;
-  background: white;
-  color: #35453c;
-  font-size: 12px;
-}
-
-.result-project-list { display: grid; gap: 20px; }
-
-.result-project-card {
-  padding: 30px;
-  border: 1px solid #c8cec7;
-  background: white;
-}
-
-.result-project-header {
-  display: flex;
-  gap: 24px;
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
-.result-project-header span {
-  color: #68756e;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-}
-
-.result-project-header h2 {
-  margin: 9px 0 6px;
-  font-size: 30px;
-  letter-spacing: -0.035em;
-}
-
-.result-project-header p { margin: 0; color: #68756e; font-size: 13px; }
-.result-project-header > a { border-bottom: 1px solid currentColor; font-size: 12px; font-weight: 650; }
-
-.result-project-description {
-  max-width: 750px;
-  margin: 24px 0 28px;
-  color: #46564d;
-  font-size: 16px;
-  line-height: 1.75;
-}
-
-.result-story-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid #d9ddd5;
-  border-bottom: 1px solid #d9ddd5;
-}
-
-.result-story-list > div { padding: 20px 20px 20px 0; }
-.result-story-list > div + div { padding-left: 20px; border-left: 1px solid #d9ddd5; }
-.result-story-list span { color: #68756e; font-size: 11px; font-weight: 700; }
-.result-story-list p { margin: 10px 0 0; font-size: 14px; line-height: 1.65; }
-.result-tech-list { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 24px; }
-
-.result-analysis-section { background: #eff8da; }
-.result-analysis-content h2 { max-width: 780px; margin: 0; font-size: clamp(26px, 3.5vw, 42px); letter-spacing: -0.04em; line-height: 1.35; }
-.result-pattern-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
-.result-pattern-list span { padding: 8px 11px; border: 1px solid #b4c39a; background: rgb(255 255 255 / 55%); font-size: 12px; }
-.result-language-list { display: grid; gap: 16px; margin-top: 36px; }
-.result-language-list > div > div:first-child { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 12px; }
-.result-language-list > div > div:last-child { height: 5px; background: #cedbb8; }
-.result-language-list > div > div:last-child span { display: block; height: 100%; background: #26372d; }
-
-.result-portfolio-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28px 64px;
-  background: #17231d;
-  color: white;
-}
-
-.result-portfolio-footer p { margin: 0; font-size: 12px; }
-.result-portfolio-footer a { border-bottom: 1px solid currentColor; font-size: 12px; }
-
 .result-footer-actions { display: flex; align-items: center; justify-content: space-between; padding-top: 30px; }
 .result-footer-actions p { margin: 0; color: var(--ink-soft); font-size: 13px; }
 
@@ -1845,7 +1613,19 @@ a {
 .result-portfolio-preview {
   --result-border: #cbd0c7;
   --result-ink: #121a16;
-  max-width: 1180px;
+
+  /* 문서의 좌우 기준선. 모든 본문이 이 선에서 시작한다. */
+  --doc-gutter: var(--space-8);
+
+  /* A4 세로(210mm)에서 @page 여백 10mm를 뺀 본문 폭이다.
+     화면과 인쇄가 같은 폭을 쓰므로 줄바꿈과 열 구성이 어긋나지 않는다. */
+  max-width: 718px;
+
+  /* 폭이 고정되면 뷰포트 기준 미디어 쿼리가 무의미해진다.
+     문서 자신의 폭에 반응하도록 컨테이너로 선언한다. */
+  container: result / inline-size;
+
+  overflow: hidden;
   border-radius: 0;
   background: #fffefa;
   color: var(--result-ink);
@@ -1855,10 +1635,10 @@ a {
 .result-portfolio-nav {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  gap: 30px;
+  gap: var(--space-6);
   align-items: center;
-  min-height: 76px;
-  padding: 16px 58px;
+  min-height: 56px;
+  padding: var(--space-3) var(--doc-gutter);
   border-bottom: 1px solid var(--result-border);
   background: rgb(255 254 250 / 96%);
 }
@@ -1897,11 +1677,8 @@ a {
 }
 
 .result-portfolio-hero {
-  display: grid;
-  grid-template-columns: 56px minmax(min(100%, 320px), 1fr);
-  gap: var(--space-4);
-  align-items: start;
-  padding: var(--space-12) var(--space-12) var(--space-8);
+  display: block;
+  padding: var(--space-8) var(--doc-gutter);
   border-bottom: 0;
   background:
     radial-gradient(circle at 88% 12%, rgb(200 245 93 / 20%), transparent 16rem),
@@ -1925,10 +1702,18 @@ a {
   font-weight: 800;
 }
 
+.result-hero-identity {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.result-hero-identity > div { min-width: 0; }
 .result-hero-copy { min-width: 0; }
 
 .result-hero-role {
-  margin: 0 0 var(--space-2);
+  margin: 0 0 var(--space-1);
   color: #5b6961;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--text-2xs);
@@ -1946,7 +1731,7 @@ a {
 }
 
 .result-hero-headline {
-  margin: var(--space-2) 0 0;
+  margin: 0;
   color: #35453c;
   font-size: var(--text-md);
   font-weight: 600;
@@ -1983,6 +1768,7 @@ a {
   background: #fffefa;
 }
 
+.result-metric-strip { padding: 0 var(--space-4); }
 .result-metric-strip > div { min-width: 0; padding: var(--space-3) var(--space-4); }
 .result-metric-strip > div + div { border-left: 1px solid var(--result-border); }
 
@@ -2004,7 +1790,7 @@ a {
 
 .result-portfolio-section {
   display: block;
-  padding: var(--space-8) var(--space-12) var(--space-12);
+  padding: var(--space-6) var(--doc-gutter) var(--space-8);
   border-bottom: 1px solid var(--result-border);
 }
 
@@ -2019,13 +1805,14 @@ a {
 }
 
 .result-project-section { background: #f1f0e8; }
-.result-project-list { display: grid; gap: var(--space-4); }
+.result-project-list { display: grid; }
 
 .result-project-card {
-  padding: var(--space-6);
-  border: 1px solid var(--result-border);
-  background: #fffefa;
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--result-border);
 }
+
+.result-project-card:first-child { padding-top: 0; border-top: 0; }
 
 .result-project-title-row {
   display: grid;
@@ -2107,12 +1894,13 @@ a {
 .result-story-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--space-6);
   margin-top: var(--space-4);
-  border: 1px solid var(--result-border);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--result-border);
 }
 
-.result-story-list > div { min-width: 0; padding: var(--space-4); }
-.result-story-list > div + div { padding-left: var(--space-4); border-left: 1px solid var(--result-border); }
+.result-story-list > div { min-width: 0; }
 
 .result-story-list span {
   color: #66736b;
@@ -2123,10 +1911,32 @@ a {
   text-transform: uppercase;
 }
 
-.result-story-list p { margin: var(--space-2) 0 0; font-size: var(--text-sm); line-height: 1.65; }
+.result-story-list ul {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 문장만 나열하면 항목 구분이 약해 보인다. 성과 목록과 같은 방식으로
+   기호를 붙이되, 근거 항목이라 체크 대신 중립적인 불릿을 쓴다. */
+.result-story-list li {
+  position: relative;
+  padding-left: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+}
+
+.result-story-list li + li { margin-top: var(--space-2); }
+
+.result-story-list li::before {
+  position: absolute;
+  left: 2px;
+  color: #7b8a81;
+  content: "•";
+}
 
 .result-expertise-section {
-  padding: var(--space-8) var(--space-12) var(--space-12);
+  padding: var(--space-6) var(--doc-gutter) var(--space-8);
   background: #1d2a23;
   color: #f2f5f0;
 }
@@ -2188,8 +1998,8 @@ a {
 .result-portfolio-footer {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  gap: 20px;
-  padding: 27px 64px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--doc-gutter);
   background: #101713;
   color: #dce4de;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -2288,7 +2098,7 @@ a {
 .announcement-content p { margin: 0; font-size: 16px; line-height: 1.9; }
 
 @media (max-width: 1050px) {
-  .desktop-nav { display: none; }
+    .desktop-nav { display: none; }
   .header-inner { grid-template-columns: 1fr auto; }
   .dashboard-hero { grid-template-columns: 1fr; gap: 25px; padding-top: 70px; }
   .hero-product { min-height: 460px; }
@@ -2300,15 +2110,12 @@ a {
   .portfolio-hero,
   .portfolio-intro,
   .portfolio-section { padding-right: 45px; padding-left: 45px; }
-  .result-portfolio-hero,
-  .result-overview-section,
-  .result-content-section { padding-right: 45px; padding-left: 45px; }
   .gallery-detail-header { grid-template-columns: 1fr auto; }
   .gallery-detail-header > .text-link { grid-column: 1 / -1; justify-self: start; }
 }
 
 @media (max-width: 780px) {
-  :root { --header-height: 66px; }
+    :root { --header-height: 66px; }
   body { padding-bottom: 68px; }
   body:has(.landing-page) { padding-bottom: 0; }
   .site-header { height: var(--header-height); }
@@ -2412,20 +2219,6 @@ a {
   .portfolio-project { padding: 22px; }
   .project-story-grid { grid-template-columns: 1fr; }
   .portfolio-footer { flex-direction: column; gap: 24px; align-items: flex-start; padding: 42px 28px; }
-  .result-portfolio-hero { padding: 42px 28px 36px; }
-  .result-portfolio-intro { grid-template-columns: 1fr; gap: 28px; padding-top: 36px; }
-  .result-contact-card { max-width: 100%; }
-  .result-overview-section,
-  .result-content-section { grid-template-columns: 1fr; gap: 24px; padding: 38px 28px; }
-  .result-section-label { flex-direction: row; gap: 10px; align-items: center; }
-  .result-summary-grid { grid-template-columns: repeat(3, 1fr); }
-  .result-skill-group { grid-template-columns: 1fr; gap: 14px; }
-  .result-project-card { padding: 22px; }
-  .result-project-header { display: grid; }
-  .result-story-list { grid-template-columns: 1fr; }
-  .result-story-list > div { padding: 18px 0; }
-  .result-story-list > div + div { padding-left: 0; border-top: 1px solid #d9ddd5; border-left: 0; }
-  .result-portfolio-footer { gap: 20px; padding: 26px 28px; }
   .result-footer-actions { flex-direction: column; gap: 18px; align-items: flex-start; }
   .product-grid { grid-template-columns: 1fr; }
   .product-card { min-height: 310px; }
@@ -2441,7 +2234,7 @@ a {
 }
 
 @media (max-width: 430px) {
-  .brand-beta { display: none; }
+    .brand-beta { display: none; }
   .hero-product { min-height: 350px; }
   .floating-note { padding: 10px; font-size: 10px; }
   .signal-main { top: 62px; }
@@ -2452,55 +2245,37 @@ a {
   .repository-selection-bar > div { grid-template-columns: 1fr; }
   .repository-selection-bar small { grid-column: auto; }
   .credit-quote { flex-direction: column; }
-  .result-summary-grid { grid-template-columns: 1fr; }
-  .result-summary-grid > div { padding-top: 14px; padding-bottom: 14px; border-bottom: 1px solid #d9ddd5; }
-  .result-portfolio-meta { align-items: flex-start; flex-direction: column; gap: 8px; }
-  .result-portfolio-footer { align-items: flex-start; flex-direction: column; }
   .page-state-actions { flex-direction: column; width: 100%; }
   .page-state-actions .button { width: 100%; }
   .gallery-card-copy { padding: 22px; }
   .gallery-arrow { display: none; }
 }
 
-@media (max-width: 1050px) {
-  .result-portfolio-nav { padding-right: var(--space-8); padding-left: var(--space-8); }
-  .result-portfolio-hero { padding: var(--space-8) var(--space-8) var(--space-6); }
-  .result-portfolio-section,
-  .result-expertise-section { padding: var(--space-6) var(--space-8) var(--space-8); }
-}
+/* 결과 문서는 인쇄(A4 세로)와 같은 폭에서 보여준다.
+   뷰포트 기준 미디어 쿼리는 폭이 고정된 이 문서 안에서 의미가 없으므로
+   컨테이너 쿼리로 문서 자체의 폭에 반응하게 한다. 그래야 화면과 인쇄가
+   구조적으로 같은 레이아웃을 쓴다. */
 
-@media (max-width: 780px) {
+@container result (max-width: 620px) {
   .result-portfolio-nav {
     grid-template-columns: 1fr auto;
-    min-height: 56px;
-    padding: var(--space-2) var(--space-6);
+    min-height: 48px;
   }
   .result-portfolio-nav > div { display: none; }
-  .result-portfolio-hero {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-    padding: var(--space-6) var(--space-6) var(--space-4);
-  }
+  .result-hero-identity { gap: var(--space-3); }
   .result-metric-strip { grid-template-columns: 1fr 1fr; }
   .result-metric-strip > div:nth-child(3) { border-top: 1px solid var(--result-border); border-left: 0; }
   .result-metric-strip > div:nth-child(4) { border-top: 1px solid var(--result-border); }
-  .result-portfolio-section,
-  .result-expertise-section { padding: var(--space-6); }
-  .result-project-card { padding: var(--space-4); }
+  .result-project-card { padding: var(--space-4) 0; }
   .result-project-title-row { grid-template-columns: 1fr; gap: var(--space-2); }
-  .result-story-list > div + div {
-    border-top: 1px solid var(--result-border);
-    border-left: 0;
-  }
-  .result-portfolio-footer { gap: var(--space-3); padding: var(--space-4) var(--space-6); }
+  .result-story-list { gap: var(--space-4); }
+  .result-portfolio-footer { gap: var(--space-3); }
 }
 
-@media (max-width: 430px) {
-  .result-portfolio-hero,
-  .result-portfolio-section,
-  .result-expertise-section { padding-right: var(--space-4); padding-left: var(--space-4); }
-  .result-metric-strip > div { padding: var(--space-3); }
-  .result-project-card { padding: var(--space-3); }
+@container result (max-width: 420px) {
+  .result-portfolio-preview { --doc-gutter: var(--space-4); }
+  .result-metric-strip { padding: 0; }
+  .result-project-card { padding: var(--space-4) 0; }
   .result-portfolio-footer { align-items: start; grid-template-columns: 1fr; }
   .result-portfolio-footer a { justify-self: start; }
   .result-portfolio-footer span { display: none; }
@@ -2588,9 +2363,16 @@ a {
 .empty-state > div { display: grid; gap: var(--space-4); justify-items: center; padding: var(--space-8); }
 
 @media (max-width: 780px) {
-  .portfolio-list-grid { grid-template-columns: 1fr; }
+    .portfolio-list-grid { grid-template-columns: 1fr; }
   .portfolio-list-card { padding: var(--space-4); }
   .section-title-links { flex-direction: column; align-items: flex-end; gap: var(--space-2); }
+}
+
+/* A4 세로. 여백 10mm를 빼면 본문 폭이 190mm(약 718px)로,
+   화면의 결과 문서 폭과 같아진다. */
+@page {
+  size: A4 portrait;
+  margin: 10mm;
 }
 
 @media print {
@@ -2599,9 +2381,63 @@ a {
   .result-toolbar,
   .result-portfolio-nav,
   .result-footer-actions { display: none !important; }
+
   body { padding: 0; background: white; }
   .portfolio-canvas-wrap { padding: 0; background: white; }
   .portfolio-preview { border: 0; box-shadow: none; }
+
+  /* 문서가 이미 A4 본문 폭이므로 여백만 걷어낸다. */
+  .result-portfolio-preview { max-width: none; box-shadow: none; }
+
+  /* 브라우저는 기본적으로 배경색을 인쇄하지 않는다. 어두운 영역을 그대로 두면
+     배경은 빠지고 밝은 글자만 남아 백지에 흰 글씨가 된다. 인쇄에서는 밝은
+     배색으로 바꿔 내용이 반드시 남게 한다. */
+  .result-expertise-section,
+  .result-portfolio-footer {
+    background: white;
+    color: var(--result-ink);
+  }
+
+  .result-expertise-section .result-section-label,
+  .result-expertise-summary,
+  .result-skill-group p,
+  .result-language-list > div > div:first-child { color: #46544c; }
+
+  .result-expertise-section { border-top: 1px solid var(--result-ink); }
+  .result-portfolio-footer { border-top: 1px solid var(--result-border); }
+
+  /* 언어 비율 막대도 배경으로 그려져 있어 인쇄에서 사라진다.
+     테두리와 진한 채움으로 바꿔 형태가 남게 한다. */
+  .result-language-list > div > div:last-child {
+    border: 1px solid var(--result-border);
+    background: white;
+  }
+  .result-language-list > div > div:last-child span { background: var(--result-ink); }
+
+  .result-pattern-list span,
+  .result-tech-list span { border-color: var(--result-border); color: var(--result-ink); }
+
+  .result-highlight-list li::before { color: var(--result-ink); }
+
+  /* 페이지가 넘어갈 때 항목 중간에서 잘리지 않게 한다. */
+  .result-portfolio-hero,
+  .result-metric-strip,
   .result-project-card,
+  .result-skill-groups,
+  .result-skill-group,
+  .result-language-list,
+  .result-language-list > div,
+  .result-story-list > div { break-inside: avoid; }
+
+  /* SKILLS는 한 페이지 안에 들어갈 크기라 통째로 넘긴다.
+     중간에서 잘리면 여러 열이 가로로 잘려 읽기 어려워진다. */
   .result-expertise-section { break-inside: avoid; }
+
+  /* 프로젝트는 여러 개일 때 자연스럽게 페이지를 넘어간다. */
+  .result-portfolio-section { break-inside: auto; }
+
+  .result-section-label { break-after: avoid; }
+  .result-project-title-row { break-after: avoid; }
+
+  a { text-decoration: none; }
 }

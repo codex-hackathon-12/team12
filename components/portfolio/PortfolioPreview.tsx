@@ -48,23 +48,28 @@ export function PortfolioPreview({
         </nav>
 
         <header className="result-portfolio-hero" id="portfolio-top">
-          {content.profile.avatarUrl ? (
-            <Image
-              className="result-hero-avatar"
-              src={content.profile.avatarUrl}
-              alt=""
-              width={56}
-              height={56}
-            />
-          ) : (
-            <div className="result-hero-avatar result-hero-initials" aria-hidden="true">
-              {initials}
+          {/* 사진은 이름 줄에만 붙인다. 아래 문단들은 문서의 기준선에서 시작해야 한다. */}
+          <div className="result-hero-identity">
+            {content.profile.avatarUrl ? (
+              <Image
+                className="result-hero-avatar"
+                src={content.profile.avatarUrl}
+                alt=""
+                width={56}
+                height={56}
+              />
+            ) : (
+              <div className="result-hero-avatar result-hero-initials" aria-hidden="true">
+                {initials}
+              </div>
+            )}
+            <div>
+              <p className="result-hero-role">{content.profile.targetRole}</p>
+              <h1>{content.profile.displayName}</h1>
             </div>
-          )}
+          </div>
 
           <div className="result-hero-copy">
-            <p className="result-hero-role">{content.profile.targetRole}</p>
-            <h1>{content.profile.displayName}</h1>
             <p className="result-hero-headline">{content.profile.headline}</p>
             <p className="result-hero-description">{content.introduction}</p>
 
@@ -138,7 +143,9 @@ export function PortfolioPreview({
                     {storyColumns(project).map((column) => (
                       <div key={column.label}>
                         <span>{column.label}</span>
-                        {column.items.map((item) => <p key={item}>{item}</p>)}
+                        <ul>
+                          {column.items.map((item) => <li key={item}>{item}</li>)}
+                        </ul>
                       </div>
                     ))}
                   </div>
