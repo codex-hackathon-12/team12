@@ -19,6 +19,8 @@ import type {
   MockPaymentListDto,
   PortfolioDto,
   PortfolioListDto,
+  PortfolioShareDto,
+  PublicPortfolioDto,
   RepositoryListDto,
   RepositoryListQuery,
   RepositorySyncDto,
@@ -44,6 +46,10 @@ export interface ApiClient {
   getPortfolio(portfolioId: string): Promise<PortfolioDto>;
   /** 되돌릴 수 없는 영구 삭제다. 호출 전에 사용자 확인을 받아야 한다. */
   deletePortfolio(portfolioId: string): Promise<DeletePortfolioDto>;
+  /** 공개 여부를 전환한다. 슬러그는 유지되므로 다시 공개하면 같은 링크가 살아난다. */
+  updatePortfolioShare(portfolioId: string, published: boolean): Promise<PortfolioShareDto>;
+  /** 인증 없이 조회하는 공개 포트폴리오. */
+  getPublicPortfolio(slug: string): Promise<PublicPortfolioDto>;
   getCredits(): Promise<CreditSummaryDto>;
   getBillingProducts(): Promise<BillingProductListDto>;
   createCheckout(request: CreateMockCheckoutRequest): Promise<MockCheckoutDto>;

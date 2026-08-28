@@ -3,6 +3,7 @@ import type {
   PortfolioContentDto,
   PortfolioDto,
   PortfolioSummaryDto,
+  PublicPortfolioDto,
 } from "@/contracts/api-contract";
 
 export type PortfolioRepositoryRecord = {
@@ -30,6 +31,8 @@ export type PortfolioLinkRecord = {
 
 export type PortfolioRecord = {
   id: string;
+  public_slug: string | null;
+  published_at: string | null;
   generation_job_id: string;
   title: string;
   target_role: string;
@@ -257,7 +260,42 @@ export function mapPortfolioSummary(record: PortfolioRecord): PortfolioSummaryDt
     targetRole: record.target_role,
     repositoryName: repository.name,
     repositoryCount: Math.max(readLinkedRepositories(record).length, 1),
+    // 공유 URL은 요청 호스트가 있어야 만들 수 있으므로 라우트 계층에서 채운다.
+    share: {
+      published: Boolean(record.published_at),
+      // undefined를 그대로 두면 JSON에서 필드가 통째로 빠진다.
+      slug: record.public_slug ?? null,
+      url: null,
+    },
     techStack: extractTechStack(content),
+    createdAt: record.created_at,
+  };
+}
+
+/**
+ * 공개 페이지 전용 매핑. 인증 없이 노출되므로 소유자를 식별할 수 있는 값을 담지 않는다.
+ * 포트폴리오 id, 생성 작업 id, 내부 저장소 id가 빠진다.
+ */
+export function mapPublicPortfolio(
+  record: PortfolioRecord,
+  slug: string,
+): PublicPortfolioDto | null {
+  const repositoryRecord = readRepository(record);
+  if (!repositoryRecord) {
+    return null;
+  }
+
+  const repository = mapRepository(repositoryRecord);
+  return {
+    slug,
+    title: record.title,
+    targetRole: record.target_role,
+    content: mapPortfolioContent(record.content, repository, record.target_role),
+    repositories: readLinkedRepositories(record).map((item) => ({
+      name: item.name,
+      fullName: item.full_name,
+      htmlUrl: item.html_url,
+    })),
     createdAt: record.created_at,
   };
 }

@@ -22,6 +22,8 @@ import {
   type MockPaymentListDto,
   type PortfolioDto,
   type PortfolioListDto,
+  type PortfolioShareDto,
+  type PublicPortfolioDto,
   type RepositoryListDto,
   type RepositoryListQuery,
   type RepositorySyncDto,
@@ -232,6 +234,19 @@ export class HttpApiClient implements ApiClient {
         method: "DELETE",
       })
     ).data;
+  }
+
+  async updatePortfolioShare(portfolioId: string, published: boolean) {
+    return (
+      await request<PortfolioShareDto>(API_ROUTES.portfolioShare(portfolioId), {
+        method: "PUT",
+        body: JSON.stringify({ published }),
+      })
+    ).data;
+  }
+
+  async getPublicPortfolio(slug: string) {
+    return (await request<PublicPortfolioDto>(API_ROUTES.publicPortfolio(slug))).data;
   }
 
   async getCredits() {

@@ -1804,8 +1804,9 @@ a {
   letter-spacing: 0.11em;
 }
 
-.result-project-section { background: #f1f0e8; }
-.result-project-list { display: grid; }
+/* 카드 단위로 페이지에 담기므로 섹션 래퍼 대신 블록마다 기준선을 준다. */
+.result-block { padding: 0 var(--doc-gutter); }
+.result-block .result-section-label { margin-top: var(--space-6); }
 
 .result-project-card {
   padding: var(--space-6) 0;
@@ -2357,6 +2358,103 @@ a {
 }
 
 .danger-link { border: 0; background: none; color: var(--coral); cursor: pointer; font: inherit; }
+
+/* 공유 링크 컨트롤. 되돌릴 수 있는 동작이라 삭제와 달리 확인 단계를 두지 않는다. */
+.share-box {
+  display: inline-flex;
+  gap: var(--space-3);
+  align-items: center;
+  max-width: 100%;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-dark);
+  border-radius: 14px;
+  background: var(--lime-soft);
+  font-size: var(--text-sm);
+}
+
+.share-url {
+  overflow: hidden;
+  max-width: 260px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-box .button { min-height: 38px; padding: 0 var(--space-3); font-size: var(--text-xs); }
+.share-box .text-link { border: 0; background: none; cursor: pointer; font: inherit; }
+
+.share-badge {
+  margin-right: var(--space-2);
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--ink);
+  font-size: var(--text-2xs);
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* 인쇄 미리보기처럼 A4 낱장으로 보여주는 모드.
+   낱장 크기와 여백은 인쇄 CSS의 @page와 같은 규격을 쓴다. */
+.portfolio-pages { --page-w: 794px; --page-h: 1123px; --page-margin: 38px; }
+
+/* 높이를 재기 위한 사본. 레이아웃은 실제와 같아야 하므로 display:none을 쓰지 않는다. */
+.portfolio-pages-measure {
+  position: absolute;
+  top: 0;
+  left: -10000px;
+  width: var(--page-w);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.portfolio-pages-stack {
+  display: grid;
+  gap: 24px;
+  justify-content: center;
+  transform-origin: top center;
+}
+
+.portfolio-page {
+  position: relative;
+  overflow: hidden;
+  width: var(--page-w);
+  min-height: var(--page-h);
+  background: #fffefa;
+  box-shadow: 0 18px 50px rgb(18 26 22 / 16%);
+}
+
+/* 낱장 안쪽 여백이 인쇄 여백에 해당한다. 문서 폭은 그대로 유지된다. */
+.portfolio-page-inner {
+  max-width: none;
+  padding: var(--page-margin);
+  box-shadow: none;
+}
+
+.portfolio-page-number {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  color: #9aa79f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+}
+
+/* 공개 페이지. 대시보드 레이아웃 밖이라 여백을 직접 준다. */
+.public-portfolio-page { padding-bottom: var(--space-16); }
+
+.public-portfolio-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+
+.public-portfolio-footer p { margin: 0; color: var(--ink-soft); font-size: var(--text-base); }
 
 .portfolio-list-more { display: flex; justify-content: center; margin-top: var(--space-8); }
 

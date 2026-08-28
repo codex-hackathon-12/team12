@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { PortfolioDto } from "@/contracts/api-contract";
+import type { PortfolioDto, PortfolioShareDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { PortfolioPreview } from "@/components/portfolio/PortfolioPreview";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -14,9 +14,15 @@ export default function PortfolioResultPage() {
   const [portfolio, setPortfolio] = useState<PortfolioDto | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [share, setShare] = useState<PortfolioShareDto | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    apiClient.getPortfolio(String(params.portfolioId)).then(setPortfolio);
+    apiClient.getPortfolio(String(params.portfolioId)).then((response) => {
+      setPortfolio(response);
+      setShare(response.share);
+    });
   }, [params.portfolioId]);
 
   if (!portfolio) return <LoadingState label="완성된 포트폴리오를 펼치고 있어요" />;
@@ -29,6 +35,19 @@ export default function PortfolioResultPage() {
     setDeleting(true);
     await apiClient.deletePortfolio(portfolio.id);
     router.push("/dashboard");
+  };
+
+  const togglePublish = async (published: boolean) => {
+    setSharing(true);
+    setCopied(false);
+    setShare(await apiClient.updatePortfolioShare(portfolio.id, published));
+    setSharing(false);
+  };
+
+  const copyLink = async () => {
+    if (!share?.url) return;
+    await navigator.clipboard.writeText(share.url);
+    setCopied(true);
   };
 
   return (
@@ -48,6 +67,32 @@ export default function PortfolioResultPage() {
           <button className="button primary" type="button" onClick={() => window.print()}>
             인쇄 · PDF로 저장
           </button>
+          {share?.published ? (
+            <span className="share-box" role="status">
+              <span className="share-url" title={share.url ?? ""}>{share.url}</span>
+              <button className="button secondary" type="button" onClick={copyLink}>
+                {copied ? "복사됨" : "링크 복사"}
+              </button>
+              <button
+                className="text-link"
+                type="button"
+                disabled={sharing}
+                onClick={() => togglePublish(false)}
+              >
+                {sharing ? "처리 중…" : "비공개로"}
+              </button>
+            </span>
+          ) : (
+            <button
+              className="button secondary"
+              type="button"
+              disabled={sharing}
+              onClick={() => togglePublish(true)}
+            >
+              {sharing ? "공개하는 중…" : "공개 링크 만들기"}
+            </button>
+          )}
+
           {confirmingDelete ? (
             <span className="delete-confirm" role="status">
               <strong>되돌릴 수 없어요.</strong>
@@ -80,7 +125,7 @@ export default function PortfolioResultPage() {
         </div>
       </div>
       <div className="portfolio-canvas-wrap">
-        <PortfolioPreview content={portfolio.content} variant="result" />
+        <PortfolioPreview content={portfolio.content} variant="result" paginated />
       </div>
       <div className="page-container result-footer-actions">
         <Link className="text-link" href="/dashboard">← 대시보드로 돌아가기</Link>

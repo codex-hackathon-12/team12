@@ -1,4 +1,6 @@
+import { Fragment, type ReactNode } from "react";
 import Image from "next/image";
+import { PaginatedPortfolio } from "@/components/portfolio/PaginatedPortfolio";
 import type { PortfolioContentDto, PortfolioProjectDto } from "@/contracts/api-contract";
 
 // 근거가 없으면 빈 배열이 오므로, 내용이 있는 항목만 열로 만든다.
@@ -15,10 +17,13 @@ export function PortfolioPreview({
   content,
   compact = false,
   variant = "default",
+  paginated = false,
 }: {
   content: PortfolioContentDto;
   compact?: boolean;
   variant?: "default" | "result";
+  /** A4 낱장으로 나눠 인쇄 미리보기처럼 보여준다. */
+  paginated?: boolean;
 }) {
   if (variant === "result") {
     const skillCount = content.skills.reduce(
@@ -32,8 +37,11 @@ export function PortfolioPreview({
       ? `mailto:${content.contact.email}`
       : content.contact.githubUrl;
 
-    return (
-      <article className="portfolio-preview result-portfolio-preview">
+    // 인쇄에서 통째로 유지되는 단위와 같은 블록으로 나눈다.
+    // 페이지 분할 모드는 이 배열을 A4 낱장에 담고, 아닐 때는 그대로 이어서 그린다.
+    const blocks: Array<{ key: string; node: ReactNode }> = [];
+
+    blocks.push({ key: "nav", node: (
         <nav className="result-portfolio-nav" aria-label="포트폴리오 목차">
           <a className="result-portfolio-brand" href="#portfolio-top">
             <strong>{content.profile.displayName}</strong>
@@ -46,7 +54,9 @@ export function PortfolioPreview({
             Contact ↗
           </a>
         </nav>
+    ) });
 
+    blocks.push({ key: "hero", node: (
         <header className="result-portfolio-hero" id="portfolio-top">
           {/* 사진은 이름 줄에만 붙인다. 아래 문단들은 문서의 기준선에서 시작해야 한다. */}
           <div className="result-hero-identity">
@@ -84,7 +94,9 @@ export function PortfolioPreview({
             </div>
           </div>
         </header>
+    ) });
 
+    blocks.push({ key: "metrics", node: (
         <dl className="result-metric-strip" aria-label="포트폴리오 핵심 지표">
           <div>
             <dt>Selected projects</dt>
@@ -103,15 +115,20 @@ export function PortfolioPreview({
             <dd>{content.gitAnalysis.starCount}★ · {content.gitAnalysis.forkCount}⑂</dd>
           </div>
         </dl>
+    ) });
 
-        <section
-          className="result-portfolio-section result-project-section"
-          id="portfolio-work"
-        >
+    // 프로젝트는 카드 하나가 페이지 배치의 단위다. 통째로 묶으면 앞 페이지에
+    // 빈 공간이 크게 남는다. 인쇄에서도 카드 단위로 나뉘므로 같은 단위를 쓴다.
+    blocks.push({ key: "projects-label", node: (
+        <div className="result-block" id="portfolio-work">
           <p className="result-section-label">PROJECTS</p>
-          <div className="result-project-list">
-            {content.projects.map((project) => (
-              <article className="result-project-card" key={project.id}>
+        </div>
+    ) });
+
+    content.projects.forEach((project) => {
+      blocks.push({ key: `project-${project.id}`, node: (
+        <div className="result-block">
+              <article className="result-project-card">
                 <div className="result-project-title-row">
                   <div>
                     <p>{project.role}</p>
@@ -151,10 +168,11 @@ export function PortfolioPreview({
                   </div>
                 )}
               </article>
-            ))}
-          </div>
-        </section>
+        </div>
+      ) });
+    });
 
+    blocks.push({ key: "skills", node: (
         <section
           className="result-expertise-section"
           id="portfolio-expertise"
@@ -197,12 +215,23 @@ export function PortfolioPreview({
             )}
           </div>
         </section>
+    ) });
 
+    blocks.push({ key: "footer", node: (
         <footer className="result-portfolio-footer">
           <p>© 2026 {content.profile.displayName}</p>
           <span>{content.profile.targetRole} PORTFOLIO</span>
           <a href="#portfolio-top">Back to top ↑</a>
         </footer>
+    ) });
+
+    if (paginated) {
+      return <PaginatedPortfolio blocks={blocks} />;
+    }
+
+    return (
+      <article className="portfolio-preview result-portfolio-preview">
+        {blocks.map((block) => <Fragment key={block.key}>{block.node}</Fragment>)}
       </article>
     );
   }

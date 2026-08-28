@@ -39,6 +39,7 @@ export class MockApiClient implements ApiClient {
   private generationPollCount = new Map<string, number>();
   private generationRepositories = new Map<string, string[]>();
   private deletedPortfolioIds = new Set<string>();
+  private publishedPortfolioIds = new Set<string>();
 
   getGitHubLoginUrl(returnTo: string) {
     return returnTo;
@@ -137,6 +138,37 @@ export class MockApiClient implements ApiClient {
     return {
       ...mockPortfolio,
       id: portfolioId,
+    };
+  }
+
+  async updatePortfolioShare(portfolioId: string, published: boolean) {
+    await wait(220);
+    if (published) {
+      this.publishedPortfolioIds.add(portfolioId);
+    } else {
+      this.publishedPortfolioIds.delete(portfolioId);
+    }
+    const slug = `demo-portfolio-${portfolioId}`;
+    return {
+      published,
+      slug,
+      url: published ? `https://folio.example/p/${slug}` : null,
+    };
+  }
+
+  async getPublicPortfolio(slug: string) {
+    await wait();
+    return {
+      slug,
+      title: mockPortfolio.title,
+      targetRole: mockPortfolio.targetRole,
+      content: mockPortfolio.content,
+      repositories: mockPortfolio.repositories.map((repository) => ({
+        name: repository.name,
+        fullName: repository.fullName,
+        htmlUrl: repository.htmlUrl,
+      })),
+      createdAt: mockPortfolio.createdAt,
     };
   }
 

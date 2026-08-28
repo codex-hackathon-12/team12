@@ -91,6 +91,7 @@ test("maps stored portfolio content and repository data to the public DTO", () =
     targetRole: "Backend Engineer",
     repositoryName: "portfolio-api",
     repositoryCount: 1,
+    share: { published: false, slug: null, url: null },
     techStack: ["TypeScript", "CSS", "Next.js", "REST API"],
     createdAt: "2026-08-16T04:01:20.000Z",
   });

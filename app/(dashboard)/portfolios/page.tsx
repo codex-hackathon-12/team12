@@ -92,7 +92,10 @@ export default function PortfolioListPage() {
                 <Link className="portfolio-list-main" href={`/portfolios/${portfolio.id}`}>
                   <p className="portfolio-list-meta">
                     <span>{portfolio.targetRole}</span>
-                    <span>{formatDate(portfolio.createdAt)}</span>
+                    <span>
+                      {portfolio.share.published && <em className="share-badge">공개 중</em>}
+                      {formatDate(portfolio.createdAt)}
+                    </span>
                   </p>
                   <h2>{portfolio.title}</h2>
                   <p className="portfolio-list-source">
