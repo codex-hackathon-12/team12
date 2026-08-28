@@ -11,6 +11,7 @@ import {
   type CreditSummaryDto,
   type CursorPaginationMeta,
   type DashboardDto,
+  type DeletePortfolioDto,
   type GalleryExampleDto,
   type GalleryListDto,
   type GalleryListQuery,
@@ -214,6 +215,14 @@ export class HttpApiClient implements ApiClient {
   async getPortfolio(portfolioId: string) {
     return (
       await request<PortfolioDto>(API_ROUTES.portfolio(portfolioId))
+    ).data;
+  }
+
+  async deletePortfolio(portfolioId: string) {
+    return (
+      await request<DeletePortfolioDto>(API_ROUTES.portfolio(portfolioId), {
+        method: "DELETE",
+      })
     ).data;
   }
 

@@ -11,6 +11,8 @@ export type GeneratedPortfolioDraft = {
   projects: Array<{
     title: string;
     description: string;
+    /** 이 프로젝트가 근거로 삼은 저장소의 name. 결과를 저장소에 다시 연결할 때 쓴다. */
+    repositoryName: string;
     role: string;
     techStack: string[];
     highlights: string[];
@@ -34,8 +36,12 @@ const schema = {
         type: "object",
         additionalProperties: false,
         required: ["category", "skills"],
-        properties: { category: { type: "string" }, skills: { type: "array", items: { type: "string" } } },
+        properties: {
+          category: { type: "string" },
+          skills: { type: "array", maxItems: 6, items: { type: "string" } },
+        },
       },
+      maxItems: 4,
     },
     projects: {
       type: "array",
@@ -43,16 +49,17 @@ const schema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["title", "description", "role", "techStack", "highlights", "challenges", "solutions", "impact"],
+        required: ["title", "description", "repositoryName", "role", "techStack", "highlights", "challenges", "solutions", "impact"],
         properties: {
           title: { type: "string" },
           description: { type: "string" },
+          repositoryName: { type: "string" },
           role: { type: "string" },
-          techStack: { type: "array", items: { type: "string" } },
-          highlights: { type: "array", items: { type: "string" } },
-          challenges: { type: "array", items: { type: "string" } },
-          solutions: { type: "array", items: { type: "string" } },
-          impact: { type: "array", items: { type: "string" } },
+          techStack: { type: "array", maxItems: 8, items: { type: "string" } },
+          highlights: { type: "array", maxItems: 3, items: { type: "string" } },
+          challenges: { type: "array", maxItems: 2, items: { type: "string" } },
+          solutions: { type: "array", maxItems: 2, items: { type: "string" } },
+          impact: { type: "array", maxItems: 2, items: { type: "string" } },
         },
       },
     },

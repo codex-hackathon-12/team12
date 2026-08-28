@@ -24,6 +24,7 @@ type OperationFailureContext = {
   error: unknown;
   requestId?: string;
   jobId?: string;
+  portfolioId?: string;
 };
 
 export const REQUEST_ID_HEADER = "x-request-id";
@@ -75,6 +76,7 @@ export function logOperationFailure(context: OperationFailureContext): void {
     operation: context.operation,
     requestId: context.requestId,
     jobId: context.jobId,
+    portfolioId: context.portfolioId,
     ...safeErrorMetadata(context.error),
   });
 }

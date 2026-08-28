@@ -5,6 +5,78 @@
 위에 추가한다. 아래 기존 기록의 `docs/work-log.md` 표기는 작업 당시 사용한
 통합 로그 경로를 의미한다.
 
+## 2026-08-29-29 — 다중 저장소 생성과 포트폴리오 삭제
+
+- 상태: 완료
+- 정제된 요청: 저장소를 여러 개 골라 한 번에 포트폴리오를 만들고, 만든
+  포트폴리오를 지울 수 있게 한다.
+- 배경: 저장소 선택 화면은 다중 선택을 지원했지만 계약·API·DB가 모두 단수라
+  첫 번째 하나만 전송됐다. 포트폴리오 삭제는 endpoint 자체가 없었다.
+- 결정사항:
+  - 저장소는 한 번에 최대 5개까지 받는다.
+  - `generation_job_repositories`, `portfolio_repositories` 연결 테이블을 두되
+    기존 `repository_id` 컬럼은 대표 저장소로 유지한다. 그래야 기존 조회
+    쿼리와 이미 저장된 결과가 그대로 동작한다.
+  - 생성 schema에 `repositoryName`을 필수로 넣어 프로젝트를 원래 저장소에
+    다시 연결한다. 이 값이 없으면 저장소가 여러 개일 때 `repositoryUrl`이
+    엉뚱한 곳을 가리킨다.
+  - 삭제는 즉시 영구 삭제한다. Storage 삭제 실패는 로그만 남기고 DB 삭제는
+    진행한다.
+- 반영 내용:
+  - 마이그레이션 `202608290001_multi_repository.sql`을 추가하고 기존 행을
+    position 0으로 백필했다.
+  - 계약에 `repositoryIds`, `repositoryCount`, `repositories`,
+    `DeletePortfolioDto`와 `TOO_MANY_REPOSITORIES`를 추가했다.
+  - 증거 수집을 저장소별로 나누고 여러 개일 때 README 상한을 3000자로 줄였다.
+  - 순수 함수인 저장소 매칭과 언어 합산을 `repository-matching.ts`로 분리해
+    I/O 없이 테스트할 수 있게 했다.
+  - `DELETE /api/v1/portfolios/{portfolioId}`와 `deletePortfolio`를 추가했다.
+- 수정 파일:
+  - `supabase/migrations/202608290001_multi_repository.sql`
+  - `contracts/api-contract.ts`, `server/http.ts`
+  - `server/generation/**`, `server/github/evidence.ts`, `server/openai/**`
+  - `server/portfolio/**`, `server/observability/api-logging.ts`
+  - `app/api/v1/generations/route.ts`, `app/api/v1/portfolios/**`
+  - `architecture.md`, `docs/api-contract.md`, `docs/backend-work-log.md`
+- 검증: `tests/multi-repository.test.mjs` 9건을 추가해 position 정렬, 예전
+  데이터 대체, 이름 매칭과 중복 방지, 언어 합산을 확인했다. 기존 테스트의
+  증거 구조도 함께 갱신해 전체 32건을 통과했다.
+- 남은 항목: 마이그레이션을 Supabase SQL Editor에서 실행해야 한다. 실행 전에는
+  다중 저장소 요청이 실패한다. 실제 생성 1회로 `repositoryName` 매칭을
+  확인하는 것도 남아 있다.
+
+## 2026-08-29-28 — 포트폴리오 생성 분량 규격 적용
+
+- 상태: 완료
+- 정제된 요청: 결과 화면이 단일 컬럼으로 훑어 읽히도록 생성 단계에서 분량
+  상한을 정한다.
+- 배경: 생성 지침과 JSON schema 어디에도 길이·개수 제한이 없어 저장된 결과
+  6건의 실측이 introduction 168~248자, highlights 5~7개, techStack 7~13개였다.
+- 결정사항:
+  - 상한은 headline 60자, introduction 150자, description 120자,
+    highlights 3개, challenges·solutions·impact 각 2개, techStack 8개,
+    skills 4개 그룹과 그룹당 6개, notablePatterns 4개로 정한다.
+  - 상한은 채워야 할 목표가 아니라 한계다. 근거가 부족하면 빈 배열을 반환하는
+    기존 원칙을 유지한다.
+  - 규격은 생성 지침, JSON schema, DTO 변환 세 곳에서 함께 지킨다. 규격 이전에
+    저장된 결과도 마지막 단계에서 상한이 적용되도록 한다.
+- 반영 내용:
+  - `portfolio-prompt.ts`에 분량 지침과 우선순위 규칙을 추가했다.
+  - `portfolio-generator.ts`의 schema에 `maxItems`를 넣었다.
+  - `mapper.ts`에 `CONTENT_LIMITS`를 두고 `readStringArray`가 개수를 받도록
+    확장해 방어적으로 잘랐다.
+  - `contracts/api-contract.ts`에 타입 변경 없이 규격을 주석으로 명시했다.
+- 수정 파일:
+  - `server/openai/portfolio-prompt.ts`
+  - `server/openai/portfolio-generator.ts`
+  - `server/portfolio/mapper.ts`
+  - `contracts/api-contract.ts`
+  - `architecture.md`
+  - `docs/backend-work-log.md`
+- 검증: `tests/portfolio-content-limits.test.mjs` 4건을 추가해 상한 적용, 순서
+  보존, 빈 배열 유지와 null 보존을 확인했다. ESLint와 TypeScript 검사를 통과했다.
+- 남은 항목: 실제 생성 1회를 돌려 모델 응답이 상한을 지키는지 확인한다.
+
 ## 2026-08-16-27 — 생성 요청 작업 조회 관계 오류 수정
 
 - 상태: 완료

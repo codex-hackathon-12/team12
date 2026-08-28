@@ -5,6 +5,75 @@ client 등 프론트엔드 담당 작업을 기록한다. 프론트엔드 로그
 수정하며 최신 항목을 위에 추가한다. 아래 기존 기록의 `docs/work-log.md`
 표기는 작업 당시 사용한 통합 로그 경로를 의미한다.
 
+## 2026-08-29-33 — 다중 저장소 선택과 포트폴리오 삭제 연결
+
+- 상태: 완료
+- 정제된 요청: 다중 저장소 생성을 실제로 보내고, 만든 포트폴리오를 화면에서
+  지울 수 있게 한다.
+- 결정사항:
+  - 선택 상한 5개는 계약의 `MAX_GENERATION_REPOSITORIES`를 그대로 쓴다.
+    상한에 도달하면 추가 선택을 무시하고 기존 선택을 밀어내지 않는다.
+  - 삭제 확인은 브라우저 `confirm()`을 쓰지 않는다. 같은 자리에서 인라인으로
+    한 번 더 확인받는다.
+- 반영 내용:
+  - 다중 선택을 막던 `multipleHttpUnavailable` 가드를 제거하고
+    `repositoryIds` 배열로 생성을 요청한다.
+  - 선택 바에 상한을 표시하고 토글에서 개수를 제한했다.
+  - 결과 페이지 상단에 저장소가 2개 이상이면 "A 외 N개"로 표기한다.
+  - 결과 페이지에 삭제 버튼과 인라인 확인, `.button.danger`와
+    `.delete-confirm` 스타일을 추가했다.
+  - api-client 인터페이스와 두 adapter에 `deletePortfolio`를 넣고, mock은
+    삭제한 항목을 목록에서 제외하도록 했다.
+  - mock fixture를 저장소 2개 사례로 바꿔 다중 흐름이 mock에서도 보이게 했다.
+- 수정 파일:
+  - `app/(dashboard)/repositories/page.tsx`
+  - `app/(dashboard)/create/[id]/prompt/page.tsx`
+  - `app/(dashboard)/portfolios/[portfolioId]/page.tsx`
+  - `app/globals.css`
+  - `lib/api-client/**`, `mocks/api/fixtures/index.ts`
+  - `docs/frontend-work-log.md`
+- 검증: ESLint, TypeScript, 프로덕션 빌드와 테스트 전체를 통과했다.
+- 남은 항목: 백엔드 마이그레이션 적용 후 실제 다중 생성과 삭제를 화면에서
+  확인한다.
+
+## 2026-08-29-32 — 결과 화면 밀도와 가독성 개선
+
+- 상태: 완료
+- 정제된 요청: 제목과 본문이 지나치게 크고 장식 문구가 자리를 차지해 정보
+  밀도가 낮은 결과 화면을 훑어 읽을 수 있게 만든다.
+- 배경: 타이포·간격 토큰이 없어 결과 디자인에만 `font-size` 리터럴이 54개
+  흩어져 있었고, 본문인 introduction이 `clamp(24px, 3vw, 34px)`로 그려졌다.
+  `architecture.md` §6.5의 "단일 컬럼 중심" 규격에서도 벗어난 상태였다.
+- 결정사항:
+  - 외부 UI 라이브러리를 도입하지 않는다. 문제는 컴포넌트가 아니라 타입
+    스케일과 정보 구조이고, 앱이 손으로 쓴 시맨틱 CSS 기반이라 마이그레이션
+    비용이 이득보다 크다.
+  - `:root`에 `--text-*`와 `--space-*` 토큰을 두고 결과 디자인을 그 위로
+    정리한다. 제목은 30px을 넘지 않는다.
+  - 데이터에서 나오지 않은 문장은 화면에 두지 않는다.
+- 반영 내용:
+  - 타입·간격 토큰을 도입하고 결과 디자인 규칙을 단일 컬럼으로 재작성했다.
+  - 고정 장식 문구와 맺음말 섹션을 제거하고 섹션 라벨만 남겼다.
+  - 두 번 렌더링되던 `introduction`과 중복 노출되던 상위 기술을 한 곳으로 모았다.
+  - `location`이 없을 때 `"Seoul · Remote"`를 대신 출력하던 날조 폴백을 제거했다.
+  - 무시되던 `profile.avatarUrl`을 56px 프로필 이미지로 사용하고, 없을 때만
+    이니셜로 대체한다. GitHub 아바타 호스트를 `next.config.ts`에 등록했다.
+  - 빈 배열인 항목은 라벨과 컨테이너까지 렌더링하지 않도록 `storyColumns`를
+    비롯한 조건부 렌더링을 넣었다.
+  - 구버전 결과 디자인 CSS가 같은 클래스 이름으로 새어들던 `display`,
+    `border`, `padding-left`를 명시적으로 되돌렸다.
+- 수정 파일:
+  - `app/globals.css`
+  - `components/portfolio/PortfolioPreview.tsx`
+  - `next.config.ts`
+  - `docs/frontend-work-log.md`
+- 검증:
+  - 실제 저장된 포트폴리오로 측정해 결과 문서 높이 4346px → 1424px(-67%),
+    첫 화면 정보 항목 4개 → 18개, 장식 문구 점유 1040px(24%) → 33px(2%).
+  - 11개 폭 구간(1440~380px)에서 글자 단위 붕괴 0건, 가로 overflow 없음.
+  - ESLint, TypeScript, 프로덕션 빌드와 테스트 전체를 통과했다.
+- 남은 항목: 갤러리와 compact variant는 이번 범위에 포함하지 않았다.
+
 ## 2026-08-16-31 — 결과 포트폴리오 디자인 확장
 
 - 상태: 완료

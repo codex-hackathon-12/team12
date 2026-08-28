@@ -26,10 +26,10 @@ import { successfulGenerationScenario } from "@/mocks/api/scenarios/generation";
 const wait = (duration = 280) =>
   new Promise<void>((resolve) => setTimeout(resolve, duration));
 
-const createCreditQuote = () => ({
+const createCreditQuote = (repositoryCount = 1) => ({
   currentBalance: 100,
-  repositoryCount: 1,
-  estimatedCost: 30,
+  repositoryCount,
+  estimatedCost: repositoryCount * 30,
   balanceAfterGeneration: 100,
   willCharge: false as const,
   isMock: true as const,
@@ -37,7 +37,8 @@ const createCreditQuote = () => ({
 
 export class MockApiClient implements ApiClient {
   private generationPollCount = new Map<string, number>();
-  private generationRepository = new Map<string, string>();
+  private generationRepositories = new Map<string, string[]>();
+  private deletedPortfolioIds = new Set<string>();
 
   getGitHubLoginUrl(returnTo: string) {
     return returnTo;
@@ -92,9 +93,9 @@ export class MockApiClient implements ApiClient {
 
   async createGeneration(request: CreateGenerationRequest) {
     await wait(420);
-    const jobId = `job_${request.repositoryId}`;
+    const jobId = `job_${request.repositoryIds.join("_")}`;
     this.generationPollCount.set(jobId, 0);
-    this.generationRepository.set(jobId, request.repositoryId);
+    this.generationRepositories.set(jobId, request.repositoryIds);
     return this.buildGenerationJob(jobId, 0);
   }
 
@@ -110,9 +111,9 @@ export class MockApiClient implements ApiClient {
     await wait(240);
     const nextJobId = `${jobId}_retry`;
     this.generationPollCount.set(nextJobId, 0);
-    this.generationRepository.set(
+    this.generationRepositories.set(
       nextJobId,
-      this.generationRepository.get(jobId) ?? mockRepositories[0].id,
+      this.generationRepositories.get(jobId) ?? [mockRepositories[0].id],
     );
     return {
       previousJobId: jobId,
@@ -122,7 +123,11 @@ export class MockApiClient implements ApiClient {
 
   async getPortfolios() {
     await wait();
-    return { portfolios: mockPortfolioSummaries };
+    return {
+      portfolios: mockPortfolioSummaries.filter(
+        (portfolio) => !this.deletedPortfolioIds.has(portfolio.id),
+      ),
+    };
   }
 
   async getPortfolio(portfolioId: string) {
@@ -131,6 +136,12 @@ export class MockApiClient implements ApiClient {
       ...mockPortfolio,
       id: portfolioId,
     };
+  }
+
+  async deletePortfolio(portfolioId: string) {
+    await wait(260);
+    this.deletedPortfolioIds.add(portfolioId);
+    return { deletedId: portfolioId };
   }
 
   async getCredits() {
@@ -212,14 +223,16 @@ export class MockApiClient implements ApiClient {
   private buildGenerationJob(jobId: string, index: number): GenerationJobDto {
     const step = successfulGenerationScenario[index];
     const timestamp = new Date().toISOString();
+    const repositoryIds =
+      this.generationRepositories.get(jobId) ?? [mockRepositories[0].id];
     return {
       jobId,
-      repositoryId:
-        this.generationRepository.get(jobId) ?? mockRepositories[0].id,
+      repositoryId: repositoryIds[0],
+      repositoryIds,
       ...step,
       portfolioId: step.status === "completed" ? "portfolio_demo" : null,
       resumePdfAvailable: step.status === "completed",
-      creditQuote: createCreditQuote(),
+      creditQuote: createCreditQuote(repositoryIds.length),
       error: null,
       createdAt: timestamp,
       updatedAt: timestamp,

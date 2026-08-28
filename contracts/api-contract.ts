@@ -69,6 +69,7 @@ export type ApiErrorCode =
   | "JOB_NOT_RETRYABLE"
   | "ACCOUNT_DELETION_IN_PROGRESS"
   | "MOCK_PAYMENT_FAILED"
+  | "TOO_MANY_REPOSITORIES"
   | "INTERNAL_ERROR";
 
 export interface ApiFieldError {
@@ -185,8 +186,12 @@ export interface CreditSummaryDto {
 
 export type PortfolioTone = "professional" | "concise" | "storytelling";
 
+/** 한 번의 생성에 넣을 수 있는 저장소 수의 상한. */
+export const MAX_GENERATION_REPOSITORIES = 5;
+
 export interface CreateGenerationRequest {
-  repositoryId: EntityId;
+  /** 1개 이상 `MAX_GENERATION_REPOSITORIES`개 이하. 순서가 프로젝트 순서가 된다. */
+  repositoryIds: EntityId[];
   prompt: string;
   targetRole?: string;
   tone?: PortfolioTone;
@@ -210,7 +215,10 @@ export type GenerationStage =
 
 export interface GenerationJobDto {
   jobId: EntityId;
+  /** 대표(첫 번째) 저장소. 단일 저장소 화면과의 호환을 위해 유지한다. */
   repositoryId: EntityId;
+  /** 선택한 저장소 전체를 선택 순서대로 담는다. */
+  repositoryIds: EntityId[];
   status: GenerationStatus;
   stage: GenerationStage;
   progress: number;
@@ -286,6 +294,19 @@ export interface PortfolioGitAnalysisDto {
   notablePatterns: string[];
 }
 
+/**
+ * 결과 화면은 단일 컬럼으로 훑어 읽는 문서라 분량 상한이 있다.
+ * 상한은 `architecture.md` §6.5를 기준으로 하며 서버가 보장한다.
+ *
+ * - `profile.headline` 60자, `introduction` 150자
+ * - `PortfolioProjectDto.description` 120자
+ * - `highlights` 3개(항목 60자), `challenges`·`solutions`·`impact` 각 2개(항목 80자)
+ * - `techStack` 8개, `skills` 4개 그룹(그룹당 6개), `notablePatterns` 4개
+ *
+ * 상한은 채워야 할 목표가 아니다. 근거가 없으면 빈 배열이 온다.
+ * 프론트엔드는 배열이 비면 라벨과 컨테이너까지 렌더링하지 않으며,
+ * `contact.location`처럼 null이 올 수 있는 값을 예시 문자열로 대체하지 않는다.
+ */
 export interface PortfolioContentDto {
   profile: PortfolioProfileDto;
   introduction: string;
@@ -299,7 +320,10 @@ export interface PortfolioSummaryDto {
   id: EntityId;
   title: string;
   targetRole: string;
+  /** 대표(첫 번째) 저장소 이름. */
   repositoryName: string;
+  /** 이 포트폴리오가 사용한 저장소 수. 1이면 단일 저장소다. */
+  repositoryCount: number;
   techStack: string[];
   createdAt: IsoDateTime;
 }
@@ -311,7 +335,10 @@ export interface ResumePdfDto {
 
 export interface PortfolioDto extends PortfolioSummaryDto {
   generationJobId: EntityId;
+  /** 대표(첫 번째) 저장소. */
   repository: GitRepositoryDto;
+  /** 사용한 저장소 전체를 선택 순서대로 담는다. 항상 1개 이상이다. */
+  repositories: GitRepositoryDto[];
   style: "default";
   resumePdf: ResumePdfDto | null;
   content: PortfolioContentDto;
@@ -320,6 +347,14 @@ export interface PortfolioDto extends PortfolioSummaryDto {
 
 export interface PortfolioListDto {
   portfolios: PortfolioSummaryDto[];
+}
+
+/**
+ * 포트폴리오 삭제는 되돌릴 수 없다. DB 행과 Storage의 PDF를 함께 지운다.
+ * 생성 작업 기록은 남으며 `portfolioId`만 비워진다.
+ */
+export interface DeletePortfolioDto {
+  deletedId: EntityId;
 }
 
 // Dashboard and taste sample

@@ -92,6 +92,7 @@ test("maps stored portfolio content and repository data to the public DTO", () =
     title: "문제 해결에 집중하는 백엔드 개발자",
     targetRole: "Backend Engineer",
     repositoryName: "portfolio-api",
+    repositoryCount: 1,
     techStack: ["TypeScript", "CSS", "Next.js", "REST API"],
     createdAt: "2026-08-16T04:01:20.000Z",
   });

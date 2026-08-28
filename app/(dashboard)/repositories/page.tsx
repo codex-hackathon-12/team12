@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type {
-  GitRepositoryDto,
-  RepositoryVisibility,
+import {
+  MAX_GENERATION_REPOSITORIES,
+  type GitRepositoryDto,
+  type RepositoryVisibility,
 } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -48,11 +49,15 @@ export default function RepositoriesPage() {
   };
 
   const toggleRepository = (repositoryId: string) => {
-    setSelectedRepositoryIds((current) =>
-      current.includes(repositoryId)
-        ? current.filter((id) => id !== repositoryId)
-        : [...current, repositoryId],
-    );
+    setSelectedRepositoryIds((current) => {
+      if (current.includes(repositoryId)) {
+        return current.filter((id) => id !== repositoryId);
+      }
+      // 상한을 넘으면 선택을 무시한다. 이미 고른 것을 밀어내면 의도와 어긋난다.
+      return current.length >= MAX_GENERATION_REPOSITORIES
+        ? current
+        : [...current, repositoryId];
+    });
   };
 
   const continueToPrompt = () => {
@@ -155,7 +160,10 @@ export default function RepositoriesPage() {
         <div>
           <span>선택한 저장소</span>
           <strong>{selectedRepositoryIds.length}개</strong>
-          <small>예상 비용 {selectedRepositoryIds.length * 30} 크레딧 · 실제 차감 없음</small>
+          <small>
+            최대 {MAX_GENERATION_REPOSITORIES}개 · 예상 비용{" "}
+            {selectedRepositoryIds.length * 30} 크레딧 · 실제 차감 없음
+          </small>
         </div>
         <button
           className="button primary"

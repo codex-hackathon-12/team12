@@ -1,9 +1,15 @@
 import { decryptSecret } from "@/server/auth/crypto";
 import { getRepository } from "@/server/github/repositories";
-import type { PortfolioEvidence, PortfolioTone } from "@/server/openai/portfolio-prompt";
+import type {
+  PortfolioEvidence,
+  PortfolioEvidenceRepository,
+  PortfolioTone,
+} from "@/server/openai/portfolio-prompt";
 import { getSupabaseClient } from "@/server/supabase/client";
 
-const MAX_README_LENGTH = 6000;
+// 저장소가 늘어나면 README를 그대로 이어붙일 때 AI 입력이 급격히 커진다.
+const MAX_README_LENGTH_SINGLE = 6000;
+const MAX_README_LENGTH_MULTI = 3000;
 const MAX_ACTIVITY_ITEMS = 20;
 
 async function getAccessToken(userId: string): Promise<string> {
@@ -21,35 +27,61 @@ async function requestGitHub(accessToken: string, path: string, accept = "applic
   return response;
 }
 
-export async function collectPortfolioEvidence(
+async function collectRepositoryEvidence(
   userId: string,
   repositoryId: string,
-  request: { prompt: string; targetRole?: string | null; tone?: PortfolioTone | null; highlights?: string[] },
-): Promise<PortfolioEvidence> {
+  accessToken: string,
+  maxReadmeLength: number,
+): Promise<PortfolioEvidenceRepository> {
   const repository = await getRepository(userId, repositoryId);
   if (!repository) throw new Error("Repository is unavailable.");
-  const accessToken = await getAccessToken(userId);
   const [readmeResponse, languagesResponse, commitsResponse, pullsResponse] = await Promise.all([
     requestGitHub(accessToken, `/repos/${repository.fullName}/readme`, "application/vnd.github.raw+json"),
     requestGitHub(accessToken, `/repos/${repository.fullName}/languages`),
     requestGitHub(accessToken, `/repos/${repository.fullName}/commits?per_page=${MAX_ACTIVITY_ITEMS}`),
     requestGitHub(accessToken, `/repos/${repository.fullName}/pulls?state=all&sort=updated&direction=desc&per_page=${MAX_ACTIVITY_ITEMS}`),
   ]);
-  const readme = readmeResponse.ok ? (await readmeResponse.text()).slice(0, MAX_README_LENGTH) : "";
+  const readme = readmeResponse.ok ? (await readmeResponse.text()).slice(0, maxReadmeLength) : "";
   const languageBytes = languagesResponse.ok ? await languagesResponse.json() as Record<string, number> : {};
   const totalBytes = Object.values(languageBytes).reduce((total, bytes) => total + bytes, 0);
   const languages = Object.entries(languageBytes).map(([name, bytes]) => ({ name, percentage: totalBytes ? Number(((bytes / totalBytes) * 100).toFixed(1)) : 0 }));
   const commits = commitsResponse.ok ? await commitsResponse.json() as Array<{ commit?: { message?: string } }> : [];
   const pulls = pullsResponse.ok ? await pullsResponse.json() as Array<{ title?: string }> : [];
   return {
-    repository: { name: repository.name, description: repository.description, url: repository.htmlUrl, primaryLanguage: repository.primaryLanguage, starCount: repository.starCount, forkCount: repository.forkCount },
-    targetRole: request.targetRole || "개발자",
-    tone: request.tone || "professional",
-    prompt: request.prompt,
-    highlights: request.highlights || [],
+    id: repository.id,
+    name: repository.name,
+    description: repository.description,
+    url: repository.htmlUrl,
+    primaryLanguage: repository.primaryLanguage,
+    starCount: repository.starCount,
+    forkCount: repository.forkCount,
     languages,
     readme,
     commitTitles: commits.map((commit) => commit.commit?.message?.split("\n")[0] || "").filter(Boolean).slice(0, MAX_ACTIVITY_ITEMS),
     pullRequestTitles: pulls.map((pull) => pull.title || "").filter(Boolean).slice(0, MAX_ACTIVITY_ITEMS),
+  };
+}
+
+export async function collectPortfolioEvidence(
+  userId: string,
+  repositoryIds: string[],
+  request: { prompt: string; targetRole?: string | null; tone?: PortfolioTone | null; highlights?: string[] },
+): Promise<PortfolioEvidence> {
+  if (repositoryIds.length === 0) throw new Error("At least one repository is required.");
+  const accessToken = await getAccessToken(userId);
+  const maxReadmeLength = repositoryIds.length > 1 ? MAX_README_LENGTH_MULTI : MAX_README_LENGTH_SINGLE;
+
+  // 선택 순서를 유지해야 프로젝트 순서와 대표 저장소가 맞는다.
+  const repositories = await Promise.all(
+    repositoryIds.map((repositoryId) =>
+      collectRepositoryEvidence(userId, repositoryId, accessToken, maxReadmeLength)),
+  );
+
+  return {
+    repositories,
+    targetRole: request.targetRole || "개발자",
+    tone: request.tone || "professional",
+    prompt: request.prompt,
+    highlights: request.highlights || [],
   };
 }
