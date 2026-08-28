@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 /**
  * A4 세로를 96dpi로 환산한 값이다. 인쇄 CSS의 `@page`와 같은 규격을 쓴다.
@@ -11,7 +11,21 @@ const PAGE_HEIGHT = 1123;
 const PAGE_MARGIN = 38;
 const CONTENT_HEIGHT = PAGE_HEIGHT - PAGE_MARGIN * 2;
 
-type Block = { key: string; node: ReactNode };
+type Block = { key: string; node: ReactNode; kind?: "project" };
+
+/** 한 장에 프로젝트를 너무 많이 담으면 훑기 어렵다. */
+const MAX_PROJECTS_PER_PAGE = 2;
+
+/** 남는 공간을 블록 사이로 나눠 넣되, 한 틈이 지나치게 벌어지지 않게 막는다. */
+const MAX_FILL_GAP = 64;
+
+/** 반올림으로 마지막 블록이 밀려나지 않도록 여유를 남긴다. */
+const FILL_SAFETY = 0.9;
+
+/** 소수점 반올림이 쌓여 한 장을 넘기지 않도록 두는 최소 여유. */
+const FILL_GUARD = 6;
+
+type Page = { indexes: number[]; gap: number };
 
 /**
  * 인쇄 미리보기처럼 A4 낱장에 나눠 담는다.
@@ -26,7 +40,7 @@ type Block = { key: string; node: ReactNode };
 export function PaginatedPortfolio({ blocks }: { blocks: Block[] }) {
   const measureRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
-  const [pages, setPages] = useState<number[][] | null>(null);
+  const [pages, setPages] = useState<Page[] | null>(null);
   const [scale, setScale] = useState(1);
 
   // 측정 대상은 화면 밖에 그려두고, 높이를 읽어 페이지로 묶는다.
@@ -39,23 +53,41 @@ export function PaginatedPortfolio({ blocks }: { blocks: Block[] }) {
         (child) => (child as HTMLElement).getBoundingClientRect().height,
       );
 
-      const grouped: number[][] = [];
+      const grouped: Array<{ indexes: number[]; used: number }> = [];
       let current: number[] = [];
       let used = 0;
+      let projects = 0;
 
       heights.forEach((height, index) => {
+        const isProject = blocks[index].kind === "project";
+        const overflows = used + height > CONTENT_HEIGHT;
+        const tooManyProjects = isProject && projects >= MAX_PROJECTS_PER_PAGE;
+
         // 한 블록이 페이지보다 크면 어차피 나눌 수 없으므로 그대로 한 장에 둔다.
-        if (current.length > 0 && used + height > CONTENT_HEIGHT) {
-          grouped.push(current);
+        if (current.length > 0 && (overflows || tooManyProjects)) {
+          grouped.push({ indexes: current, used });
           current = [];
           used = 0;
+          projects = 0;
         }
+
         current.push(index);
         used += height;
+        if (isProject) projects += 1;
       });
 
-      if (current.length > 0) grouped.push(current);
-      setPages(grouped);
+      if (current.length > 0) grouped.push({ indexes: current, used });
+
+      // 마지막 장을 뺀 나머지는 남는 공간을 블록 사이로 나눠 채운다.
+      // 문서가 끝난 마지막 장까지 늘리면 어색하다.
+      setPages(grouped.map((page, pageIndex) => {
+        const slots = page.indexes.length - 1;
+        const isLast = pageIndex === grouped.length - 1;
+        if (isLast || slots < 1) return { indexes: page.indexes, gap: 0 };
+
+        const leftover = Math.max(CONTENT_HEIGHT - page.used - FILL_GUARD, 0) * FILL_SAFETY;
+        return { indexes: page.indexes, gap: Math.min(leftover / slots, MAX_FILL_GAP) };
+      }));
     };
 
     measure();
@@ -99,7 +131,9 @@ export function PaginatedPortfolio({ blocks }: { blocks: Block[] }) {
         aria-hidden={pages !== null}
         ref={measureRef}
       >
-        {blocks.map((block) => <Fragment key={block.key}>{block.node}</Fragment>)}
+        {/* 실제 낱장과 같은 래퍼를 써야 한다. 래퍼가 다르면 마진 상쇄가 달라져
+            측정 높이가 어긋나고 페이지가 넘친다. */}
+        {blocks.map((block) => <div key={block.key}>{block.node}</div>)}
       </div>
 
       {pages && (
@@ -110,11 +144,17 @@ export function PaginatedPortfolio({ blocks }: { blocks: Block[] }) {
             height: scale === 1 ? undefined : `${pages.length * (PAGE_HEIGHT + 24) * scale}px`,
           }}
         >
-          {pages.map((indexes, pageIndex) => (
+          {pages.map((page, pageIndex) => (
             <article className="portfolio-page" key={`page-${pageIndex}`}>
               <div className="portfolio-page-inner portfolio-preview result-portfolio-preview">
-                {indexes.map((index) => (
-                  <Fragment key={blocks[index].key}>{blocks[index].node}</Fragment>
+                {page.indexes.map((index, slot) => (
+                  <div
+                    key={blocks[index].key}
+                    // 인라인 여백이라 인쇄에도 그대로 적용되어 나눔 지점이 어긋나지 않는다.
+                    style={slot === 0 || page.gap === 0 ? undefined : { marginTop: `${page.gap}px` }}
+                  >
+                    {blocks[index].node}
+                  </div>
                 ))}
               </div>
               <span className="portfolio-page-number" aria-hidden="true">
