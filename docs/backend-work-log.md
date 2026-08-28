@@ -5,6 +5,38 @@
 위에 추가한다. 아래 기존 기록의 `docs/work-log.md` 표기는 작업 당시 사용한
 통합 로그 경로를 의미한다.
 
+## 2026-08-29-28 — 포트폴리오 생성 분량 규격 적용
+
+- 상태: 완료
+- 정제된 요청: 결과 화면이 단일 컬럼으로 훑어 읽히도록 생성 단계에서 분량
+  상한을 정한다.
+- 배경: 생성 지침과 JSON schema 어디에도 길이·개수 제한이 없어 저장된 결과
+  6건의 실측이 introduction 168~248자, highlights 5~7개, techStack 7~13개였다.
+- 결정사항:
+  - 상한은 headline 60자, introduction 150자, description 120자,
+    highlights 3개, challenges·solutions·impact 각 2개, techStack 8개,
+    skills 4개 그룹과 그룹당 6개, notablePatterns 4개로 정한다.
+  - 상한은 채워야 할 목표가 아니라 한계다. 근거가 부족하면 빈 배열을 반환하는
+    기존 원칙을 유지한다.
+  - 규격은 생성 지침, JSON schema, DTO 변환 세 곳에서 함께 지킨다. 규격 이전에
+    저장된 결과도 마지막 단계에서 상한이 적용되도록 한다.
+- 반영 내용:
+  - `portfolio-prompt.ts`에 분량 지침과 우선순위 규칙을 추가했다.
+  - `portfolio-generator.ts`의 schema에 `maxItems`를 넣었다.
+  - `mapper.ts`에 `CONTENT_LIMITS`를 두고 `readStringArray`가 개수를 받도록
+    확장해 방어적으로 잘랐다.
+  - `contracts/api-contract.ts`에 타입 변경 없이 규격을 주석으로 명시했다.
+- 수정 파일:
+  - `server/openai/portfolio-prompt.ts`
+  - `server/openai/portfolio-generator.ts`
+  - `server/portfolio/mapper.ts`
+  - `contracts/api-contract.ts`
+  - `architecture.md`
+  - `docs/backend-work-log.md`
+- 검증: `tests/portfolio-content-limits.test.mjs` 4건을 추가해 상한 적용, 순서
+  보존, 빈 배열 유지와 null 보존을 확인했다. ESLint와 TypeScript 검사를 통과했다.
+- 남은 항목: 실제 생성 1회를 돌려 모델 응답이 상한을 지키는지 확인한다.
+
 ## 2026-08-16-27 — 생성 요청 작업 조회 관계 오류 수정
 
 - 상태: 완료

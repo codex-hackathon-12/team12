@@ -55,10 +55,25 @@ function readNumber(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
-function readStringArray(value: unknown): string[] {
-  return Array.isArray(value)
+// 결과 화면이 감당할 수 있는 분량 상한. 생성 스키마와 같은 값을 쓰며,
+// 모델이 상한을 어기거나 규격 이전에 저장된 결과를 열어도 화면이 무너지지 않게 한다.
+const CONTENT_LIMITS = {
+  skillGroups: 4,
+  skillsPerGroup: 6,
+  techStack: 8,
+  highlights: 3,
+  challenges: 2,
+  solutions: 2,
+  impact: 2,
+  notablePatterns: 4,
+} as const;
+
+function readStringArray(value: unknown, limit?: number): string[] {
+  const items = Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
     : [];
+
+  return limit === undefined ? items : items.slice(0, limit);
 }
 
 function readRepository(record: PortfolioRecord): PortfolioRepositoryRecord | null {
@@ -73,14 +88,14 @@ function mapSkills(value: unknown): PortfolioContentDto["skills"] {
     return [];
   }
 
-  return value.flatMap((item) => {
+  return value.slice(0, CONTENT_LIMITS.skillGroups).flatMap((item) => {
     if (!isRecord(item)) {
       return [];
     }
 
     return [{
       category: readString(item.category),
-      skills: readStringArray(item.skills),
+      skills: readStringArray(item.skills, CONTENT_LIMITS.skillsPerGroup),
     }];
   });
 }
@@ -105,11 +120,11 @@ function mapProjects(
       description: readString(item.description),
       repositoryUrl: readString(item.repositoryUrl, repository.htmlUrl),
       role: readString(item.role, targetRole),
-      techStack: readStringArray(item.techStack),
-      highlights: readStringArray(item.highlights),
-      challenges: readStringArray(item.challenges),
-      solutions: readStringArray(item.solutions),
-      impact: readStringArray(item.impact),
+      techStack: readStringArray(item.techStack, CONTENT_LIMITS.techStack),
+      highlights: readStringArray(item.highlights, CONTENT_LIMITS.highlights),
+      challenges: readStringArray(item.challenges, CONTENT_LIMITS.challenges),
+      solutions: readStringArray(item.solutions, CONTENT_LIMITS.solutions),
+      impact: readStringArray(item.impact, CONTENT_LIMITS.impact),
     }];
   });
 }
@@ -176,7 +191,7 @@ export function mapPortfolioContent(
       languages: mapLanguages(gitAnalysis.languages),
       starCount: readNumber(gitAnalysis.starCount),
       forkCount: readNumber(gitAnalysis.forkCount),
-      notablePatterns: readStringArray(gitAnalysis.notablePatterns),
+      notablePatterns: readStringArray(gitAnalysis.notablePatterns, CONTENT_LIMITS.notablePatterns),
     },
     contact: {
       githubUrl: readString(contact.githubUrl, repository.htmlUrl),
