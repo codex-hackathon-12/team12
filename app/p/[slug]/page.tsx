@@ -57,7 +57,7 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
   return (
     <main className="public-portfolio-page">
       <div className="portfolio-canvas-wrap">
-        <PortfolioPreview content={portfolio.content} variant="result" />
+        <PortfolioPreview content={portfolio.content} variant="result" paginated />
       </div>
 
       <footer className="public-portfolio-footer">

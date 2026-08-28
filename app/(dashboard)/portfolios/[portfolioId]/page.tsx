@@ -125,7 +125,7 @@ export default function PortfolioResultPage() {
         </div>
       </div>
       <div className="portfolio-canvas-wrap">
-        <PortfolioPreview content={portfolio.content} variant="result" />
+        <PortfolioPreview content={portfolio.content} variant="result" paginated />
       </div>
       <div className="page-container result-footer-actions">
         <Link className="text-link" href="/dashboard">← 대시보드로 돌아가기</Link>
