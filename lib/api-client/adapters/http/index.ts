@@ -10,6 +10,7 @@ import {
   type CreateMockCheckoutRequest,
   type CreditSummaryDto,
   type CursorPaginationMeta,
+  type CursorPaginationQuery,
   type DashboardDto,
   type DeletePortfolioDto,
   type GalleryExampleDto,
@@ -208,8 +209,15 @@ export class HttpApiClient implements ApiClient {
     ).data;
   }
 
-  async getPortfolios() {
-    return (await request<PortfolioListDto>(API_ROUTES.portfolios)).data;
+  async getPortfolios(query: CursorPaginationQuery = {}) {
+    const response = await request<PortfolioListDto>(
+      withQuery(API_ROUTES.portfolios, { ...query }),
+    );
+    return {
+      ...response.data,
+      nextCursor: response.meta?.nextCursor ?? null,
+      hasNextPage: response.meta?.hasNextPage ?? false,
+    };
   }
 
   async getPortfolio(portfolioId: string) {

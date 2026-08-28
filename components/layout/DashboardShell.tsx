@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 const navigation = [
   { href: "/dashboard", label: "대시보드" },
+  { href: "/portfolios", label: "내 포트폴리오" },
   { href: "/repositories", label: "포트폴리오 만들기" },
   { href: "/gallery", label: "갤러리" },
   { href: "/billing", label: "크레딧" },
@@ -14,11 +15,7 @@ const navigation = [
 const isCurrentPath = (pathname: string, href: string) => {
   if (href === "/dashboard") return pathname === href;
   if (href === "/repositories") {
-    return (
-      pathname.startsWith("/repositories") ||
-      pathname.startsWith("/create") ||
-      pathname.startsWith("/portfolios")
-    );
+    return pathname.startsWith("/repositories") || pathname.startsWith("/create");
   }
   return pathname.startsWith(href);
 };
@@ -78,7 +75,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             }
           >
             <span className="mobile-nav-dot" aria-hidden="true" />
-            {item.label === "포트폴리오 만들기" ? "만들기" : item.label}
+            {item.label === "포트폴리오 만들기"
+              ? "만들기"
+              : item.label === "내 포트폴리오"
+                ? "내 작업"
+                : item.label}
           </Link>
         ))}
       </nav>
