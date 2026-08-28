@@ -127,6 +127,8 @@ export class MockApiClient implements ApiClient {
       portfolios: mockPortfolioSummaries.filter(
         (portfolio) => !this.deletedPortfolioIds.has(portfolio.id),
       ),
+      nextCursor: null,
+      hasNextPage: false,
     };
   }
 

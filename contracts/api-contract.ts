@@ -296,7 +296,7 @@ export interface PortfolioGitAnalysisDto {
 
 /**
  * 결과 화면은 단일 컬럼으로 훑어 읽는 문서라 분량 상한이 있다.
- * 상한은 `architecture.md` §6.5를 기준으로 하며 서버가 보장한다.
+ * 상한은 `architecture.md` §6.6을 기준으로 하며 서버가 보장한다.
  *
  * - `profile.headline` 60자, `introduction` 150자
  * - `PortfolioProjectDto.description` 120자

@@ -54,7 +54,10 @@ export default function DashboardPage() {
               <p className="eyebrow">RECENT WORK</p>
               <h2>이어서 다듬기</h2>
             </div>
-            <Link className="text-link" href="/repositories">새로 만들기 →</Link>
+            <div className="section-title-links">
+              <Link className="text-link" href="/portfolios">전체 보기 →</Link>
+              <Link className="text-link" href="/repositories">새로 만들기 →</Link>
+            </div>
           </div>
           <div className="recent-list">
             {dashboard.recentPortfolios.map((portfolio, index) => (

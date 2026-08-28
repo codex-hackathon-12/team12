@@ -2506,6 +2506,93 @@ a {
   .result-portfolio-footer span { display: none; }
 }
 
+
+/* 내 포트폴리오 목록 */
+
+.portfolio-list-page { padding-top: var(--space-8); }
+.portfolio-list-page .section-title-row h1 {
+  margin: var(--space-3) 0 0;
+  font-size: clamp(30px, 3.3vw, 44px);
+  font-weight: 650;
+  letter-spacing: -0.045em;
+}
+
+.section-title-links { display: flex; gap: var(--space-4); align-items: center; }
+
+.portfolio-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
+  gap: var(--space-4);
+}
+
+.portfolio-list-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--space-6);
+  border: 1px solid var(--line-dark);
+  background: var(--surface);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.portfolio-list-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+
+/* 카드 전체를 링크로 감싸면 삭제 버튼이 링크 안에 중첩되므로 본문만 링크로 둔다. */
+.portfolio-list-main { display: block; min-width: 0; color: inherit; }
+
+.portfolio-list-meta {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+  margin: 0;
+  color: var(--ink-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.portfolio-list-main h2 {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-lg);
+  font-weight: 680;
+  letter-spacing: -0.03em;
+  line-height: 1.35;
+}
+
+.portfolio-list-source {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.portfolio-list-source em { font-style: normal; opacity: 0.75; }
+
+.portfolio-list-card .tag-row { margin-top: var(--space-3); }
+
+.portfolio-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: var(--space-4);
+}
+
+.danger-link { border: 0; background: none; color: var(--coral); cursor: pointer; font: inherit; }
+
+.portfolio-list-more { display: flex; justify-content: center; margin-top: var(--space-8); }
+
+.empty-state > div { display: grid; gap: var(--space-4); justify-items: center; padding: var(--space-8); }
+
+@media (max-width: 780px) {
+  .portfolio-list-grid { grid-template-columns: 1fr; }
+  .portfolio-list-card { padding: var(--space-4); }
+  .section-title-links { flex-direction: column; align-items: flex-end; gap: var(--space-2); }
+}
+
 @media print {
   .site-header,
   .mobile-nav,
