@@ -72,8 +72,6 @@ const portfolioRecord = {
   target_role: "Backend Engineer",
   content: storedContent,
   style: "default",
-  resume_pdf_path: "user_123/portfolio_123.pdf",
-  resume_pdf_generated_at: "2026-08-16T04:01:20.000Z",
   created_at: "2026-08-16T04:01:20.000Z",
   updated_at: "2026-08-16T04:01:20.000Z",
   repositories: repositoryRecord,
@@ -96,16 +94,9 @@ test("maps stored portfolio content and repository data to the public DTO", () =
     techStack: ["TypeScript", "CSS", "Next.js", "REST API"],
     createdAt: "2026-08-16T04:01:20.000Z",
   });
-  assert.equal(portfolio.resumePdf.downloadUrl, "/api/v1/portfolios/portfolio_123/resume.pdf");
-  assert.equal(portfolio.resumePdf.generatedAt, "2026-08-16T04:01:20.000Z");
   assert.equal(portfolio.style, "default");
 });
 
-test("does not expose a download URL when no resume path is stored", () => {
-  const portfolio = mapPortfolio({ ...portfolioRecord, resume_pdf_path: null, resume_pdf_generated_at: null });
-
-  assert.equal(portfolio.resumePdf, null);
-});
 
 test("uses an offset cursor that safely falls back for invalid values", () => {
   assert.equal(encodePortfolioCursor(20), "MjA=");

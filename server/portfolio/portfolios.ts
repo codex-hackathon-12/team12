@@ -4,10 +4,9 @@ import {
   mapPortfolioSummary,
   type PortfolioRecord,
 } from "@/server/portfolio/mapper";
-import { logOperationFailure } from "@/server/observability/api-logging";
 import { getSupabaseClient } from "@/server/supabase/client";
 
-const PORTFOLIO_SELECT = "id, generation_job_id, title, target_role, content, style, resume_pdf_path, resume_pdf_generated_at, created_at, updated_at, repositories!portfolios_repository_id_fkey(id, github_repository_id, owner_username, owner_avatar_url, name, full_name, description, html_url, default_branch, primary_language, visibility, star_count, fork_count, pushed_at, synced_at), portfolio_repositories(position, repositories(id, github_repository_id, owner_username, owner_avatar_url, name, full_name, description, html_url, default_branch, primary_language, visibility, star_count, fork_count, pushed_at, synced_at))";
+const PORTFOLIO_SELECT = "id, generation_job_id, title, target_role, content, style, created_at, updated_at, repositories!portfolios_repository_id_fkey(id, github_repository_id, owner_username, owner_avatar_url, name, full_name, description, html_url, default_branch, primary_language, visibility, star_count, fork_count, pushed_at, synced_at), portfolio_repositories(position, repositories(id, github_repository_id, owner_username, owner_avatar_url, name, full_name, description, html_url, default_branch, primary_language, visibility, star_count, fork_count, pushed_at, synced_at))";
 
 type ListOptions = {
   limit: number;
@@ -91,7 +90,7 @@ export async function getPortfolio(
 export async function deletePortfolio(userId: string, portfolioId: string): Promise<boolean> {
   const { data, error } = await getSupabaseClient()
     .from("portfolios")
-    .select("id, resume_pdf_path")
+    .select("id")
     .eq("id", portfolioId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -102,24 +101,6 @@ export async function deletePortfolio(userId: string, portfolioId: string): Prom
 
   if (!data) {
     return false;
-  }
-
-  // PDF를 먼저 지운다. 여기서 실패해도 삭제 자체는 진행한다.
-  // 사용자에게는 삭제가 끝난 것으로 보이는 편이 낫고, 남은 파일은 따로 정리할 수 있다.
-  if (data.resume_pdf_path) {
-    const { error: storageError } = await getSupabaseClient()
-      .storage
-      .from("resumes")
-      .remove([data.resume_pdf_path]);
-
-    if (storageError) {
-      logOperationFailure({
-        domain: "portfolios",
-        operation: "portfolio.delete.storage",
-        portfolioId,
-        error: storageError,
-      });
-    }
   }
 
   const { error: deleteError } = await getSupabaseClient()

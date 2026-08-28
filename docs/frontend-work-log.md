@@ -5,6 +5,36 @@ client 등 프론트엔드 담당 작업을 기록한다. 프론트엔드 로그
 수정하며 최신 항목을 위에 추가한다. 아래 기존 기록의 `docs/work-log.md`
 표기는 작업 당시 사용한 통합 로그 경로를 의미한다.
 
+## 2026-08-29-36 — PDF 서버 생성 제거
+
+- 상태: 완료
+- 정제된 요청: PDF 자동 생성을 만들지 않기로 하고, 브라우저 인쇄의 "PDF로
+  저장"으로 대체한다.
+- 배경: 계약·DTO·생성 단계까지 준비돼 있었지만 실제 렌더링 코드가 없어
+  `resume_pdf_path`가 6건 전부 null이었다. 결과 화면의 "PDF 이력서 받기"
+  버튼은 나타난 적이 없고 항상 인쇄 버튼만 보였다. 문서에는 서버가 PDF를
+  만들어 Storage에 보관한다고 적혀 있어 실제와 달랐다.
+  직전 작업으로 결과 문서가 A4 세로 규격이 되어, 인쇄 대화상자의 "PDF로
+  저장"이 규격에 맞는 파일을 그대로 만든다.
+- 반영 내용:
+  - 결과 화면의 조건 분기를 없애고 "인쇄 · PDF로 저장" 버튼만 남겼다.
+  - 계약에서 `ResumePdfDto`, `PortfolioDto.resumePdf`,
+    `GenerationJobDto.resumePdfAvailable`, `renderingResume` 단계와
+    `portfolioResumePdf` 경로를 제거했다.
+  - `resume.pdf` 라우트와 `downloadResume` 서비스를 삭제하고, 조회 select와
+    삭제 시 Storage 정리 로직에서 PDF 관련 부분을 걷어냈다.
+  - mock fixture와 adapter, 관련 테스트도 함께 정리했다.
+  - `architecture.md`와 `docs/api-contract.md`를 인쇄 기반으로 갱신했다.
+- 수정 파일: `contracts/api-contract.ts`, `server/**`, `app/**`,
+  `lib/api-client/adapters/mock/**`, `mocks/api/fixtures/index.ts`,
+  `tests/**`, `architecture.md`, `docs/api-contract.md`
+- 검증: ESLint, TypeScript, 프로덕션 빌드와 테스트 31건을 통과했다.
+  빌드 라우트 목록에서 `resume.pdf`가 사라진 것을 확인했다.
+- 남은 항목: `portfolios` 테이블의 `resume_pdf_path`,
+  `resume_pdf_generated_at` 컬럼과 `resumes` 스토리지 버킷, 그리고
+  `generation_stage` enum의 `rendering_resume` 값은 그대로 두었다. 사용하지
+  않을 뿐 해가 없고, 스키마를 되돌리는 마이그레이션은 위험 대비 이득이 없다.
+
 ## 2026-08-29-35 — 결과 화면을 인쇄 규격에 맞추고 정렬 정리
 
 - 상태: 완료

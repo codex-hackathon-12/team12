@@ -43,15 +43,11 @@ export default function PortfolioResultPage() {
         </div>
         <div className="result-actions">
           <Link className="button secondary" href="/repositories">다시 만들기</Link>
-          {portfolio.resumePdf ? (
-            <a className="button primary" href={portfolio.resumePdf.downloadUrl} download>
-              PDF 이력서 받기
-            </a>
-          ) : (
-            <button className="button primary" type="button" onClick={() => window.print()}>
-              인쇄 미리보기
-            </button>
-          )}
+          {/* PDF는 브라우저 인쇄의 "PDF로 저장"으로 만든다. 문서가 A4 세로 규격이라
+              인쇄 대화상자에서 바로 규격에 맞는 파일이 나온다. */}
+          <button className="button primary" type="button" onClick={() => window.print()}>
+            인쇄 · PDF로 저장
+          </button>
           {confirmingDelete ? (
             <span className="delete-confirm" role="status">
               <strong>되돌릴 수 없어요.</strong>

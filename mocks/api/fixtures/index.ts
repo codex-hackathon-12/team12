@@ -193,10 +193,6 @@ export const mockPortfolio = {
   repository: mockRepositories[0],
   repositories: [mockRepositories[0], mockRepositories[1]],
   style: "default",
-  resumePdf: {
-    downloadUrl: "/api/v1/portfolios/portfolio_demo/resume.pdf",
-    generatedAt: "2026-08-16T04:03:00.000Z",
-  },
   content: mockPortfolioContent,
   updatedAt: "2026-08-16T04:03:00.000Z",
 } satisfies PortfolioDto;

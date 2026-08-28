@@ -277,7 +277,7 @@ Next.js는 같은 동적 경로 위치에 서로 다른 parameter 이름을 허�
 - 자기소개 또는 요약
 - 사용된 저장소 정보
 - 다시 생성
-- 저장 또는 다운로드
+- 인쇄와 PDF 저장
 - 삭제
 - 대시보드로 이동
 
@@ -289,7 +289,7 @@ MVP에서는 하나의 고정 스타일을 제공한다. 결과는 이름과 핵
 #### 삭제
 
 `DELETE /api/v1/portfolios/{portfolioId}`는 소유자만 호출할 수 있고 되돌릴 수
-없다. DB 행과 Supabase Storage의 PDF를 함께 지운다. 생성 작업 기록은 남으며
+없다. 생성 작업 기록은 남으며
 `generation_jobs.portfolio_id`만 비워진다.
 
 화면은 브라우저 확인 대화상자를 쓰지 않고, 삭제 버튼을 누르면 같은 자리에서
@@ -479,7 +479,7 @@ MVP 백엔드는 Vercel Functions와 Supabase Postgres를 기준으로 구현한
 | Vercel Functions | REST Route Handler, 세션 검증, 입력 검증과 응답 변환 |
 | Supabase Postgres | 사용자, Git 연결, 저장소 메타데이터, 생성 작업과 결과 저장 |
 | Vercel Workflows | 분석, 콘텐츠 생성과 포트폴리오 저장 단계 실행 및 재시도 |
-| Supabase Storage | 생성된 PDF 이력서와 향후 사용자 업로드 문서의 비공개 저장 |
+| Supabase Storage | 향후 사용자 업로드 문서의 비공개 저장 |
 
 생성 흐름은 다음 순서를 따른다.
 
@@ -487,7 +487,6 @@ MVP 백엔드는 Vercel Functions와 Supabase Postgres를 기준으로 구현한
 2. Workflow가 Postgres의 단계와 진행률을 갱신하며 GitHub 데이터를 분석한다.
 3. AI 생성 결과를 구조화된 포트폴리오 콘텐츠로 저장한다.
 4. 포트폴리오 결과를 저장한 뒤 작업을 `completed`로, 결과를 조회 가능 상태로 갱신한다.
-5. PDF 이력서는 후속 렌더링 단계에서 Supabase Storage의 비공개 객체로 저장한다.
 
 재시도는 실패한 작업에 새 Workflow와 새 `GenerationJob`을 만들며, 기존 작업의
 결과를 덮어쓰지 않는다. 프론트엔드는 기존 polling 계약으로 Postgres에 저장된 상태를
@@ -498,9 +497,9 @@ GitHub OAuth callback은 access token을 API 응답이나 로그에 포함하지
 서버 전용으로 저장한다. 암호화 키는 Vercel Environment Variable로만 제공하고 `NEXT_PUBLIC_`
 환경변수나 클라이언트 모듈에 두지 않는다.
 
-PDF 원본은 Supabase Storage public bucket에 두지 않는다. 소유자 요청을 검증하는
-`GET /api/v1/portfolios/{portfolioId}/resume.pdf` Route Handler만 PDF를 반환한다.
-이 URL은 `PortfolioDto.resumePdf.downloadUrl`로 제공한다.
+PDF는 서버에서 만들지 않는다. 결과 문서가 A4 세로 규격이므로 브라우저 인쇄의
+"PDF로 저장"이 그대로 규격에 맞는 파일을 만든다. 서버 렌더링과 파일 보관을 두지
+않아 저장 비용과 정리 책임이 생기지 않는다.
 
 ### 8.1 프론트엔드 Mock 우선 구조
 
@@ -630,7 +629,7 @@ mocks/api/
 | `Repository` | `id`, `userId`, `providerRepoId`, `name`, `url`, `language`, `isPrivate`, `updatedAt` | 동기화된 저장소 |
 | `RepositoryAnalysis` | `id`, `repositoryId`, `languageBreakdown`, `commitCount`, `pullRequestCount`, `summary` | 원본 코드 없이 보관한 분석 요약 |
 | `GenerationJob` | `id`, `userId`, `repositoryId`, `workflowInstanceId`, `prompt`, `status`, `stage`, `errorCode`, `portfolioId`, `createdAt` | 비동기 생성 작업 |
-| `Portfolio` | `id`, `userId`, `repositoryId`, `title`, `content`, `style`, `resumePdfPath`, `resumePdfGeneratedAt`, `createdAt` | 생성 결과와 PDF 위치 |
+| `Portfolio` | `id`, `userId`, `repositoryId`, `title`, `content`, `style`, `createdAt` | 생성 결과 |
 | `AccountDeletionJob` | `id`, `userId`, `workflowInstanceId`, `status`, `errorCode` | 계정과 Storage 파일의 비동기 삭제 작업 |
 | `GalleryExample` | `id`, `title`, `role`, `techStack`, `thumbnailUrl`, `portfolioContent`, `isPublished` | 공개 예시 |
 | `CreditLedger` | `id`, `userId`, `amount`, `reason`, `referenceId`, `createdAt` | 실제 크레딧 도입 시 사용할 증감 원장. MVP에서는 저장하지 않음 |
@@ -695,7 +694,7 @@ components/
 - 생성 대기와 polling
 - GitHub OAuth와 수동 저장소 동기화
 - GitHub 로그 기반 분석과 AI 콘텐츠 생성
-- 포트폴리오 결과 화면과 PDF 이력서 다운로드
+- 포트폴리오 결과 화면과 인쇄·PDF 저장
 - 결제 상품 화면과 checkout 진입
 - 신규 사용자 100크레딧과 생성 예상 비용 30의 mock 표시
 - 갤러리 그리드와 상세 화면
@@ -723,4 +722,4 @@ components/
 2. 실제 결제 도입 시 사용할 결제 제공자와 상품 가격
 3. 실제 크레딧 차감 도입 시 생성 실패 환불 정책
 
-MVP는 GitHub OAuth 단일 로그인, 기본 표시 잔액 100, 저장소당 예상 비용 30, 실제 차감 없는 mock 결제, 하나의 포트폴리오 스타일, 웹 미리보기와 PDF 이력서를 기본값으로 사용한다.
+MVP는 GitHub OAuth 단일 로그인, 기본 표시 잔액 100, 저장소당 예상 비용 30, 실제 차감 없는 mock 결제, 하나의 포트폴리오 스타일, 그리고 브라우저 인쇄로 PDF를 저장하는 결과 문서를 기본값으로 사용한다.
