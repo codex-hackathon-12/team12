@@ -322,7 +322,7 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 
 ```json
 {
-  "repositoryId": "repo_123",
+  "repositoryIds": ["repo_123", "repo_456"],
   "prompt": "백엔드 직무에 맞춰 문제 해결과 성능 개선 경험을 강조해줘.",
   "targetRole": "Backend Engineer",
   "tone": "professional",
@@ -332,7 +332,7 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 
 검증 규칙:
 
-- `repositoryId`: 필수, 로그인 사용자 소유 저장소
+- `repositoryIds`: 필수, 1~5개, 모두 로그인 사용자 소유 저장소. 중복은 서버가 제거하고 순서는 유지한다. 5개를 넘으면 `TOO_MANY_REPOSITORIES`로 400을 반환한다. 저장소 하나가 프로젝트 하나가 된다.
 - `prompt`: 필수, 공백 제거 후 1~2,000자
 - `targetRole`: 선택, 최대 100자
 - `tone`: `professional`, `concise`, `storytelling` 중 하나
@@ -345,6 +345,7 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
   "data": {
     "jobId": "job_123",
     "repositoryId": "repo_123",
+    "repositoryIds": ["repo_123", "repo_456"],
     "status": "queued",
     "stage": "queued",
     "progress": 0,
@@ -399,6 +400,7 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
   "data": {
     "jobId": "job_123",
     "repositoryId": "repo_123",
+    "repositoryIds": ["repo_123", "repo_456"],
     "status": "completed",
     "stage": "completed",
     "progress": 100,
@@ -432,6 +434,7 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
   "data": {
     "jobId": "job_123",
     "repositoryId": "repo_123",
+    "repositoryIds": ["repo_123", "repo_456"],
     "status": "failed",
     "stage": "failed",
     "progress": 45,
@@ -469,6 +472,8 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
     "job": {
       "jobId": "job_124",
       "repositoryId": "repo_123",
+      "repositoryIds": ["repo_123", "repo_456"],
+    "repositoryIds": ["repo_123", "repo_456"],
       "status": "queued",
       "stage": "queued",
       "progress": 0,
@@ -593,10 +598,12 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
     "title": "문제 해결에 집중하는 백엔드 개발자",
     "targetRole": "Backend Engineer",
     "repositoryName": "portfolio-api",
+    "repositoryCount": 2,
     "techStack": ["TypeScript", "Next.js", "Drizzle"],
     "createdAt": "2026-08-16T04:01:20.000Z",
     "generationJobId": "job_123",
     "repository": {},
+    "repositories": [{}, {}],
     "style": "default",
     "resumePdf": {
       "downloadUrl": "/api/v1/portfolios/portfolio_123/resume.pdf",
@@ -610,7 +617,28 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 
 `repository`와 `content`는 8.1의 전체 구조를 사용한다. 소유자만 조회할 수 있으며 다른 사용자의 결과에는 `404`를 반환한다.
 
-### 8.3 PDF 이력서 다운로드
+`repository`는 대표(첫 번째) 저장소이고 `repositories`는 사용한 저장소 전체를
+선택 순서대로 담는다. 단일 저장소로 만든 결과에서는 항목이 하나다.
+`repositoryCount`는 목록 응답에서도 함께 내려간다.
+
+### 8.3 포트폴리오 삭제
+
+`DELETE /api/v1/portfolios/{portfolioId}`
+
+```json
+{
+  "data": {
+    "deletedId": "portfolio_123"
+  }
+}
+```
+
+소유자만 호출할 수 있고 다른 사용자의 결과에는 `404`를 반환한다. 삭제는
+되돌릴 수 없다. DB 행과 Supabase Storage의 PDF 객체를 함께 지운다. 생성 작업
+기록은 남으며 해당 작업의 `portfolioId`만 `null`이 된다. Storage 삭제가
+실패해도 DB 삭제는 진행하고 서버 로그로만 남긴다.
+
+### 8.4 PDF 이력서 다운로드
 
 `GET /api/v1/portfolios/{portfolioId}/resume.pdf`
 
@@ -618,7 +646,7 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 다른 사용자의 결과 또는 PDF가 아직 없는 결과에는 `404`를 반환한다. Storage object path,
 signed URL, GitHub token과 내부 오류 정보는 노출하지 않는다.
 
-### 8.4 포트폴리오 목록
+### 8.5 포트폴리오 목록
 
 `GET /api/v1/portfolios?cursor=...&limit=20`
 
