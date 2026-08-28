@@ -78,6 +78,7 @@ function createPortfolioContent(input: GalleryExampleInput): PortfolioContentDto
       starCount: 0,
       forkCount: 0,
       notablePatterns: ["역할 중심 프로젝트 설명", "기술 스택의 맥락화", "문제 해결 흐름"],
+    lastActivityAt: null,
     },
     contact: {
       githubUrl: PUBLIC_GITHUB_URL,

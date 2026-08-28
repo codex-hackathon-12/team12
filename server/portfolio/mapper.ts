@@ -65,13 +65,13 @@ function readNumber(value: unknown): number {
 // 결과 화면이 감당할 수 있는 분량 상한. 생성 스키마와 같은 값을 쓰며,
 // 모델이 상한을 어기거나 규격 이전에 저장된 결과를 열어도 화면이 무너지지 않게 한다.
 const CONTENT_LIMITS = {
-  skillGroups: 4,
-  skillsPerGroup: 6,
-  techStack: 8,
-  highlights: 3,
-  challenges: 2,
-  solutions: 2,
-  impact: 2,
+  skillGroups: 5,
+  skillsPerGroup: 8,
+  techStack: 10,
+  highlights: 4,
+  challenges: 3,
+  solutions: 3,
+  impact: 3,
   notablePatterns: 4,
 } as const;
 
@@ -219,6 +219,7 @@ export function mapPortfolioContent(
       starCount: readNumber(gitAnalysis.starCount),
       forkCount: readNumber(gitAnalysis.forkCount),
       notablePatterns: readStringArray(gitAnalysis.notablePatterns, CONTENT_LIMITS.notablePatterns),
+      lastActivityAt: readNullableString(gitAnalysis.lastActivityAt),
     },
     contact: {
       githubUrl: readString(contact.githubUrl, repository.htmlUrl),

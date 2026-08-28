@@ -289,9 +289,12 @@ export interface PortfolioGitAnalysisDto {
   summary: string;
   primaryLanguage: string | null;
   languages: GitLanguageDto[];
+  /** 별과 fork 수는 개인 프로젝트에서 대부분 0이라 화면에 쓰지 않는다. 데이터로만 남긴다. */
   starCount: number;
   forkCount: number;
   notablePatterns: string[];
+  /** 선택한 저장소 중 가장 최근에 push된 시각. 규격 이전 결과에는 없어 null이 온다. */
+  lastActivityAt: IsoDateTime | null;
 }
 
 /**
