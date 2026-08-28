@@ -41,5 +41,8 @@ yarn-error.log*
 /.workflow/
 /.workflow-data/
 /.swc
+
+# supabase CLI local state
+supabase/.temp/
 app/.well-known/
 *.tsbuildinfo
