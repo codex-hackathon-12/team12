@@ -52,7 +52,7 @@ export function PortfolioPreview({
 
     // 인쇄에서 통째로 유지되는 단위와 같은 블록으로 나눈다.
     // 페이지 분할 모드는 이 배열을 A4 낱장에 담고, 아닐 때는 그대로 이어서 그린다.
-    const blocks: Array<{ key: string; node: ReactNode }> = [];
+    const blocks: Array<{ key: string; node: ReactNode; kind?: "project" }> = [];
 
     blocks.push({ key: "nav", node: (
         <nav className="result-portfolio-nav" aria-label="포트폴리오 목차">
@@ -146,7 +146,7 @@ export function PortfolioPreview({
     ) });
 
     content.projects.forEach((project) => {
-      blocks.push({ key: `project-${project.id}`, node: (
+      blocks.push({ key: `project-${project.id}`, kind: "project", node: (
         <div className="result-block">
               <article className="result-project-card">
                 <div className="result-project-title-row">
