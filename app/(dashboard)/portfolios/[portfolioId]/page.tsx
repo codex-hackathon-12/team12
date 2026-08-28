@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { PortfolioDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
@@ -10,13 +10,26 @@ import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function PortfolioResultPage() {
   const params = useParams<{ portfolioId: string }>();
+  const router = useRouter();
   const [portfolio, setPortfolio] = useState<PortfolioDto | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     apiClient.getPortfolio(String(params.portfolioId)).then(setPortfolio);
   }, [params.portfolioId]);
 
   if (!portfolio) return <LoadingState label="완성된 포트폴리오를 펼치고 있어요" />;
+
+  const sourceLabel = portfolio.repositories.length > 1
+    ? `${portfolio.repository.fullName} 외 ${portfolio.repositories.length - 1}개`
+    : portfolio.repository.fullName;
+
+  const remove = async () => {
+    setDeleting(true);
+    await apiClient.deletePortfolio(portfolio.id);
+    router.push("/dashboard");
+  };
 
   return (
     <div className="result-page">
@@ -25,7 +38,7 @@ export default function PortfolioResultPage() {
           <span className="success-check" aria-hidden="true">✓</span>
           <div>
             <p>생성이 완료됐어요</p>
-            <strong>{portfolio.repository.fullName}</strong>
+            <strong>{sourceLabel}</strong>
           </div>
         </div>
         <div className="result-actions">
@@ -37,6 +50,35 @@ export default function PortfolioResultPage() {
           ) : (
             <button className="button primary" type="button" onClick={() => window.print()}>
               인쇄 미리보기
+            </button>
+          )}
+          {confirmingDelete ? (
+            <span className="delete-confirm" role="status">
+              <strong>되돌릴 수 없어요.</strong>
+              <button
+                className="button danger"
+                type="button"
+                disabled={deleting}
+                onClick={remove}
+              >
+                {deleting ? "삭제 중…" : "삭제할게요"}
+              </button>
+              <button
+                className="text-link"
+                type="button"
+                disabled={deleting}
+                onClick={() => setConfirmingDelete(false)}
+              >
+                취소
+              </button>
+            </span>
+          ) : (
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+            >
+              삭제
             </button>
           )}
         </div>

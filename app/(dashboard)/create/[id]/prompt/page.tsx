@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { GitRepositoryDto, PortfolioTone } from "@/contracts/api-contract";
-import { apiClient, apiMode } from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function PromptPage() {
@@ -39,14 +39,12 @@ export default function PromptPage() {
     );
   }, [repositoryIds]);
 
-  const multipleHttpUnavailable = apiMode === "http" && repositoryIds.length > 1;
-
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!prompt.trim() || multipleHttpUnavailable) return;
+    if (!prompt.trim()) return;
     setSubmitting(true);
     const job = await apiClient.createGeneration({
-      repositoryId,
+      repositoryIds,
       prompt: prompt.trim(),
       targetRole,
       tone,
@@ -163,17 +161,10 @@ export default function PromptPage() {
             <span>100 → 100</span>
           </div>
 
-          {multipleHttpUnavailable && (
-            <p className="integration-note" role="status">
-              여러 저장소를 합치는 실제 분석 API는 연결 중입니다. 현재 다중 선택은
-              mock 미리보기에서 확인할 수 있어요.
-            </p>
-          )}
-
           <button
             className="button primary submit-button"
             type="submit"
-            disabled={submitting || multipleHttpUnavailable}
+            disabled={submitting}
           >
             {submitting ? "생성 준비 중…" : "이 내용으로 포트폴리오 만들기"}
             {!submitting && <span aria-hidden="true">→</span>}

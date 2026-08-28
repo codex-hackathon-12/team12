@@ -7,6 +7,7 @@ import type {
   CreateMockCheckoutRequest,
   CreditSummaryDto,
   DashboardDto,
+  DeletePortfolioDto,
   GalleryExampleDto,
   GalleryListDto,
   GalleryListQuery,
@@ -36,6 +37,8 @@ export interface ApiClient {
   retryGeneration(jobId: string): Promise<RetryGenerationDto>;
   getPortfolios(): Promise<PortfolioListDto>;
   getPortfolio(portfolioId: string): Promise<PortfolioDto>;
+  /** 되돌릴 수 없는 영구 삭제다. 호출 전에 사용자 확인을 받아야 한다. */
+  deletePortfolio(portfolioId: string): Promise<DeletePortfolioDto>;
   getCredits(): Promise<CreditSummaryDto>;
   getBillingProducts(): Promise<BillingProductListDto>;
   createCheckout(request: CreateMockCheckoutRequest): Promise<MockCheckoutDto>;

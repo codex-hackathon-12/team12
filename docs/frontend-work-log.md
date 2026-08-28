@@ -5,6 +5,37 @@ client 등 프론트엔드 담당 작업을 기록한다. 프론트엔드 로그
 수정하며 최신 항목을 위에 추가한다. 아래 기존 기록의 `docs/work-log.md`
 표기는 작업 당시 사용한 통합 로그 경로를 의미한다.
 
+## 2026-08-29-33 — 다중 저장소 선택과 포트폴리오 삭제 연결
+
+- 상태: 완료
+- 정제된 요청: 다중 저장소 생성을 실제로 보내고, 만든 포트폴리오를 화면에서
+  지울 수 있게 한다.
+- 결정사항:
+  - 선택 상한 5개는 계약의 `MAX_GENERATION_REPOSITORIES`를 그대로 쓴다.
+    상한에 도달하면 추가 선택을 무시하고 기존 선택을 밀어내지 않는다.
+  - 삭제 확인은 브라우저 `confirm()`을 쓰지 않는다. 같은 자리에서 인라인으로
+    한 번 더 확인받는다.
+- 반영 내용:
+  - 다중 선택을 막던 `multipleHttpUnavailable` 가드를 제거하고
+    `repositoryIds` 배열로 생성을 요청한다.
+  - 선택 바에 상한을 표시하고 토글에서 개수를 제한했다.
+  - 결과 페이지 상단에 저장소가 2개 이상이면 "A 외 N개"로 표기한다.
+  - 결과 페이지에 삭제 버튼과 인라인 확인, `.button.danger`와
+    `.delete-confirm` 스타일을 추가했다.
+  - api-client 인터페이스와 두 adapter에 `deletePortfolio`를 넣고, mock은
+    삭제한 항목을 목록에서 제외하도록 했다.
+  - mock fixture를 저장소 2개 사례로 바꿔 다중 흐름이 mock에서도 보이게 했다.
+- 수정 파일:
+  - `app/(dashboard)/repositories/page.tsx`
+  - `app/(dashboard)/create/[id]/prompt/page.tsx`
+  - `app/(dashboard)/portfolios/[portfolioId]/page.tsx`
+  - `app/globals.css`
+  - `lib/api-client/**`, `mocks/api/fixtures/index.ts`
+  - `docs/frontend-work-log.md`
+- 검증: ESLint, TypeScript, 프로덕션 빌드와 테스트 전체를 통과했다.
+- 남은 항목: 백엔드 마이그레이션 적용 후 실제 다중 생성과 삭제를 화면에서
+  확인한다.
+
 ## 2026-08-29-32 — 결과 화면 밀도와 가독성 개선
 
 - 상태: 완료

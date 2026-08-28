@@ -389,6 +389,12 @@ a {
   color: var(--ink);
 }
 
+.button.danger {
+  border-color: var(--coral);
+  background: var(--coral);
+  color: white;
+}
+
 .button.subtle {
   min-height: 44px;
   font-size: 13px;
@@ -1501,7 +1507,23 @@ a {
 .result-toolbar p { margin: 0; color: #467052; font-size: 13px; font-weight: 700; }
 .result-toolbar strong { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 .success-check { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--ink); border-radius: 50%; background: var(--lime); font-size: 12px; font-weight: 900; }
-.result-actions { display: flex; gap: 11px; }
+.result-actions { display: flex; flex-wrap: wrap; gap: 11px; align-items: center; }
+
+/* 삭제는 되돌릴 수 없어 브라우저 대화상자 대신 그 자리에서 한 번 더 확인받는다. */
+.delete-confirm {
+  display: inline-flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--coral);
+  border-radius: 14px;
+  background: rgb(255 113 91 / 8%);
+  font-size: var(--text-sm);
+}
+
+.delete-confirm strong { color: #b03a26; font-weight: 700; }
+.delete-confirm .button { min-height: 38px; padding: 0 var(--space-3); font-size: var(--text-xs); }
+.delete-confirm .text-link { border: 0; background: none; cursor: pointer; font: inherit; }
 
 .portfolio-canvas-wrap {
   padding: 42px max(24px, calc((100vw - 1360px) / 2));
