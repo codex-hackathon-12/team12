@@ -2470,10 +2470,46 @@ a {
    화면의 결과 문서 폭과 같아진다. */
 @page {
   size: A4 portrait;
-  margin: 10mm;
+  /* 문서 자체가 기준선 여백을 갖고 있어 페이지 여백은 최소로 둔다.
+     둘을 겹쳐 크게 잡으면 종이에 담기는 내용이 줄어든다. */
+  margin: 8mm;
 }
 
 @media print {
+  /* 화면용 A4 낱장 시뮬레이션은 인쇄에 쓰지 않는다.
+     인쇄 엔진이 스스로 나누게 두어야 여백이 겹치지 않고 빈 페이지도 생기지 않는다. */
+  .portfolio-pages-measure { display: none !important; }
+  .portfolio-pages-stack {
+    display: block;
+    gap: 0;
+    height: auto !important;
+    transform: none !important;
+  }
+  .portfolio-page {
+    overflow: visible;
+    min-height: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .portfolio-page-inner { max-width: none; padding: 0; }
+  .portfolio-page-number { display: none !important; }
+
+  /* 페이지 여백과 겹치므로 문서 기준선을 조금 줄인다. */
+  .result-portfolio-preview { --doc-gutter: var(--space-6); }
+
+  /* 종이에서는 세로 리듬을 좁혀 한 장에 더 담는다.
+     브라우저가 머리말·꼬리말을 켜면 쓸 수 있는 높이가 더 줄어든다. */
+  .result-portfolio-hero { padding-top: var(--space-4); padding-bottom: var(--space-4); }
+  /* 목차와 푸터는 종이에서 쓸모가 없다. "Back to top"은 특히 그렇다. */
+  .result-portfolio-nav,
+  .result-portfolio-footer { display: none; }
+  .result-block .result-section-label { margin-top: var(--space-4); }
+  .result-project-card { padding: var(--space-4) 0; }
+  .result-expertise-section { padding-top: var(--space-4); padding-bottom: var(--space-6); }
+  .result-story-list { margin-top: var(--space-3); padding-top: var(--space-3); }
+  .result-highlight-list { margin-top: var(--space-3); }
+  .result-tech-list { margin-top: var(--space-3); }
+
   .site-header,
   .mobile-nav,
   .result-toolbar,
