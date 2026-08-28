@@ -2553,19 +2553,30 @@ a {
 
   .result-highlight-list li::before { color: var(--result-ink); }
 
-  /* 페이지가 넘어갈 때 항목 중간에서 잘리지 않게 한다. */
+  /* 잘리면 읽기 어려운 작은 단위만 통째로 유지한다.
+     큰 덩어리까지 묶으면 들어가지 못한 덩어리가 통째로 밀리면서
+     앞 장 하단에 큰 빈 공간이 남는다. */
   .result-portfolio-hero,
   .result-metric-strip,
-  .result-project-card,
   .result-skill-groups,
   .result-skill-group,
   .result-language-list,
   .result-language-list > div,
+  .result-highlight-list,
   .result-story-list > div { break-inside: avoid; }
 
-  /* SKILLS는 한 페이지 안에 들어갈 크기라 통째로 넘긴다.
-     중간에서 잘리면 여러 열이 가로로 잘려 읽기 어려워진다. */
-  .result-expertise-section { break-inside: avoid; }
+  /* 프로젝트 카드와 역량 섹션은 나뉠 수 있게 둔다.
+     대신 제목이 홀로 남거나 문단이 한 줄만 넘어가지 않게 막는다. */
+  .result-project-card,
+  .result-expertise-section { break-inside: auto; }
+
+  .result-project-title-row,
+  .result-project-description,
+  .result-section-label,
+  .result-expertise-summary { break-after: avoid; }
+
+  p,
+  li { orphans: 2; widows: 2; }
 
   /* 프로젝트는 여러 개일 때 자연스럽게 페이지를 넘어간다. */
   .result-portfolio-section { break-inside: auto; }
