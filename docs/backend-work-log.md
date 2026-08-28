@@ -5,6 +5,46 @@
 위에 추가한다. 아래 기존 기록의 `docs/work-log.md` 표기는 작업 당시 사용한
 통합 로그 경로를 의미한다.
 
+## 2026-08-29-29 — 다중 저장소 생성과 포트폴리오 삭제
+
+- 상태: 완료
+- 정제된 요청: 저장소를 여러 개 골라 한 번에 포트폴리오를 만들고, 만든
+  포트폴리오를 지울 수 있게 한다.
+- 배경: 저장소 선택 화면은 다중 선택을 지원했지만 계약·API·DB가 모두 단수라
+  첫 번째 하나만 전송됐다. 포트폴리오 삭제는 endpoint 자체가 없었다.
+- 결정사항:
+  - 저장소는 한 번에 최대 5개까지 받는다.
+  - `generation_job_repositories`, `portfolio_repositories` 연결 테이블을 두되
+    기존 `repository_id` 컬럼은 대표 저장소로 유지한다. 그래야 기존 조회
+    쿼리와 이미 저장된 결과가 그대로 동작한다.
+  - 생성 schema에 `repositoryName`을 필수로 넣어 프로젝트를 원래 저장소에
+    다시 연결한다. 이 값이 없으면 저장소가 여러 개일 때 `repositoryUrl`이
+    엉뚱한 곳을 가리킨다.
+  - 삭제는 즉시 영구 삭제한다. Storage 삭제 실패는 로그만 남기고 DB 삭제는
+    진행한다.
+- 반영 내용:
+  - 마이그레이션 `202608290001_multi_repository.sql`을 추가하고 기존 행을
+    position 0으로 백필했다.
+  - 계약에 `repositoryIds`, `repositoryCount`, `repositories`,
+    `DeletePortfolioDto`와 `TOO_MANY_REPOSITORIES`를 추가했다.
+  - 증거 수집을 저장소별로 나누고 여러 개일 때 README 상한을 3000자로 줄였다.
+  - 순수 함수인 저장소 매칭과 언어 합산을 `repository-matching.ts`로 분리해
+    I/O 없이 테스트할 수 있게 했다.
+  - `DELETE /api/v1/portfolios/{portfolioId}`와 `deletePortfolio`를 추가했다.
+- 수정 파일:
+  - `supabase/migrations/202608290001_multi_repository.sql`
+  - `contracts/api-contract.ts`, `server/http.ts`
+  - `server/generation/**`, `server/github/evidence.ts`, `server/openai/**`
+  - `server/portfolio/**`, `server/observability/api-logging.ts`
+  - `app/api/v1/generations/route.ts`, `app/api/v1/portfolios/**`
+  - `architecture.md`, `docs/api-contract.md`, `docs/backend-work-log.md`
+- 검증: `tests/multi-repository.test.mjs` 9건을 추가해 position 정렬, 예전
+  데이터 대체, 이름 매칭과 중복 방지, 언어 합산을 확인했다. 기존 테스트의
+  증거 구조도 함께 갱신해 전체 32건을 통과했다.
+- 남은 항목: 마이그레이션을 Supabase SQL Editor에서 실행해야 한다. 실행 전에는
+  다중 저장소 요청이 실패한다. 실제 생성 1회로 `repositoryName` 매칭을
+  확인하는 것도 남아 있다.
+
 ## 2026-08-29-28 — 포트폴리오 생성 분량 규격 적용
 
 - 상태: 완료
