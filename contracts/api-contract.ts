@@ -31,6 +31,10 @@ export const API_ROUTES = {
   portfolios: `${API_PREFIX}/portfolios`,
   portfolio: (portfolioId: string) =>
     `${API_PREFIX}/portfolios/${portfolioId}`,
+  portfolioShare: (portfolioId: string) =>
+    `${API_PREFIX}/portfolios/${portfolioId}/share`,
+  publicPortfolio: (slug: string) =>
+    `${API_PREFIX}/public/portfolios/${slug}`,
   credits: `${API_PREFIX}/credits`,
   billingProducts: `${API_PREFIX}/billing/products`,
   billingCheckout: `${API_PREFIX}/billing/checkout`,
@@ -312,6 +316,21 @@ export interface PortfolioContentDto {
   contact: PortfolioContactDto;
 }
 
+/**
+ * 공개 링크 상태. `published`가 false여도 슬러그는 유지된다.
+ * 공개를 껐다 켜도 이미 보낸 링크가 그대로 살아 있어야 하기 때문이다.
+ */
+export interface PortfolioShareDto {
+  published: boolean;
+  slug: string | null;
+  /** 공개 상태일 때만 채워지는 절대 경로. 비공개면 null이다. */
+  url: UrlString | null;
+}
+
+export interface UpdatePortfolioShareRequest {
+  published: boolean;
+}
+
 export interface PortfolioSummaryDto {
   id: EntityId;
   title: string;
@@ -320,6 +339,7 @@ export interface PortfolioSummaryDto {
   repositoryName: string;
   /** 이 포트폴리오가 사용한 저장소 수. 1이면 단일 저장소다. */
   repositoryCount: number;
+  share: PortfolioShareDto;
   techStack: string[];
   createdAt: IsoDateTime;
 }
@@ -337,6 +357,20 @@ export interface PortfolioDto extends PortfolioSummaryDto {
 
 export interface PortfolioListDto {
   portfolios: PortfolioSummaryDto[];
+}
+
+/**
+ * 공개 페이지 전용 DTO. 인증 없이 조회되므로 소유자를 식별할 수 있는 값을
+ * 담지 않는다. 포트폴리오 id, 생성 작업 id, 내부 저장소 id는 제외한다.
+ */
+export interface PublicPortfolioDto {
+  slug: string;
+  title: string;
+  targetRole: string;
+  content: PortfolioContentDto;
+  /** 저장소 이름과 공개 URL만 담는다. */
+  repositories: Array<{ name: string; fullName: string; htmlUrl: UrlString }>;
+  createdAt: IsoDateTime;
 }
 
 /**

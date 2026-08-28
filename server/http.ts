@@ -79,3 +79,15 @@ export function serializeCookie(
 export function isSafeReturnPath(value: string | null): value is string {
   return Boolean(value && value.startsWith("/") && !value.startsWith("//"));
 }
+
+/**
+ * 요청 헤더에서 서비스의 기준 주소를 만든다.
+ * 배포 환경마다 도메인이 달라 환경변수로 고정하면 프리뷰에서 어긋나므로,
+ * `app/layout.tsx`가 metadata를 만들 때와 같은 방식을 쓴다.
+ */
+export function getBaseUrl(request: Request): string {
+  const headers = request.headers;
+  const host = headers.get("x-forwarded-host") ?? headers.get("host") ?? "localhost:3000";
+  const protocol = headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${protocol}://${host}`;
+}
