@@ -35,8 +35,6 @@ export type PortfolioRecord = {
   target_role: string;
   content: unknown;
   style: string;
-  resume_pdf_path: string | null;
-  resume_pdf_generated_at: string | null;
   created_at: string;
   updated_at: string;
   repositories: PortfolioRepositoryRecord | PortfolioRepositoryRecord[] | null;
@@ -279,12 +277,6 @@ export function mapPortfolio(record: PortfolioRecord): PortfolioDto | null {
     repository,
     repositories: linked.length > 0 ? linked : [repository],
     style: "default",
-    resumePdf: record.resume_pdf_path
-      ? {
-          downloadUrl: `/api/v1/portfolios/${record.id}/resume.pdf`,
-          generatedAt: record.resume_pdf_generated_at ?? record.updated_at,
-        }
-      : null,
     content: mapPortfolioContent(record.content, repository, record.target_role),
     updatedAt: record.updated_at,
   };

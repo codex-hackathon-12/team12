@@ -7,6 +7,5 @@ export type GenerationStage =
   | "analyzing_repository"
   | "generating_content"
   | "rendering_portfolio"
-  | "rendering_resume"
   | "completed"
   | "failed";

@@ -233,7 +233,6 @@ export class MockApiClient implements ApiClient {
       repositoryIds,
       ...step,
       portfolioId: step.status === "completed" ? "portfolio_demo" : null,
-      resumePdfAvailable: step.status === "completed",
       creditQuote: createCreditQuote(repositoryIds.length),
       error: null,
       createdAt: timestamp,
