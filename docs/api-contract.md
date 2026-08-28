@@ -145,7 +145,7 @@ MVP 확정 정책:
 
 `DELETE /api/v1/account`
 
-로그인 사용자의 세션, GitHub 연결, 생성 결과와 PDF를 비동기 삭제한다. 진행 중인
+로그인 사용자의 세션, GitHub 연결과 생성 결과를 비동기 삭제한다. 진행 중인
 삭제 요청이 있으면 `409 ACCOUNT_DELETION_IN_PROGRESS`를 반환한다.
 
 ```json
@@ -389,7 +389,6 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 | `analyzingRepository` | 저장소 분석 |
 | `generatingContent` | 콘텐츠 생성 |
 | `renderingPortfolio` | 결과 구조 생성 |
-| `renderingResume` | PDF 이력서 렌더링 |
 | `completed` | 완료 |
 | `failed` | 실패 |
 
@@ -406,7 +405,6 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
     "progress": 100,
     "message": "포트폴리오가 완성되었습니다.",
     "portfolioId": "portfolio_123",
-    "resumePdfAvailable": true,
     "creditQuote": {
       "currentBalance": 100,
       "repositoryCount": 1,
@@ -421,9 +419,6 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
   }
 }
 ```
-
-`completed`는 PDF 이력서가 Supabase Storage에 저장된 뒤에만 반환한다. PDF 처리에 실패하면
-작업은 `failed`가 되며 `resumePdfAvailable`은 `false`다.
 
 활성 작업이 이미 있으면 생성 요청은 `409 GENERATION_IN_PROGRESS`를 반환한다.
 
@@ -528,10 +523,6 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
     "syncedAt": "2026-08-16T04:00:00.000Z"
   },
   "style": "default",
-  "resumePdf": {
-    "downloadUrl": "/api/v1/portfolios/portfolio_123/resume.pdf",
-    "generatedAt": "2026-08-16T04:01:20.000Z"
-  },
   "content": {
     "profile": {
       "displayName": "Octo Cat",
@@ -605,10 +596,6 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
     "repository": {},
     "repositories": [{}, {}],
     "style": "default",
-    "resumePdf": {
-      "downloadUrl": "/api/v1/portfolios/portfolio_123/resume.pdf",
-      "generatedAt": "2026-08-16T04:01:20.000Z"
-    },
     "content": {},
     "updatedAt": "2026-08-16T04:01:20.000Z"
   }
@@ -634,19 +621,9 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 ```
 
 소유자만 호출할 수 있고 다른 사용자의 결과에는 `404`를 반환한다. 삭제는
-되돌릴 수 없다. DB 행과 Supabase Storage의 PDF 객체를 함께 지운다. 생성 작업
-기록은 남으며 해당 작업의 `portfolioId`만 `null`이 된다. Storage 삭제가
-실패해도 DB 삭제는 진행하고 서버 로그로만 남긴다.
+되돌릴 수 없다. 생성 작업 기록은 남으며 해당 작업의 `portfolioId`만 `null`이 된다.
 
-### 8.4 PDF 이력서 다운로드
-
-`GET /api/v1/portfolios/{portfolioId}/resume.pdf`
-
-소유자만 호출할 수 있다. 서버는 Supabase Storage의 비공개 PDF를 `application/pdf`로 반환하며,
-다른 사용자의 결과 또는 PDF가 아직 없는 결과에는 `404`를 반환한다. Storage object path,
-signed URL, GitHub token과 내부 오류 정보는 노출하지 않는다.
-
-### 8.5 포트폴리오 목록
+### 8.4 포트폴리오 목록
 
 `GET /api/v1/portfolios?cursor=...&limit=20`
 
@@ -937,5 +914,5 @@ mocks/api/
 - 실제 AI 연결 전에는 동일한 `GenerationJob` 상태 계약을 유지하는 mock 생성기로 대체할 수 있다.
 - 실제 생성에서는 Route Handler가 Supabase Postgres 작업을 만든 뒤 Vercel Workflow를 시작한다. GitHub 분석, AI 호출과 포트폴리오 저장은 Workflow에서 수행한다.
 - GitHub token은 Vercel Environment Variable로 암호화한 서버 전용 값으로만 저장한다. access token, 암호화 키와 Storage object path는 API 응답과 로그에 포함하지 않는다.
-- `completed` 작업은 포트폴리오 콘텐츠가 저장된 경우 반환한다. PDF가 Supabase Storage에 저장된 경우에만 `resumePdfAvailable`을 `true`로 반환하며, PDF는 소유자 검증을 수행하는 다운로드 endpoint로만 제공한다.
+- `completed` 작업은 포트폴리오 콘텐츠가 저장된 경우 반환한다. PDF는 서버에서 만들지 않으며, 결과 문서가 A4 세로 규격이라 브라우저 인쇄의 "PDF로 저장"으로 얻는다.
 - 로그에는 GitHub token, 세션 쿠키, 비공개 저장소 내용과 사용자 프롬프트 전문을 남기지 않는다.

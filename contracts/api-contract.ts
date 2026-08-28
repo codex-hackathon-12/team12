@@ -31,8 +31,6 @@ export const API_ROUTES = {
   portfolios: `${API_PREFIX}/portfolios`,
   portfolio: (portfolioId: string) =>
     `${API_PREFIX}/portfolios/${portfolioId}`,
-  portfolioResumePdf: (portfolioId: string) =>
-    `${API_PREFIX}/portfolios/${portfolioId}/resume.pdf`,
   credits: `${API_PREFIX}/credits`,
   billingProducts: `${API_PREFIX}/billing/products`,
   billingCheckout: `${API_PREFIX}/billing/checkout`,
@@ -209,7 +207,6 @@ export type GenerationStage =
   | "analyzingRepository"
   | "generatingContent"
   | "renderingPortfolio"
-  | "renderingResume"
   | "completed"
   | "failed";
 
@@ -224,7 +221,6 @@ export interface GenerationJobDto {
   progress: number;
   message: string;
   portfolioId: EntityId | null;
-  resumePdfAvailable: boolean;
   creditQuote: CreditQuoteDto;
   error:
     | {
@@ -328,11 +324,6 @@ export interface PortfolioSummaryDto {
   createdAt: IsoDateTime;
 }
 
-export interface ResumePdfDto {
-  downloadUrl: UrlString;
-  generatedAt: IsoDateTime;
-}
-
 export interface PortfolioDto extends PortfolioSummaryDto {
   generationJobId: EntityId;
   /** 대표(첫 번째) 저장소. */
@@ -340,7 +331,6 @@ export interface PortfolioDto extends PortfolioSummaryDto {
   /** 사용한 저장소 전체를 선택 순서대로 담는다. 항상 1개 이상이다. */
   repositories: GitRepositoryDto[];
   style: "default";
-  resumePdf: ResumePdfDto | null;
   content: PortfolioContentDto;
   updatedAt: IsoDateTime;
 }
