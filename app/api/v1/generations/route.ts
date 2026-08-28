@@ -1,3 +1,4 @@
+import { MAX_GENERATION_REPOSITORIES } from "@/contracts/api-contract";
 import { requireUser } from "@/server/auth/require-user";
 import { ActiveGenerationError, createJob } from "@/server/generation/jobs";
 import { RepositoryLookupError } from "@/server/github/repositories";
@@ -17,15 +18,22 @@ async function handlePOST(request: Request): Promise<Response> {
   }
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
   const highlights = Array.isArray(body.highlights) ? body.highlights : [];
-  if (typeof body.repositoryId !== "string" || !body.repositoryId || prompt.length < 1 || prompt.length > 2000 || highlights.length > 10 || highlights.some((value) => typeof value !== "string" || value.length > 100)) {
+  // 같은 저장소를 두 번 고르면 프로젝트가 중복되므로 순서를 지키며 중복만 제거한다.
+  const repositoryIds = Array.isArray(body.repositoryIds)
+    ? Array.from(new Set(body.repositoryIds.filter((value): value is string => typeof value === "string" && value.length > 0)))
+    : [];
+  if (repositoryIds.length === 0 || prompt.length < 1 || prompt.length > 2000 || highlights.length > 10 || highlights.some((value) => typeof value !== "string" || value.length > 100)) {
     return failure("VALIDATION_ERROR", "생성 요청 값이 올바르지 않습니다.", 400);
+  }
+  if (repositoryIds.length > MAX_GENERATION_REPOSITORIES) {
+    return failure("TOO_MANY_REPOSITORIES", `저장소는 한 번에 최대 ${MAX_GENERATION_REPOSITORIES}개까지 선택할 수 있습니다.`, 400);
   }
   if (body.tone !== undefined && body.tone !== "professional" && body.tone !== "concise" && body.tone !== "storytelling") {
     return failure("VALIDATION_ERROR", "tone 값이 올바르지 않습니다.", 400);
   }
   try {
     const job = await createJob(authentication.user.id, {
-      repositoryId: body.repositoryId,
+      repositoryIds,
       prompt,
       targetRole: typeof body.targetRole === "string" ? body.targetRole.slice(0, 100) : undefined,
       tone: body.tone as "professional" | "concise" | "storytelling" | undefined,

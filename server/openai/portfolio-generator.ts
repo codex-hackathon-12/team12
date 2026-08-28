@@ -11,6 +11,8 @@ export type GeneratedPortfolioDraft = {
   projects: Array<{
     title: string;
     description: string;
+    /** 이 프로젝트가 근거로 삼은 저장소의 name. 결과를 저장소에 다시 연결할 때 쓴다. */
+    repositoryName: string;
     role: string;
     techStack: string[];
     highlights: string[];
@@ -47,10 +49,11 @@ const schema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["title", "description", "role", "techStack", "highlights", "challenges", "solutions", "impact"],
+        required: ["title", "description", "repositoryName", "role", "techStack", "highlights", "challenges", "solutions", "impact"],
         properties: {
           title: { type: "string" },
           description: { type: "string" },
+          repositoryName: { type: "string" },
           role: { type: "string" },
           techStack: { type: "array", maxItems: 8, items: { type: "string" } },
           highlights: { type: "array", maxItems: 3, items: { type: "string" } },

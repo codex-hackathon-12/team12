@@ -11,6 +11,7 @@ type ApiErrorCode =
   | "JOB_NOT_RETRYABLE"
   | "ACCOUNT_DELETION_IN_PROGRESS"
   | "MOCK_PAYMENT_FAILED"
+  | "TOO_MANY_REPOSITORIES"
   | "INTERNAL_ERROR";
 
 export function json(data: unknown, status = 200, headers?: HeadersInit): Response {

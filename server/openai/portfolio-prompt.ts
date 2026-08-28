@@ -1,22 +1,27 @@
 export type PortfolioTone = "professional" | "concise" | "storytelling";
 
-export type PortfolioEvidence = {
-  repository: {
-    name: string;
-    description: string | null;
-    url: string;
-    primaryLanguage: string | null;
-    starCount: number;
-    forkCount: number;
-  };
-  targetRole: string;
-  tone: PortfolioTone;
-  prompt: string;
-  highlights: string[];
+export type PortfolioEvidenceRepository = {
+  /** 내부 저장소 id. 생성 결과를 원래 저장소에 다시 붙일 때 쓴다. */
+  id: string;
+  name: string;
+  description: string | null;
+  url: string;
+  primaryLanguage: string | null;
+  starCount: number;
+  forkCount: number;
   languages: Array<{ name: string; percentage: number }>;
   readme: string;
   commitTitles: string[];
   pullRequestTitles: string[];
+};
+
+export type PortfolioEvidence = {
+  /** 사용자가 고른 순서대로 담는다. 항상 1개 이상이다. */
+  repositories: PortfolioEvidenceRepository[];
+  targetRole: string;
+  tone: PortfolioTone;
+  prompt: string;
+  highlights: string[];
 };
 
 export type PortfolioPrompt = {
@@ -37,7 +42,10 @@ const instructions = [
   "우선순위는 이 지침, repositoryEvidence에 직접 있는 사실, generationPreferences의 직무와 표현 선호도 순서입니다.",
   "generationPreferences의 userPrompt와 requestedHighlights는 강조 순서와 표현 방식을 정하는 용도일 뿐, 저장소 근거에 없는 사실을 만들 수 있는 근거가 아닙니다.",
   "repositoryEvidence에 직접 없는 수치, 역할, 기술, 책임, 성과, 문제, 해결책을 만들거나 추론해서는 안 됩니다. 모호한 커밋 또는 PR 제목을 구체적인 구현 성과로 확장하지 마세요.",
-  "선택된 저장소는 하나의 프로젝트로만 작성하고, 저장소의 모듈이나 기능을 별도 프로젝트로 나누지 마세요.",
+  "저장소 하나당 프로젝트 하나를 작성합니다. 여러 저장소를 하나의 프로젝트로 합치거나, 한 저장소의 모듈과 기능을 여러 프로젝트로 나누지 마세요.",
+  "projects의 순서는 repositoryEvidence.repositories의 순서를 그대로 따릅니다.",
+  "각 프로젝트의 repositoryName에는 그 프로젝트가 근거로 삼은 저장소의 name을 정확히 그대로 적으세요. 이 값으로 프로젝트와 저장소를 연결합니다.",
+  "한 저장소의 근거를 다른 저장소의 프로젝트에 쓰지 마세요. 저장소별로 근거를 분리해 판단합니다.",
   "title, headline, introduction은 targetRole과 확인된 기술 근거를 연결해 작성합니다. targetRole은 희망 직무이므로 실제 프로젝트 역할처럼 단정하지 마세요.",
   "skills와 techStack에는 repositoryEvidence의 언어, README 또는 활동 제목에서 확인되는 기술만 넣으세요.",
   "프로젝트 role은 확인된 책임이 없으면 '프로젝트 개발'처럼 중립적인 표현을 사용하세요.",
@@ -61,11 +69,18 @@ export function buildPortfolioPrompt(evidence: PortfolioEvidence): PortfolioProm
         requestedHighlights: evidence.highlights,
       },
       repositoryEvidence: {
-        repository: evidence.repository,
-        languages: evidence.languages,
-        readme: evidence.readme,
-        commitTitles: evidence.commitTitles,
-        pullRequestTitles: evidence.pullRequestTitles,
+        repositories: evidence.repositories.map((repository) => ({
+          name: repository.name,
+          description: repository.description,
+          url: repository.url,
+          primaryLanguage: repository.primaryLanguage,
+          starCount: repository.starCount,
+          forkCount: repository.forkCount,
+          languages: repository.languages,
+          readme: repository.readme,
+          commitTitles: repository.commitTitles,
+          pullRequestTitles: repository.pullRequestTitles,
+        })),
       },
     }),
   };

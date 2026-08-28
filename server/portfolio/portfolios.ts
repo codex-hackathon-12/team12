@@ -6,7 +6,7 @@ import {
 } from "@/server/portfolio/mapper";
 import { getSupabaseClient } from "@/server/supabase/client";
 
-const PORTFOLIO_SELECT = "id, generation_job_id, title, target_role, content, style, resume_pdf_path, resume_pdf_generated_at, created_at, updated_at, repositories(id, github_repository_id, owner_username, owner_avatar_url, name, full_name, description, html_url, default_branch, primary_language, visibility, star_count, fork_count, pushed_at, synced_at)";
+const PORTFOLIO_SELECT = "id, generation_job_id, title, target_role, content, style, resume_pdf_path, resume_pdf_generated_at, created_at, updated_at, repositories(id, github_repository_id, owner_username, owner_avatar_url, name, full_name, description, html_url, default_branch, primary_language, visibility, star_count, fork_count, pushed_at, synced_at), portfolio_repositories(position, repositories(id, github_repository_id, owner_username, owner_avatar_url, name, full_name, description, html_url, default_branch, primary_language, visibility, star_count, fork_count, pushed_at, synced_at))";
 
 type ListOptions = {
   limit: number;
@@ -78,3 +78,4 @@ export async function getPortfolio(
 
   return data ? mapPortfolio(data as PortfolioRecord) : null;
 }
+

@@ -23,6 +23,11 @@ export type PortfolioRepositoryRecord = {
   synced_at: string;
 };
 
+export type PortfolioLinkRecord = {
+  position: number;
+  repositories: PortfolioRepositoryRecord | PortfolioRepositoryRecord[] | null;
+};
+
 export type PortfolioRecord = {
   id: string;
   generation_job_id: string;
@@ -35,6 +40,7 @@ export type PortfolioRecord = {
   created_at: string;
   updated_at: string;
   repositories: PortfolioRepositoryRecord | PortfolioRepositoryRecord[] | null;
+  portfolio_repositories?: PortfolioLinkRecord[] | null;
 };
 
 type UnknownRecord = Record<string, unknown>;
@@ -74,6 +80,26 @@ function readStringArray(value: unknown, limit?: number): string[] {
     : [];
 
   return limit === undefined ? items : items.slice(0, limit);
+}
+
+// 조인 결과가 비어 있으면 대표 저장소 하나로 대체한다.
+// 규격 이전에 저장된 포트폴리오도 같은 모양으로 보이게 하기 위함이다.
+function readLinkedRepositories(record: PortfolioRecord): PortfolioRepositoryRecord[] {
+  const links = Array.isArray(record.portfolio_repositories) ? record.portfolio_repositories : [];
+  const linked = [...links]
+    .sort((a, b) => a.position - b.position)
+    .flatMap((link) => {
+      const value = link.repositories;
+      if (!value) return [];
+      return Array.isArray(value) ? value.slice(0, 1) : [value];
+    });
+
+  if (linked.length > 0) {
+    return linked;
+  }
+
+  const primary = readRepository(record);
+  return primary ? [primary] : [];
 }
 
 function readRepository(record: PortfolioRecord): PortfolioRepositoryRecord | null {
@@ -232,6 +258,7 @@ export function mapPortfolioSummary(record: PortfolioRecord): PortfolioSummaryDt
     title: record.title,
     targetRole: record.target_role,
     repositoryName: repository.name,
+    repositoryCount: Math.max(readLinkedRepositories(record).length, 1),
     techStack: extractTechStack(content),
     createdAt: record.created_at,
   };
@@ -245,10 +272,12 @@ export function mapPortfolio(record: PortfolioRecord): PortfolioDto | null {
   }
 
   const repository = mapRepository(repositoryRecord);
+  const linked = readLinkedRepositories(record).map(mapRepository);
   return {
     ...summary,
     generationJobId: record.generation_job_id,
     repository,
+    repositories: linked.length > 0 ? linked : [repository],
     style: "default",
     resumePdf: record.resume_pdf_path
       ? {
