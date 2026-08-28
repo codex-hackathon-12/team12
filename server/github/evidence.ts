@@ -9,7 +9,7 @@ import { getSupabaseClient } from "@/server/supabase/client";
 
 // 저장소가 늘어나면 README를 그대로 이어붙일 때 AI 입력이 급격히 커진다.
 const MAX_README_LENGTH_SINGLE = 6000;
-const MAX_README_LENGTH_MULTI = 3000;
+const MAX_README_LENGTH_MULTI = 4500;
 const MAX_ACTIVITY_ITEMS = 20;
 
 async function getAccessToken(userId: string): Promise<string> {
@@ -55,6 +55,7 @@ async function collectRepositoryEvidence(
     primaryLanguage: repository.primaryLanguage,
     starCount: repository.starCount,
     forkCount: repository.forkCount,
+    pushedAt: repository.pushedAt,
     languages,
     readme,
     commitTitles: commits.map((commit) => commit.commit?.message?.split("\n")[0] || "").filter(Boolean).slice(0, MAX_ACTIVITY_ITEMS),

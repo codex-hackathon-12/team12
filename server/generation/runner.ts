@@ -117,7 +117,12 @@ export async function runGenerationJob(jobId: string): Promise<void> {
       languages: mergeLanguages(evidence.repositories),
       starCount: evidence.repositories.reduce((total, repository) => total + repository.starCount, 0),
       forkCount: evidence.repositories.reduce((total, repository) => total + repository.forkCount, 0),
-      notablePatterns: [],
+      notablePatterns: draft.notablePatterns,
+      // 작업이 최근인지 보여주는 지표다. 여러 저장소 중 가장 최근 push를 쓴다.
+      lastActivityAt: evidence.repositories
+        .map((repository) => repository.pushedAt)
+        .sort()
+        .at(-1) ?? null,
     },
     contact: { githubUrl: user.profile_url, email: user.email, location: null },
   };

@@ -54,20 +54,20 @@ test("결과 화면이 감당할 수 있는 분량으로 배열을 자른다", (
   const content = mapPortfolioContent(oversized, repository, "Frontend Engineer");
   const [project] = content.projects;
 
-  assert.equal(content.skills.length, 4);
-  assert.ok(content.skills.every((group) => group.skills.length <= 6));
-  assert.equal(project.techStack.length, 8);
-  assert.equal(project.highlights.length, 3);
-  assert.equal(project.challenges.length, 2);
-  assert.equal(project.solutions.length, 2);
-  assert.equal(project.impact.length, 2);
+  assert.equal(content.skills.length, 5);
+  assert.ok(content.skills.every((group) => group.skills.length <= 8));
+  assert.equal(project.techStack.length, 10);
+  assert.equal(project.highlights.length, 4);
+  assert.equal(project.challenges.length, 3);
+  assert.equal(project.solutions.length, 3);
+  assert.equal(project.impact.length, 3);
   assert.equal(content.gitAnalysis.notablePatterns.length, 4);
 });
 
 test("상한 안에서는 앞쪽 항목을 순서대로 남긴다", () => {
   const content = mapPortfolioContent(oversized, repository, "Frontend Engineer");
 
-  assert.deepEqual(content.projects[0].highlights, ["성과-1", "성과-2", "성과-3"]);
+  assert.deepEqual(content.projects[0].highlights, ["성과-1", "성과-2", "성과-3", "성과-4"]);
   assert.equal(content.skills[0].category, "카테고리-1");
 });
 

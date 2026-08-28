@@ -173,6 +173,7 @@ export const mockPortfolioContent = {
       "재사용 가능한 컴포넌트",
       "명확한 오류 상태",
     ],
+    lastActivityAt: null,
   },
   contact: {
     githubUrl: "https://github.com/frontend-builder",

@@ -8,6 +8,8 @@ export type GeneratedPortfolioDraft = {
   headline: string;
   introduction: string;
   skills: Array<{ category: string; skills: string[] }>;
+  /** 커밋과 PR 제목에서 드러나는 작업 방식. 저장소 전체를 아우른다. */
+  notablePatterns: string[];
   projects: Array<{
     title: string;
     description: string;
@@ -25,7 +27,7 @@ export type GeneratedPortfolioDraft = {
 const schema = {
   type: "object",
   additionalProperties: false,
-  required: ["title", "headline", "introduction", "skills", "projects"],
+  required: ["title", "headline", "introduction", "skills", "projects", "notablePatterns"],
   properties: {
     title: { type: "string" },
     headline: { type: "string" },
@@ -38,10 +40,10 @@ const schema = {
         required: ["category", "skills"],
         properties: {
           category: { type: "string" },
-          skills: { type: "array", maxItems: 6, items: { type: "string" } },
+          skills: { type: "array", maxItems: 8, items: { type: "string" } },
         },
       },
-      maxItems: 4,
+      maxItems: 5,
     },
     projects: {
       type: "array",
@@ -55,14 +57,15 @@ const schema = {
           description: { type: "string" },
           repositoryName: { type: "string" },
           role: { type: "string" },
-          techStack: { type: "array", maxItems: 8, items: { type: "string" } },
-          highlights: { type: "array", maxItems: 3, items: { type: "string" } },
-          challenges: { type: "array", maxItems: 2, items: { type: "string" } },
-          solutions: { type: "array", maxItems: 2, items: { type: "string" } },
-          impact: { type: "array", maxItems: 2, items: { type: "string" } },
+          techStack: { type: "array", maxItems: 10, items: { type: "string" } },
+          highlights: { type: "array", maxItems: 4, items: { type: "string" } },
+          challenges: { type: "array", maxItems: 3, items: { type: "string" } },
+          solutions: { type: "array", maxItems: 3, items: { type: "string" } },
+          impact: { type: "array", maxItems: 3, items: { type: "string" } },
         },
       },
     },
+    notablePatterns: { type: "array", maxItems: 4, items: { type: "string" } },
   },
 } as const;
 
@@ -85,7 +88,8 @@ function isDraft(value: unknown): value is GeneratedPortfolioDraft {
     && typeof draft.introduction === "string"
     && Array.isArray(draft.skills)
     && Array.isArray(draft.projects)
-    && draft.projects.length > 0;
+    && draft.projects.length > 0
+    && Array.isArray(draft.notablePatterns);
 }
 
 export async function generatePortfolioDraft(evidence: PortfolioEvidence): Promise<GeneratedPortfolioDraft> {

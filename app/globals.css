@@ -1761,7 +1761,9 @@ a {
 
 .result-metric-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* 지표 개수는 데이터에 따라 달라진다. 있는 만큼만 고르게 나눈다. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   margin: 0;
   border-top: 1px solid var(--result-border);
   border-bottom: 1px solid var(--result-border);
@@ -2264,9 +2266,14 @@ a {
   }
   .result-portfolio-nav > div { display: none; }
   .result-hero-identity { gap: var(--space-3); }
-  .result-metric-strip { grid-template-columns: 1fr 1fr; }
-  .result-metric-strip > div:nth-child(3) { border-top: 1px solid var(--result-border); border-left: 0; }
-  .result-metric-strip > div:nth-child(4) { border-top: 1px solid var(--result-border); }
+  .result-metric-strip {
+    grid-auto-flow: row;
+    grid-template-columns: 1fr 1fr;
+  }
+  .result-metric-strip > div:nth-child(n + 3) {
+    border-top: 1px solid var(--result-border);
+  }
+  .result-metric-strip > div:nth-child(odd) { border-left: 0; }
   .result-project-card { padding: var(--space-4) 0; }
   .result-project-title-row { grid-template-columns: 1fr; gap: var(--space-2); }
   .result-story-list { gap: var(--space-4); }

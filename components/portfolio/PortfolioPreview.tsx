@@ -26,16 +26,29 @@ export function PortfolioPreview({
   paginated?: boolean;
 }) {
   if (variant === "result") {
-    const skillCount = content.skills.reduce(
-      (total, group) => total + group.skills.length,
-      0,
-    );
     const initials =
       content.profile.displayName.replace(/\s/gu, "").slice(0, 2).toUpperCase() ||
       "PF";
     const contactHref = content.contact.email
       ? `mailto:${content.contact.email}`
       : content.contact.githubUrl;
+
+    // 여러 프로젝트에 반복 등장하는 기술이 실제 주력이다. 한 번만 쓰인 것과 구분된다.
+    const stackCount = new Map<string, number>();
+    for (const project of content.projects) {
+      for (const tech of new Set(project.techStack)) {
+        stackCount.set(tech, (stackCount.get(tech) ?? 0) + 1);
+      }
+    }
+    const coreStack = [...stackCount.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([tech]) => tech);
+
+    const lastActivity = content.gitAnalysis.lastActivityAt
+      ? new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long" })
+          .format(new Date(content.gitAnalysis.lastActivityAt))
+      : null;
 
     // 인쇄에서 통째로 유지되는 단위와 같은 블록으로 나눈다.
     // 페이지 분할 모드는 이 배열을 A4 낱장에 담고, 아닐 때는 그대로 이어서 그린다.
@@ -96,26 +109,33 @@ export function PortfolioPreview({
         </header>
     ) });
 
-    blocks.push({ key: "metrics", node: (
+    // 지표는 채용 담당자가 한눈에 판단에 쓰는 것만 남긴다.
+    // 프로젝트 수는 아래 카드를 세면 되고, 기술 개수는 많다고 좋은 게 아니며,
+    // 별과 fork는 개인 프로젝트에서 대부분 0이라 오히려 약해 보인다.
+    const metrics: Array<{ label: string; value: string }> = [];
+
+    if (content.gitAnalysis.primaryLanguage) {
+      metrics.push({ label: "Primary language", value: content.gitAnalysis.primaryLanguage });
+    }
+    if (coreStack.length > 0) {
+      metrics.push({ label: "Core stack", value: coreStack.join(" · ") });
+    }
+    if (lastActivity) {
+      metrics.push({ label: "Last activity", value: lastActivity });
+    }
+
+    if (metrics.length > 0) {
+      blocks.push({ key: "metrics", node: (
         <dl className="result-metric-strip" aria-label="포트폴리오 핵심 지표">
-          <div>
-            <dt>Selected projects</dt>
-            <dd>{String(content.projects.length).padStart(2, "0")}</dd>
-          </div>
-          <div>
-            <dt>Core skills</dt>
-            <dd>{String(skillCount).padStart(2, "0")}</dd>
-          </div>
-          <div>
-            <dt>Primary language</dt>
-            <dd>{content.gitAnalysis.primaryLanguage ?? "—"}</dd>
-          </div>
-          <div>
-            <dt>GitHub signal</dt>
-            <dd>{content.gitAnalysis.starCount}★ · {content.gitAnalysis.forkCount}⑂</dd>
-          </div>
+          {metrics.map((metric) => (
+            <div key={metric.label}>
+              <dt>{metric.label}</dt>
+              <dd>{metric.value}</dd>
+            </div>
+          ))}
         </dl>
-    ) });
+      ) });
+    }
 
     // 프로젝트는 카드 하나가 페이지 배치의 단위다. 통째로 묶으면 앞 페이지에
     // 빈 공간이 크게 남는다. 인쇄에서도 카드 단위로 나뉘므로 같은 단위를 쓴다.
