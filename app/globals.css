@@ -308,6 +308,48 @@ a {
   font-weight: 800;
 }
 
+.logout-button {
+  padding: 9px 13px;
+  border: 1px solid var(--line-dark);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+  transition: 160ms ease;
+}
+
+.logout-button:hover:not(:disabled) {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.logout-button:focus-visible {
+  outline: 3px solid rgb(97 112 255 / 38%);
+  outline-offset: 3px;
+}
+
+.logout-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+/* 헤더는 높이가 고정이라 안내문을 흐름에 넣으면 잘린다. 그래서 아래로 겹쳐 띄운다. */
+.logout-error {
+  position: absolute;
+  top: var(--header-height);
+  right: 0;
+  left: 0;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--coral);
+  background: var(--coral);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .site-main {
   min-height: calc(100vh - var(--header-height));
 }
@@ -2126,6 +2168,7 @@ a {
   .site-header { height: var(--header-height); }
   .header-inner { width: min(100% - 28px, 1240px); }
   .credit-indicator { display: none; }
+  .logout-button { padding: 8px 11px; font-size: 11px; }
   .page-container { width: min(100% - 28px, 1240px); }
   .mobile-nav {
     position: fixed;
