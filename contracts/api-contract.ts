@@ -17,6 +17,7 @@ export const API_ROUTES = {
     githubStart: `${API_PREFIX}/auth/github`,
     githubCallback: `${API_PREFIX}/auth/github/callback`,
     session: `${API_PREFIX}/auth/session`,
+    connection: `${API_PREFIX}/auth/connection`,
     logout: `${API_PREFIX}/auth/logout`,
   },
   dashboard: `${API_PREFIX}/dashboard`,
@@ -119,6 +120,30 @@ export interface AuthSessionDto {
   authenticated: boolean;
   provider: "github" | null;
   user: GitHubUserDto | null;
+}
+
+export interface GitHubScopeDto {
+  /** GitHub OAuth 스코프 문자열. 예: "repo" */
+  name: string;
+  label: string;
+  description: string;
+  /** 이 스코프 없이는 동작하지 않는 기능이 있는지. */
+  required: boolean;
+  granted: boolean;
+}
+
+export interface GitHubConnectionDto {
+  username: string;
+  profileUrl: string;
+  avatarUrl: string;
+  connectedAt: string;
+  scopes: GitHubScopeDto[];
+  /** 요청한 적 없는데 부여돼 있는 스코프. 과거 연동에서 남는다. */
+  extraScopes: string[];
+  /** 재연동이 필요한 상태인지. 요청 스코프 중 빠진 것이 있으면 true. */
+  needsReauthorization: boolean;
+  /** 조직 접근 승인과 권한 취소를 할 수 있는 GitHub 설정 페이지. */
+  manageUrl: string;
 }
 
 export interface LogoutResultDto {

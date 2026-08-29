@@ -2,6 +2,7 @@ import type {
   AnnouncementDto,
   AnnouncementSummaryDto,
   AuthSessionDto,
+  GitHubConnectionDto,
   BillingProductDto,
   CreditSummaryDto,
   DashboardDto,
@@ -32,6 +33,46 @@ export const mockSession = {
     createdAt: now,
   },
 } satisfies AuthSessionDto;
+
+export const mockConnection = {
+  username: "frontend-builder",
+  profileUrl: "https://github.com/frontend-builder",
+  avatarUrl: "https://avatars.githubusercontent.com/u/9919",
+  connectedAt: now,
+  scopes: [
+    {
+      name: "read:user",
+      label: "프로필 읽기",
+      description: "이름과 아바타 등 공개 프로필을 읽어 포트폴리오 머리말에 씁니다.",
+      required: true,
+      granted: true,
+    },
+    {
+      name: "user:email",
+      label: "이메일 읽기",
+      description: "연락처로 쓸 대표 이메일을 읽습니다.",
+      required: false,
+      granted: true,
+    },
+    {
+      name: "repo",
+      label: "저장소 접근 (private 포함)",
+      description: "저장소 목록과 커밋·PR 근거를 읽습니다. 코드를 쓰거나 바꾸지 않습니다.",
+      required: true,
+      granted: true,
+    },
+    {
+      name: "read:org",
+      label: "조직 정보 읽기",
+      description: "조직 소속 저장소를 목록에 함께 보여줍니다.",
+      required: false,
+      granted: false,
+    },
+  ],
+  extraScopes: [],
+  needsReauthorization: true,
+  manageUrl: "https://github.com/settings/connections/applications/mock-client-id",
+} satisfies GitHubConnectionDto;
 
 export const mockCredits = {
   balance: 100,

@@ -14,6 +14,7 @@ import type {
   GalleryListDto,
   GalleryListQuery,
   GenerationJobDto,
+  GitHubConnectionDto,
   GitRepositoryDto,
   MockCheckoutDto,
   MockPaymentListDto,
@@ -31,6 +32,8 @@ import type {
 export interface ApiClient {
   getGitHubLoginUrl(returnTo: string): string;
   getSession(): Promise<AuthSessionDto>;
+  /** 연동된 GitHub 계정과 실제로 부여된 스코프. 설정 화면에서 쓴다. */
+  getConnection(): Promise<GitHubConnectionDto>;
   logout(): Promise<void>;
   getDashboard(): Promise<DashboardDto>;
   getRepositories(query?: RepositoryListQuery): Promise<RepositoryListDto>;
