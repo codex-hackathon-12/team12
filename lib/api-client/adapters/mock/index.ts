@@ -10,6 +10,7 @@ import {
   mockAnnouncementDetails,
   mockAnnouncements,
   mockBillingProducts,
+  mockConnection,
   mockCredits,
   mockDashboard,
   mockGalleryExamples,
@@ -48,6 +49,11 @@ export class MockApiClient implements ApiClient {
   async getSession() {
     await wait();
     return mockSession;
+  }
+
+  async getConnection() {
+    await wait();
+    return mockConnection;
   }
 
   async logout() {

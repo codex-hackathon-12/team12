@@ -74,9 +74,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               <span aria-hidden="true">●</span>
               100 크레딧
             </Link>
-            <button className="avatar-button" type="button" aria-label="사용자 메뉴">
+            <Link
+              className={pathname.startsWith("/settings") ? "avatar-button active" : "avatar-button"}
+              href="/settings"
+              aria-label="계정 설정"
+            >
               김
-            </button>
+            </Link>
             <button
               className="logout-button"
               type="button"

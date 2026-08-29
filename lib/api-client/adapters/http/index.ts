@@ -17,6 +17,7 @@ import {
   type GalleryListDto,
   type GalleryListQuery,
   type GenerationJobDto,
+  type GitHubConnectionDto,
   type GitRepositoryDto,
   type MockCheckoutDto,
   type MockPaymentListDto,
@@ -158,6 +159,10 @@ export class HttpApiClient implements ApiClient {
 
   async getSession() {
     return (await request<AuthSessionDto>(API_ROUTES.auth.session)).data;
+  }
+
+  async getConnection() {
+    return (await request<GitHubConnectionDto>(API_ROUTES.auth.connection)).data;
   }
 
   async logout() {
