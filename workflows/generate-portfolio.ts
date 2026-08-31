@@ -1,12 +1,28 @@
 import { classifyGenerationFailure, type GenerationFailure } from "@/server/generation/errors";
-import { markGenerationJobFailed, runGenerationJob } from "@/server/generation/runner";
+import {
+  collectGenerationEvidence,
+  generateGenerationDraft,
+  markGenerationJobFailed,
+  persistGenerationPortfolio,
+} from "@/server/generation/runner";
 import { logOperationFailure } from "@/server/observability/api-logging";
 
+/**
+ * 생성은 세 단계로 나뉜다. 예전에는 전부 한 step이었고, 플랫폼이 step을 자동으로
+ * 재시도하기 때문에 저장에서 실패하면 GitHub 수집과 모델 호출까지 통째로 다시
+ * 돌았다. 단계를 나누고 각 단계가 이미 끝난 일을 건너뛰게 해서, 재시도가
+ * 실패한 지점만 다시 하도록 만든다.
+ *
+ * 단계마다 진행 상태를 갱신하므로 updated_at이 자연스러운 진척 신호가 되고,
+ * 멈춘 작업 판정도 그만큼 정확해진다.
+ */
 export async function generatePortfolioWorkflow(jobId: string): Promise<void> {
   "use workflow";
 
   try {
-    await runGenerationStep(jobId);
+    await collectEvidenceStep(jobId);
+    await generateDraftStep(jobId);
+    await persistPortfolioStep(jobId);
   } catch (error) {
     logOperationFailure({
       domain: "generations",
@@ -21,19 +37,33 @@ export async function generatePortfolioWorkflow(jobId: string): Promise<void> {
   }
 }
 
-/* 이 step 하나가 GitHub 수집·OpenAI 호출·저장을 전부 한다. 기본 재시도는 3회라
-   같은 작업이 최대 네 번 돌 수 있고, 그만큼 OpenAI 호출도 반복된다. 순간 장애는
-   한 번 더 살리되 반복 과금은 막는 선에서 1회로 둔다. */
-async function runGenerationStep(jobId: string): Promise<void> {
+async function collectEvidenceStep(jobId: string): Promise<void> {
   "use step";
 
+  await runOrFail(jobId, collectGenerationEvidence);
+}
+
+async function generateDraftStep(jobId: string): Promise<void> {
+  "use step";
+
+  await runOrFail(jobId, generateGenerationDraft);
+}
+
+async function persistPortfolioStep(jobId: string): Promise<void> {
+  "use step";
+
+  await runOrFail(jobId, persistGenerationPortfolio);
+}
+
+/* 다시 해도 결과가 같은 실패는 재시도를 소진시키지 않는다. 시간과 비용만 쓰고
+   사유도 흐려지기 때문이다. 그 자리에서 사유를 남기고 끝낸다. */
+async function runOrFail(jobId: string, run: (jobId: string) => Promise<void>): Promise<void> {
   try {
-    await runGenerationJob(jobId);
+    await run(jobId);
   } catch (error) {
     const failure = classifyGenerationFailure(error);
     if (!failure.retryable) {
-      /* 다시 해도 결과가 같은 실패다. 여기서 사유를 남기고 끝낸다. 밖으로 던져
-         재시도를 소진시키면 시간과 비용만 쓰고, 사유도 흐려진다. */
+      /* 실패로 표시해두면 뒤따르는 단계는 종료 상태를 보고 스스로 물러난다. */
       await markGenerationJobFailed(jobId, failure);
       return;
     }
@@ -41,7 +71,12 @@ async function runGenerationStep(jobId: string): Promise<void> {
   }
 }
 
-runGenerationStep.maxRetries = 1;
+// 네트워크 문제는 한 번 더 해볼 만하다.
+collectEvidenceStep.maxRetries = 2;
+// 모델 호출은 재시도가 곧 비용이다. 초안이 남아 있으면 어차피 건너뛴다.
+generateDraftStep.maxRetries = 1;
+// 저장은 멱등하고 값싸다.
+persistPortfolioStep.maxRetries = 3;
 
 async function markGenerationFailedStep(
   jobId: string,

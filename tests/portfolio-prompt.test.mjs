@@ -15,7 +15,10 @@ const baseRepository = {
   readme: "# Portfolio API\n비동기 포트폴리오 생성 서비스",
   ownCommitTitles: ["feat: 생성 작업 상태 조회 API 추가"],
   teamCommitTitles: ["chore: 팀원이 올린 배포 설정"],
-  ownPullRequestTitles: ["Workflow 재시도 처리"],
+  ownPullRequests: [{ title: "Workflow 재시도 처리", merged: true, body: "재시도 시 중복 호출을 막았다." }],
+  topLevelPaths: ["app/", "server/", "package.json"],
+  hasContinuousIntegration: true,
+  contributorCount: 3,
   teamPullRequestTitles: ["팀원의 로그 정리"],
 };
 
@@ -78,7 +81,10 @@ test("keeps conservative fallback rules when repository activity is empty", () =
       readme: "",
       ownCommitTitles: [],
       teamCommitTitles: [],
-      ownPullRequestTitles: [],
+      ownPullRequests: [],
+      topLevelPaths: [],
+      hasContinuousIntegration: false,
+      contributorCount: 1,
       teamPullRequestTitles: [],
     }],
   });
@@ -94,7 +100,10 @@ test("keeps conservative fallback rules when repository activity is empty", () =
       readme: "",
       ownCommitTitles: [],
       teamCommitTitles: [],
-      ownPullRequestTitles: [],
+      ownPullRequests: [],
+      topLevelPaths: [],
+      hasContinuousIntegration: false,
+      contributorCount: 1,
       teamPullRequestTitles: [],
     }],
   });
@@ -107,8 +116,20 @@ test("본인 기여와 팀 기여를 구분해 전달하고, 팀 작업 귀속�
 
   assert.deepEqual(repository.ownCommitTitles, ["feat: 생성 작업 상태 조회 API 추가"]);
   assert.deepEqual(repository.teamCommitTitles, ["chore: 팀원이 올린 배포 설정"]);
-  assert.deepEqual(repository.ownPullRequestTitles, ["Workflow 재시도 처리"]);
+  assert.deepEqual(repository.ownPullRequests, [
+    { title: "Workflow 재시도 처리", merged: true, body: "재시도 시 중복 호출을 막았다." },
+  ]);
   assert.deepEqual(repository.teamPullRequestTitles, ["팀원의 로그 정리"]);
   // 구분해 넘기기만 하고 지침이 없으면 모델이 팀 작업을 성과로 쓸 수 있다.
   assert.match(prompt.instructions, /지원자가 했다고 서술하지 마세요/u);
+});
+
+test("구조와 협업 규모를 근거로 함께 넘긴다", () => {
+  const payload = JSON.parse(buildPortfolioPrompt(baseEvidence).input);
+  const [repository] = payload.repositoryEvidence.repositories;
+
+  // 제목 스무 줄만으로 "무엇을 어떻게 해결했는지" 쓰라는 요구가 환각을 부른다.
+  assert.deepEqual(repository.topLevelPaths, ["app/", "server/", "package.json"]);
+  assert.equal(repository.hasContinuousIntegration, true);
+  assert.equal(repository.contributorCount, 3);
 });
