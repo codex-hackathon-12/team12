@@ -12,8 +12,12 @@ export type PortfolioEvidenceRepository = {
   pushedAt: string;
   languages: Array<{ name: string; percentage: number }>;
   readme: string;
-  commitTitles: string[];
-  pullRequestTitles: string[];
+  /** 지원자 본인이 작성한 커밋 제목. */
+  ownCommitTitles: string[];
+  /** 같은 저장소의 다른 사람 커밋 제목. 프로젝트 맥락을 읽는 용도다. */
+  teamCommitTitles: string[];
+  ownPullRequestTitles: string[];
+  teamPullRequestTitles: string[];
 };
 
 export type PortfolioEvidence = {
@@ -52,6 +56,8 @@ const instructions = [
   "프로젝트 role은 확인된 책임이 없으면 '프로젝트 개발'처럼 중립적인 표현을 사용하세요.",
   "highlights, challenges, solutions, impact는 각각 직접 근거가 있을 때만 채우고, 충분한 근거가 없으면 빈 배열을 반환하세요.",
   "impact는 수치가 없어도 됩니다. README나 커밋·PR 제목에서 확인되는 변화, 예를 들어 기능이 동작하게 된 상태, 구조가 바뀐 결과, 사용자가 할 수 있게 된 일을 사실 그대로 씁니다. 다만 제공되지 않은 수치나 비율은 절대 만들지 마세요.",
+  "ownCommitTitles와 ownPullRequestTitles는 지원자 본인이 작성한 것이고, teamCommitTitles와 teamPullRequestTitles는 같은 저장소의 다른 사람이 작성한 것입니다. 지원자의 기여, 역할, 성과는 own 항목과 README에서만 끌어오세요.",
+  "team 항목은 프로젝트가 무엇이고 어떤 환경에서 개발됐는지 이해하는 맥락으로만 쓰고, 그 작업을 지원자가 했다고 서술하지 마세요. 팀 작업을 근거로 지원자의 책임이나 성과를 추론해서도 안 됩니다.",
   "notablePatterns에는 커밋과 PR 제목에서 반복적으로 드러나는 작업 방식을 씁니다. 예를 들어 리팩터링을 별도 커밋으로 분리했다거나, 기능 단위로 PR을 나눴다거나, 버그 수정에 재현 절차를 남긴 흐름입니다. 저장소 전체를 아우르는 내용이며 특정 프로젝트 설명과 중복되지 않게 씁니다. 근거가 없으면 빈 배열을 반환하세요.",
   "결과 화면은 채용 담당자가 빠르게 훑는 단일 컬럼이므로 분량 상한을 지키세요. headline은 80자, introduction은 220자, 프로젝트 description은 160자 이내입니다.",
   "배열 상한은 techStack 10개, highlights 4개, challenges·solutions·impact 각 3개, skills 그룹 5개와 그룹당 8개, notablePatterns 4개입니다. highlights 항목은 70자, challenges·solutions·impact 항목은 90자 이내로 씁니다.",
@@ -82,8 +88,10 @@ export function buildPortfolioPrompt(evidence: PortfolioEvidence): PortfolioProm
           forkCount: repository.forkCount,
           languages: repository.languages,
           readme: repository.readme,
-          commitTitles: repository.commitTitles,
-          pullRequestTitles: repository.pullRequestTitles,
+          ownCommitTitles: repository.ownCommitTitles,
+          ownPullRequestTitles: repository.ownPullRequestTitles,
+          teamCommitTitles: repository.teamCommitTitles,
+          teamPullRequestTitles: repository.teamPullRequestTitles,
         })),
       },
     }),

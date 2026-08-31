@@ -77,8 +77,8 @@ export async function runGenerationJob(jobId: string): Promise<void> {
       repository_id: repository.id,
       source_pushed_at: new Date().toISOString(),
       language_breakdown: repository.languages,
-      commit_count: repository.commitTitles.length,
-      pull_request_count: repository.pullRequestTitles.length,
+      commit_count: repository.ownCommitTitles.length,
+      pull_request_count: repository.ownPullRequestTitles.length,
       summary: repository.description || repository.name,
     })),
   ).select("id, repository_id");

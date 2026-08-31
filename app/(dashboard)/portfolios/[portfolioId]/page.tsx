@@ -129,7 +129,7 @@ export default function PortfolioResultPage() {
       </div>
       <div className="page-container result-footer-actions">
         <Link className="text-link" href="/dashboard">← 대시보드로 돌아가기</Link>
-        <p>PDF 이력서는 로그인한 소유자만 내려받을 수 있습니다.</p>
+        <p>인쇄 화면에서 “PDF로 저장”을 고르면 A4 이력서로 남길 수 있어요.</p>
       </div>
     </div>
   );

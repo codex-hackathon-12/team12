@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import type { GitHubUserDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 
+// 항목 수를 바꾸면 app/globals.css의 .mobile-nav 열 수도 함께 바꿔야 한다.
 const navigation = [
   { href: "/dashboard", label: "대시보드" },
   { href: "/portfolios", label: "내 포트폴리오" },
@@ -26,6 +28,24 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutFailed, setLogoutFailed] = useState(false);
+  const [user, setUser] = useState<GitHubUserDto | null>(null);
+
+  /* 헤더는 레이아웃 안에 있어 화면을 옮겨도 다시 마운트되지 않는다.
+     그래서 한 번만 읽는다. 읽지 못하면 숫자나 이름을 지어내지 않고 감춘다. */
+  useEffect(() => {
+    let active = true;
+    apiClient
+      .getSession()
+      .then((session) => {
+        if (active) setUser(session.user);
+      })
+      .catch(() => {
+        if (active) setUser(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /* 세션 쿠키가 살아있는 채로 랜딩에 보내면 곧장 대시보드로 되돌아온다.
      그래서 로그아웃이 성공했을 때만 이동한다. */
@@ -70,16 +90,19 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="header-actions">
-            <Link className="credit-indicator" href="/billing">
-              <span aria-hidden="true">●</span>
-              100 크레딧
-            </Link>
+            {user ? (
+              <Link className="credit-indicator" href="/billing">
+                <span aria-hidden="true">●</span>
+                {user.creditBalance} 크레딧
+                <span className="mock-chip">체험</span>
+              </Link>
+            ) : null}
             <Link
               className={pathname.startsWith("/settings") ? "avatar-button active" : "avatar-button"}
               href="/settings"
-              aria-label="계정 설정"
+              aria-label={user ? `${user.displayName} 계정 설정` : "계정 설정"}
             >
-              김
+              {user ? [...user.displayName][0] : ""}
             </Link>
             <button
               className="logout-button"

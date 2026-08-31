@@ -308,20 +308,17 @@ export function PortfolioPreview({
                 </a>
               </div>
               <p className="project-description">{project.description}</p>
-              <div className="project-story-grid">
-                <div>
-                  <span>Challenge</span>
-                  <p>{project.challenges[0]}</p>
+              {/* 근거가 없으면 빈 배열이 온다. result variant와 같은 규칙을 쓴다. */}
+              {storyColumns(project).length > 0 && (
+                <div className="project-story-grid">
+                  {storyColumns(project).map((column) => (
+                    <div key={column.label}>
+                      <span>{column.label}</span>
+                      <p>{column.items[0]}</p>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <span>Approach</span>
-                  <p>{project.solutions[0]}</p>
-                </div>
-                <div>
-                  <span>Impact</span>
-                  <p>{project.impact[0]}</p>
-                </div>
-              </div>
+              )}
               <div className="tag-row">
                 {project.techStack.map((tech) => (
                   <span className="plain-tag" key={tech}>
@@ -363,9 +360,15 @@ export function PortfolioPreview({
         <footer className="portfolio-footer">
           <div>
             <span>CONTACT</span>
-            <a href={`mailto:${content.contact.email ?? ""}`}>
-              {content.contact.email ?? "GitHub에서 연락하기"}
-            </a>
+            {/* 이메일이 없을 때 빈 mailto:로 두면 라벨은 GitHub를 가리키는데
+                링크는 아무 데도 가지 않는다. 라벨과 대상을 맞춘다. */}
+            {content.contact.email ? (
+              <a href={`mailto:${content.contact.email}`}>{content.contact.email}</a>
+            ) : (
+              <a href={content.contact.githubUrl} target="_blank" rel="noreferrer">
+                GitHub에서 연락하기
+              </a>
+            )}
           </div>
           <a href={content.contact.githubUrl} target="_blank" rel="noreferrer">
             GitHub profile ↗

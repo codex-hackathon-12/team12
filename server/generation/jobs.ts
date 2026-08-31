@@ -1,5 +1,6 @@
 import { start } from "workflow/api";
 import { getRepository } from "@/server/github/repositories";
+import { expireStaleJobs } from "@/server/generation/stale-jobs";
 import { logOperationFailure } from "@/server/observability/api-logging";
 import { getSupabaseClient } from "@/server/supabase/client";
 import { generatePortfolioWorkflow } from "@/workflows/generate-portfolio";
@@ -112,6 +113,10 @@ export async function createJob(userId: string, input: Input) {
   if (input.repositoryIds.length === 0) {
     return null;
   }
+
+  /* 앞선 작업이 멈춘 채 남아 있으면 활성 작업 유니크 인덱스에 걸려 새 작업을
+     만들 수 없다. 다시 시도하는 이 순간이 막힌 사용자를 풀어주기 좋은 지점이다. */
+  await expireStaleJobs(userId);
   // 하나라도 사용자 소유가 아니면 작업을 만들지 않는다.
   const repositories = await Promise.all(
     input.repositoryIds.map((repositoryId) => getRepository(userId, repositoryId)),
@@ -148,6 +153,9 @@ export async function createJob(userId: string, input: Input) {
       position,
     })));
   if (linkError) {
+    /* 작업 행만 남으면 활성 작업 유니크 인덱스 때문에 이 사용자는 다시 생성할 수
+       없게 된다. 방금 넣은 행을 되돌린 뒤에 실패시킨다. */
+    await getSupabaseClient().from("generation_jobs").delete().eq("id", data.id);
     throw new Error("Unable to link generation job repositories.");
   }
 

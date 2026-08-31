@@ -13,8 +13,10 @@ const baseRepository = {
   forkCount: 2,
   languages: [{ name: "TypeScript", percentage: 91.2 }],
   readme: "# Portfolio API\n비동기 포트폴리오 생성 서비스",
-  commitTitles: ["feat: 생성 작업 상태 조회 API 추가"],
-  pullRequestTitles: ["Workflow 재시도 처리"],
+  ownCommitTitles: ["feat: 생성 작업 상태 조회 API 추가"],
+  teamCommitTitles: ["chore: 팀원이 올린 배포 설정"],
+  ownPullRequestTitles: ["Workflow 재시도 처리"],
+  teamPullRequestTitles: ["팀원의 로그 정리"],
 };
 
 // 모델에 노출되는 저장소 항목. 내부 id는 빠진다.
@@ -74,8 +76,10 @@ test("keeps conservative fallback rules when repository activity is empty", () =
       ...baseRepository,
       languages: [],
       readme: "",
-      commitTitles: [],
-      pullRequestTitles: [],
+      ownCommitTitles: [],
+      teamCommitTitles: [],
+      ownPullRequestTitles: [],
+      teamPullRequestTitles: [],
     }],
   });
   const input = JSON.parse(prompt.input);
@@ -88,8 +92,23 @@ test("keeps conservative fallback rules when repository activity is empty", () =
       ...exposedRepository,
       languages: [],
       readme: "",
-      commitTitles: [],
-      pullRequestTitles: [],
+      ownCommitTitles: [],
+      teamCommitTitles: [],
+      ownPullRequestTitles: [],
+      teamPullRequestTitles: [],
     }],
   });
+});
+
+test("본인 기여와 팀 기여를 구분해 전달하고, 팀 작업 귀속을 금지한다", () => {
+  const prompt = buildPortfolioPrompt(baseEvidence);
+  const payload = JSON.parse(prompt.input);
+  const [repository] = payload.repositoryEvidence.repositories;
+
+  assert.deepEqual(repository.ownCommitTitles, ["feat: 생성 작업 상태 조회 API 추가"]);
+  assert.deepEqual(repository.teamCommitTitles, ["chore: 팀원이 올린 배포 설정"]);
+  assert.deepEqual(repository.ownPullRequestTitles, ["Workflow 재시도 처리"]);
+  assert.deepEqual(repository.teamPullRequestTitles, ["팀원의 로그 정리"]);
+  // 구분해 넘기기만 하고 지침이 없으면 모델이 팀 작업을 성과로 쓸 수 있다.
+  assert.match(prompt.instructions, /지원자가 했다고 서술하지 마세요/u);
 });

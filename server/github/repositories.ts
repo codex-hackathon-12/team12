@@ -1,4 +1,5 @@
 import { decryptSecret } from "@/server/auth/crypto";
+import { TIMEOUTS, fetchWithTimeout } from "@/server/net/fetch";
 import { getSupabaseClient } from "@/server/supabase/client";
 
 type GitHubRepository = {
@@ -119,13 +120,17 @@ async function requestGitHubRepositories(accessToken: string): Promise<GitHubRep
     url.searchParams.set("per_page", "100");
     url.searchParams.set("page", String(page));
 
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${accessToken}`,
-        "User-Agent": "job-portfolio-ai",
+    const response = await fetchWithTimeout(
+      url,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${accessToken}`,
+          "User-Agent": "job-portfolio-ai",
+        },
       },
-    });
+      TIMEOUTS.githubSync,
+    );
 
     if (!response.ok) {
       if (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0") {
