@@ -2,18 +2,33 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import type { AnnouncementDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { formatLongDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function AnnouncementPage() {
   const params = useParams<{ announcementId: string }>();
-  const [announcement, setAnnouncement] = useState<AnnouncementDto | null>(null);
+  const announcementId = String(params.announcementId);
+  const { data: announcement, error: loadError, reload } = useAsyncData(
+    () => apiClient.getAnnouncement(announcementId),
+    [announcementId],
+    "소식을 불러오지 못했어요.",
+  );
 
-  useEffect(() => {
-    apiClient.getAnnouncement(String(params.announcementId)).then(setAnnouncement);
-  }, [params.announcementId]);
+  if (loadError) {
+    return (
+      <main className="announcement-page">
+        <article>
+          <p className="inline-error" role="alert">
+            {loadError}
+            <button type="button" onClick={reload}>다시 불러오기</button>
+          </p>
+          <Link className="text-link" href="/dashboard">← 대시보드로 돌아가기</Link>
+        </article>
+      </main>
+    );
+  }
 
   if (!announcement) return <LoadingState label="새로운 소식을 불러오고 있어요" />;
 
@@ -23,7 +38,7 @@ export default function AnnouncementPage() {
         <Link className="text-link" href="/dashboard">← 대시보드로 돌아가기</Link>
         <div className="announcement-meta">
           <span>{announcement.type === "event" ? "EVENT" : "NOTICE"}</span>
-          <time>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "long" }).format(new Date(announcement.publishedAt))}</time>
+          <time>{formatLongDay(announcement.publishedAt)}</time>
         </div>
         <h1>{announcement.title}</h1>
         <p className="announcement-summary">{announcement.summary}</p>

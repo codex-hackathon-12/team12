@@ -27,6 +27,26 @@ import { successfulGenerationScenario } from "@/mocks/api/scenarios/generation";
 const wait = (duration = 280) =>
   new Promise<void>((resolve) => setTimeout(resolve, duration));
 
+/**
+ * 목은 여태 한 번도 실패하지 않았다. 로컬 개발이 목으로 도는 탓에 화면의 실패
+ * 경로는 실제로 실행된 적이 없었고, 그래서 catch가 빠진 화면들이 무한 스피너나
+ * 영구 비활성 버튼으로 남아 있었다. 실패를 주입할 수 있어야 그 경로를 본다.
+ *
+ * NEXT_PUBLIC_MOCK_FAILURE=all 또는 쉼표로 이어 붙인 메서드 이름을 쓴다.
+ * 예: NEXT_PUBLIC_MOCK_FAILURE=getPortfolio,syncRepositories
+ */
+const failingOperations = (process.env.NEXT_PUBLIC_MOCK_FAILURE ?? "")
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
+
+async function maybeFail(operation: string): Promise<void> {
+  if (failingOperations.includes("all") || failingOperations.includes(operation)) {
+    await wait(120);
+    throw new Error(`Mock failure for ${operation}.`);
+  }
+}
+
 const createCreditQuote = (repositoryCount = 1) => ({
   currentBalance: 100,
   repositoryCount,
@@ -47,25 +67,30 @@ export class MockApiClient implements ApiClient {
   }
 
   async getSession() {
+    await maybeFail("getSession");
     await wait();
     return mockSession;
   }
 
   async getConnection() {
+    await maybeFail("getConnection");
     await wait();
     return mockConnection;
   }
 
   async logout() {
+    await maybeFail("logout");
     await wait(120);
   }
 
   async getDashboard() {
+    await maybeFail("getDashboard");
     await wait();
     return mockDashboard;
   }
 
   async getRepositories(query: RepositoryListQuery = {}) {
+    await maybeFail("getRepositories");
     await wait();
     const keyword = query.q?.trim().toLowerCase();
     const repositories = mockRepositories.filter((repository) => {
@@ -83,6 +108,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async syncRepositories() {
+    await maybeFail("syncRepositories");
     await wait(520);
     return {
       repositories: mockRepositories,
@@ -91,6 +117,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async getRepository(repositoryId: string) {
+    await maybeFail("getRepository");
     await wait(180);
     return (
       mockRepositories.find((repository) => repository.id === repositoryId) ??
@@ -99,6 +126,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async createGeneration(request: CreateGenerationRequest) {
+    await maybeFail("createGeneration");
     await wait(420);
     const jobId = `job_${request.repositoryIds.join("_")}`;
     this.generationPollCount.set(jobId, 0);
@@ -107,6 +135,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async getGeneration(jobId: string) {
+    await maybeFail("getGeneration");
     await wait(180);
     const current = this.generationPollCount.get(jobId) ?? 0;
     const next = Math.min(current + 1, successfulGenerationScenario.length - 1);
@@ -115,6 +144,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async retryGeneration(jobId: string) {
+    await maybeFail("retryGeneration");
     await wait(240);
     const nextJobId = `${jobId}_retry`;
     this.generationPollCount.set(nextJobId, 0);
@@ -129,6 +159,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async getPortfolios() {
+    await maybeFail("getPortfolios");
     await wait();
     return {
       portfolios: mockPortfolioSummaries.filter(
@@ -140,6 +171,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async getPortfolio(portfolioId: string) {
+    await maybeFail("getPortfolio");
     await wait();
     return {
       ...mockPortfolio,
@@ -148,6 +180,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async updatePortfolioShare(portfolioId: string, published: boolean) {
+    await maybeFail("updatePortfolioShare");
     await wait(220);
     if (published) {
       this.publishedPortfolioIds.add(portfolioId);
@@ -163,6 +196,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async getPublicPortfolio(slug: string) {
+    await maybeFail("getPublicPortfolio");
     await wait();
     return {
       slug,
@@ -179,17 +213,20 @@ export class MockApiClient implements ApiClient {
   }
 
   async deletePortfolio(portfolioId: string) {
+    await maybeFail("deletePortfolio");
     await wait(260);
     this.deletedPortfolioIds.add(portfolioId);
     return { deletedId: portfolioId };
   }
 
   async getCredits() {
+    await maybeFail("getCredits");
     await wait(160);
     return mockCredits;
   }
 
   async getBillingProducts() {
+    await maybeFail("getBillingProducts");
     await wait();
     return {
       products: mockBillingProducts,
@@ -199,6 +236,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async createCheckout(request: CreateMockCheckoutRequest) {
+    await maybeFail("createCheckout");
     await wait(440);
     const product =
       mockBillingProducts.find((item) => item.id === request.productId) ??
@@ -217,11 +255,13 @@ export class MockApiClient implements ApiClient {
   }
 
   async getPayments() {
+    await maybeFail("getPayments");
     await wait(180);
     return { payments: mockPayments };
   }
 
   async getGallery(query: GalleryListQuery = {}) {
+    await maybeFail("getGallery");
     await wait();
     const examples = mockGallerySummaries.filter((example) => {
       const matchesRole = !query.role || example.targetRole === query.role;
@@ -234,6 +274,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async getGalleryExample(exampleId: string) {
+    await maybeFail("getGalleryExample");
     await wait();
     return (
       mockGalleryExamples.find((example) => example.id === exampleId) ??
@@ -242,11 +283,13 @@ export class MockApiClient implements ApiClient {
   }
 
   async getAnnouncements() {
+    await maybeFail("getAnnouncements");
     await wait(180);
     return { announcements: mockAnnouncements };
   }
 
   async getAnnouncement(announcementId: string) {
+    await maybeFail("getAnnouncement");
     await wait(180);
     return (
       mockAnnouncementDetails.find(
@@ -256,6 +299,7 @@ export class MockApiClient implements ApiClient {
   }
 
   async getTasteSample() {
+    await maybeFail("getTasteSample");
     await wait(180);
     return mockTasteSample;
   }

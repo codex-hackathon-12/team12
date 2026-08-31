@@ -297,6 +297,16 @@ a {
 
 /* .credit-indicator span이 점(●)을 라임색 큰 글자로 만든다.
    배지는 그 규칙을 덮어야 하므로 더 구체적인 선택자를 쓴다. */
+.mock-chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--lime-soft);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .credit-indicator .mock-chip {
   padding: 2px 6px;
   border-radius: 999px;
@@ -366,6 +376,26 @@ a {
 
 .avatar-button.active {
   box-shadow: 0 0 0 3px var(--lime);
+}
+
+/* 실패 안내는 화면마다 같은 모양을 쓴다. */
+.inline-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--coral);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.inline-error button {
+  margin-left: 8px;
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 800;
+  text-decoration: underline;
 }
 
 /* 설정 */

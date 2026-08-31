@@ -62,7 +62,17 @@ export class GitHubApiError extends Error {
     message: string,
   ) {
     super(message);
+    // step 경계를 넘으면 클래스는 사라지고 name만 남는다. 분류가 name에 의존한다.
+    this.name = kind === "rate_limited" ? "GitHubRateLimitedError" : "GitHubConnectionError";
   }
+}
+
+/** GitHub 응답을 분류 가능한 에러로 바꾼다. 레이트리밋 판정을 한 곳에 둔다. */
+export function toGitHubApiError(response: Response, message: string): GitHubApiError {
+  if (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0") {
+    return new GitHubApiError("rate_limited", "GitHub API rate limit was reached.");
+  }
+  return new GitHubApiError("connection", message);
 }
 
 export class RepositoryLookupError extends Error {
@@ -133,10 +143,7 @@ async function requestGitHubRepositories(accessToken: string): Promise<GitHubRep
     );
 
     if (!response.ok) {
-      if (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0") {
-        throw new GitHubApiError("rate_limited", "GitHub API rate limit was reached.");
-      }
-      throw new GitHubApiError("connection", "GitHub repositories could not be loaded.");
+      throw toGitHubApiError(response, "GitHub repositories could not be loaded.");
     }
 
     const pageItems = (await response.json()) as GitHubRepository[];

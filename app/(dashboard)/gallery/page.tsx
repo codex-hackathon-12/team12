@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import type { GalleryExampleSummaryDto } from "@/contracts/api-contract";
+import { useState } from "react";
 import { apiClient } from "@/lib/api-client";
+import { useAsyncData } from "@/hooks/useAsyncData";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 const roles = [
@@ -16,13 +16,13 @@ const roles = [
 
 export default function GalleryPage() {
   const [role, setRole] = useState("전체");
-  const [examples, setExamples] = useState<GalleryExampleSummaryDto[] | null>(null);
 
-  useEffect(() => {
-    apiClient
-      .getGallery({ role: role === "전체" ? undefined : role })
-      .then((response) => setExamples(response.examples));
-  }, [role]);
+  const { data: gallery, error: loadError, reload } = useAsyncData(
+    () => apiClient.getGallery({ role: role === "전체" ? undefined : role }),
+    [role],
+    "포트폴리오 예시를 불러오지 못했어요.",
+  );
+  const examples = gallery?.examples ?? null;
 
   return (
     <div className="page-container gallery-page">
@@ -47,7 +47,12 @@ export default function GalleryPage() {
         ))}
       </div>
 
-      {!examples ? (
+      {loadError ? (
+        <p className="inline-error" role="alert">
+          {loadError}
+          <button type="button" onClick={reload}>다시 불러오기</button>
+        </p>
+      ) : !examples ? (
         <LoadingState label="포트폴리오 예시를 모으고 있어요" />
       ) : examples.length === 0 ? (
         <div className="empty-state">

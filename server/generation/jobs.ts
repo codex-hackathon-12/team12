@@ -1,4 +1,5 @@
 import { start } from "workflow/api";
+import { getMockCreditSummary } from "@/server/billing/mock-catalog";
 import { getRepository } from "@/server/github/repositories";
 import { expireStaleJobs } from "@/server/generation/stale-jobs";
 import { logOperationFailure } from "@/server/observability/api-logging";
@@ -32,12 +33,16 @@ export type RetryJobResult =
 
 export class ActiveGenerationError extends Error {}
 
+/* 크레딧은 아직 목이다. 값을 여기서 또 적어두면 목 설정과 화면이 조용히
+   어긋난다. 단일 출처에서 파생시킨다. */
 function buildQuote(repositoryCount: number) {
+  const credits = getMockCreditSummary();
   return {
-    currentBalance: 100,
+    currentBalance: credits.balance,
     repositoryCount,
-    estimatedCost: repositoryCount * 30,
-    balanceAfterGeneration: 100,
+    estimatedCost: repositoryCount * credits.costPerRepository,
+    // chargingEnabled가 false인 동안에는 잔액이 줄지 않는다.
+    balanceAfterGeneration: credits.balance,
     willCharge: false as const,
     isMock: true as const,
   };

@@ -8,6 +8,7 @@ import {
   type RepositoryVisibility,
 } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
+import { formatDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 const visibilityOptions: Array<RepositoryVisibility | "all"> = [
@@ -16,12 +17,6 @@ const visibilityOptions: Array<RepositoryVisibility | "all"> = [
   "private",
 ];
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(value));
 
 export default function RepositoriesPage() {
   const router = useRouter();
@@ -30,22 +25,41 @@ export default function RepositoriesPage() {
   const [visibility, setVisibility] = useState<RepositoryVisibility | "all">("all");
   const [syncing, setSyncing] = useState(false);
   const [selectedRepositoryIds, setSelectedRepositoryIds] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
+  /* 목록을 이 화면이 직접 들고 있는 이유는 동기화가 목록을 통째로 갈아끼우기
+     때문이다. 대신 실패 처리 규칙은 다른 화면과 같게 맞춘다. */
   useEffect(() => {
     let active = true;
-    apiClient.getRepositories({ q: query, visibility }).then((response) => {
-      if (active) setRepositories(response.repositories);
-    });
+    apiClient
+      .getRepositories({ q: query, visibility })
+      .then((response) => {
+        if (!active) return;
+        setRepositories(response.repositories);
+        setLoadError(null);
+      })
+      .catch(() => {
+        if (active) setLoadError("저장소 목록을 불러오지 못했어요.");
+      });
     return () => {
       active = false;
     };
-  }, [query, visibility]);
+  }, [query, visibility, reloadToken]);
 
+  // 실패해도 진행 표시를 반드시 되돌린다. 아니면 버튼이 영영 잠긴다.
   const sync = async () => {
     setSyncing(true);
-    const response = await apiClient.syncRepositories();
-    setRepositories(response.repositories);
-    setSyncing(false);
+    setSyncError(null);
+    try {
+      const response = await apiClient.syncRepositories();
+      setRepositories(response.repositories);
+    } catch {
+      setSyncError("GitHub에서 저장소를 가져오지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const toggleRepository = (repositoryId: string) => {
@@ -106,7 +120,16 @@ export default function RepositoriesPage() {
         </button>
       </section>
 
-      {!repositories ? (
+      {syncError ? <p className="inline-error" role="alert">{syncError}</p> : null}
+
+      {loadError ? (
+        <p className="inline-error" role="alert">
+          {loadError}
+          <button type="button" onClick={() => setReloadToken((value) => value + 1)}>
+            다시 불러오기
+          </button>
+        </p>
+      ) : !repositories ? (
         <LoadingState label="GitHub 저장소를 불러오고 있어요" />
       ) : repositories.length === 0 ? (
         <div className="empty-state">
@@ -143,7 +166,7 @@ export default function RepositoriesPage() {
                     <span><i className="language-dot" />{repository.primaryLanguage}</span>
                     <span>★ {repository.starCount}</span>
                     <span>⑂ {repository.forkCount}</span>
-                    <span>{formatDate(repository.pushedAt)} 업데이트</span>
+                    <span>{formatDay(repository.pushedAt)} 업데이트</span>
                   </div>
                 </div>
                 <div className="repository-select">

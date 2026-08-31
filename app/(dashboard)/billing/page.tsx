@@ -7,17 +7,12 @@ import type {
   MockPaymentDto,
 } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
+import { formatLongDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW" }).format(price);
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(new Date(value));
 
 export default function BillingPage() {
   const router = useRouter();
@@ -25,22 +20,57 @@ export default function BillingPage() {
   const [payments, setPayments] = useState<MockPaymentDto[]>([]);
   const [selected, setSelected] = useState("credit_300");
   const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    Promise.all([
-      apiClient.getBillingProducts(),
-      apiClient.getPayments(),
-    ]).then(([productData, paymentData]) => {
-      setProducts(productData.products);
-      setPayments(paymentData.payments);
-    });
-  }, []);
+    let active = true;
+    Promise.all([apiClient.getBillingProducts(), apiClient.getPayments()])
+      .then(([productData, paymentData]) => {
+        if (!active) return;
+        setProducts(productData.products);
+        setPayments(paymentData.payments);
+        setLoadError(null);
+      })
+      .catch(() => {
+        if (active) setLoadError("크레딧 정보를 불러오지 못했어요.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [reloadToken]);
 
   const checkout = async () => {
     setSubmitting(true);
-    const result = await apiClient.createCheckout({ productId: selected });
-    router.push(`${result.redirectPath}?checkoutId=${result.checkoutId}`);
+    setCheckoutError(null);
+    try {
+      const result = await apiClient.createCheckout({ productId: selected });
+      router.push(`${result.redirectPath}?checkoutId=${result.checkoutId}`);
+    } catch {
+      // 실패했는데 버튼이 잠긴 채로 남으면 사용자는 결제가 걸린 줄 안다.
+      setCheckoutError("결제 체험을 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
+      setSubmitting(false);
+    }
   };
+
+  if (loadError) {
+    return (
+      <section className="page-container page-state">
+        <p className="eyebrow">LOAD FAILED</p>
+        <h1>{loadError}</h1>
+        <div className="page-state-actions">
+          <button
+            className="button primary"
+            type="button"
+            onClick={() => setReloadToken((value) => value + 1)}
+          >
+            다시 불러오기
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   if (!products) return <LoadingState label="크레딧 정보를 준비하고 있어요" />;
 
@@ -76,6 +106,7 @@ export default function BillingPage() {
           {submitting ? "Mock 결제 처리 중…" : "선택한 상품으로 결제 체험하기"}
           {!submitting && <span aria-hidden="true">→</span>}
         </button>
+        {checkoutError ? <p className="inline-error" role="alert">{checkoutError}</p> : null}
       </section>
 
       <section className="payment-history">
@@ -91,7 +122,7 @@ export default function BillingPage() {
             <span className="success-check">✓</span>
             <div>
               <strong>{payment.productName}</strong>
-              <span>{formatDate(payment.createdAt)} · 체험 완료</span>
+              <span>{formatLongDay(payment.createdAt)} · 체험 완료</span>
             </div>
             <strong>{formatPrice(payment.priceKrw)}</strong>
             <span className="mock-badge">잔액 변동 없음</span>

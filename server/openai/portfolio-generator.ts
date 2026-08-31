@@ -110,8 +110,16 @@ export async function generatePortfolioDraft(evidence: PortfolioEvidence): Promi
     },
     TIMEOUTS.openai,
   );
-  if (!response.ok) throw new Error(`OpenAI response failed with status ${response.status}.`);
+  if (!response.ok) {
+    const failure = new Error(`OpenAI response failed with status ${response.status}.`);
+    failure.name = "OpenAIResponseError";
+    throw failure;
+  }
   const draft = JSON.parse(extractOutputText(await response.json()));
-  if (!isDraft(draft)) throw new Error("OpenAI output did not match the portfolio schema.");
+  if (!isDraft(draft)) {
+    const failure = new Error("OpenAI output did not match the portfolio schema.");
+    failure.name = "OpenAISchemaError";
+    throw failure;
+  }
   return draft;
 }

@@ -1,6 +1,6 @@
 import { decryptSecret } from "@/server/auth/crypto";
 import { TIMEOUTS, fetchWithTimeout } from "@/server/net/fetch";
-import { getRepository } from "@/server/github/repositories";
+import { getRepository, toGitHubApiError } from "@/server/github/repositories";
 import type {
   PortfolioEvidence,
   PortfolioEvidenceRepository,
@@ -48,7 +48,10 @@ async function requestGitHub(accessToken: string, path: string, accept = "applic
     { headers: { Authorization: `Bearer ${accessToken}`, Accept: accept, "User-Agent": "job-portfolio-ai" } },
     TIMEOUTS.github,
   );
-  if (!response.ok && response.status !== 404) throw new Error("GitHub evidence lookup failed.");
+  // 404는 README가 없는 저장소 등 정상 상황이라 그대로 흘려보낸다.
+  if (!response.ok && response.status !== 404) {
+    throw toGitHubApiError(response, "GitHub evidence lookup failed.");
+  }
   return response;
 }
 
