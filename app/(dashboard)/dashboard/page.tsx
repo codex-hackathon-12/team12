@@ -5,13 +5,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DashboardDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
+import { formatDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(value));
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -95,7 +91,7 @@ export default function DashboardPage() {
                   <span className={`notice-type ${announcement.type}`}>
                     {announcement.type === "event" ? "EVENT" : "NOTICE"}
                   </span>
-                  <time>{formatDate(announcement.publishedAt)}</time>
+                  <time>{formatDay(announcement.publishedAt)}</time>
                 </div>
                 <strong>{announcement.title}</strong>
                 <p>{announcement.summary}</p>

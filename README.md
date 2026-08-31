@@ -132,7 +132,7 @@ npm run dev
 npm run dev       # Webpack 기반 로컬 개발 서버
 npm run lint      # ESLint 정적 검사
 npm run build     # 타입 검사와 프로덕션 빌드
-npm test          # 빌드 후 기본 렌더링 검사
+npm test          # 빌드 후 tests/ 전체 실행
 npm start         # 프로덕션 서버 실행
 ```
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { GitRepositoryDto, PortfolioTone } from "@/contracts/api-contract";
-import { apiClient } from "@/lib/api-client";
+import { ApiClientError, apiClient } from "@/lib/api-client";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function PromptPage() {
@@ -32,29 +32,65 @@ export default function PromptPage() {
     "프론트엔드 직무에 맞춰 문제를 정의하고 해결한 과정, 사용자 경험을 개선한 선택을 강조해줘.",
   );
   const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all(repositoryIds.map((id) => apiClient.getRepository(id))).then(
-      setRepositories,
-    );
+    let active = true;
+    Promise.all(repositoryIds.map((id) => apiClient.getRepository(id)))
+      .then((result) => {
+        if (!active) return;
+        setRepositories(result);
+        setLoadError(null);
+      })
+      .catch(() => {
+        if (active) setLoadError("선택한 저장소를 불러오지 못했어요.");
+      });
+    return () => {
+      active = false;
+    };
   }, [repositoryIds]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!prompt.trim()) return;
     setSubmitting(true);
-    const job = await apiClient.createGeneration({
-      repositoryIds,
-      prompt: prompt.trim(),
-      targetRole,
-      tone,
-      highlights: highlights
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
-    });
-    router.push(`/create/${job.jobId}/processing`);
+    setSubmitError(null);
+    try {
+      const job = await apiClient.createGeneration({
+        repositoryIds,
+        prompt: prompt.trim(),
+        targetRole,
+        tone,
+        highlights: highlights
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      });
+      router.push(`/create/${job.jobId}/processing`);
+    } catch (error) {
+      /* 이미 진행 중인 작업이 있을 때가 흔하다. 원인을 알려주지 않으면
+         사용자는 버튼이 고장 난 줄 안다. */
+      setSubmitError(
+        error instanceof ApiClientError && error.code === "GENERATION_IN_PROGRESS"
+          ? "이미 진행 중인 생성이 있어요. 그 작업이 끝난 뒤에 다시 시도해주세요."
+          : "생성을 시작하지 못했어요. 잠시 후 다시 시도해주세요.",
+      );
+      setSubmitting(false);
+    }
   };
+
+  if (loadError) {
+    return (
+      <section className="page-container page-state">
+        <p className="eyebrow">LOAD FAILED</p>
+        <h1>{loadError}</h1>
+        <div className="page-state-actions">
+          <Link className="button primary" href="/repositories">저장소 다시 고르기</Link>
+        </div>
+      </section>
+    );
+  }
 
   if (!repositories) return <LoadingState label="선택한 저장소를 확인하고 있어요" />;
 
@@ -158,7 +194,8 @@ export default function PromptPage() {
                 <p>MVP에서는 실제로 차감되지 않아요.</p>
               </div>
             </div>
-            <span>100 → 100</span>
+            {/* 잔액이 줄지 않는데 화살표로 이어 보이면 차감된다는 뜻이 된다. */}
+            <span className="mock-chip">차감 없음 · 체험</span>
           </div>
 
           <button
@@ -169,6 +206,7 @@ export default function PromptPage() {
             {submitting ? "생성 준비 중…" : "이 내용으로 포트폴리오 만들기"}
             {!submitting && <span aria-hidden="true">→</span>}
           </button>
+          {submitError ? <p className="inline-error" role="alert">{submitError}</p> : null}
         </form>
       </div>
     </div>

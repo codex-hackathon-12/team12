@@ -1,6 +1,7 @@
 import type { GitHubConnectionDto, GitHubScopeDto } from "@/contracts/api-contract";
 import { encryptSecret } from "@/server/auth/crypto";
 import { getGitHubEnvironment } from "@/server/config/env";
+import { TIMEOUTS, fetchWithTimeout } from "@/server/net/fetch";
 import { getSupabaseClient } from "@/server/supabase/client";
 
 /** 로그인에서 요청하는 스코프. 화면에 설명을 보여줘야 하므로 여기 한 곳에서만 정의한다. */
@@ -74,16 +75,20 @@ export function getGitHubAuthorizationUrl(state: string): string {
 
 async function exchangeCode(code: string): Promise<GitHubTokenResponse> {
   const config = getConfig();
-  const response = await fetch("https://github.com/login/oauth/access_token", {
-    method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: config.GITHUB_CLIENT_ID,
-      client_secret: config.GITHUB_CLIENT_SECRET,
-      code,
-      redirect_uri: config.GITHUB_OAUTH_REDIRECT_URI,
-    }),
-  });
+  const response = await fetchWithTimeout(
+    "https://github.com/login/oauth/access_token",
+    {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: config.GITHUB_CLIENT_ID,
+        client_secret: config.GITHUB_CLIENT_SECRET,
+        code,
+        redirect_uri: config.GITHUB_OAUTH_REDIRECT_URI,
+      }),
+    },
+    TIMEOUTS.oauth,
+  );
 
   if (!response.ok) {
     throw new Error("GitHub token exchange failed.");
@@ -93,13 +98,17 @@ async function exchangeCode(code: string): Promise<GitHubTokenResponse> {
 }
 
 async function getGitHubUser(accessToken: string): Promise<GitHubUserResponse> {
-  const response = await fetch("https://api.github.com/user", {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${accessToken}`,
-      "User-Agent": "job-portfolio-ai",
+  const response = await fetchWithTimeout(
+    "https://api.github.com/user",
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${accessToken}`,
+        "User-Agent": "job-portfolio-ai",
+      },
     },
-  });
+    TIMEOUTS.oauth,
+  );
 
   if (!response.ok) {
     throw new Error("GitHub user lookup failed.");

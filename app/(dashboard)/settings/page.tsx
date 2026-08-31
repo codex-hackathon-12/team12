@@ -4,14 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { GitHubConnectionDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
+import { formatLongDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(new Date(value));
 
 export default function SettingsPage() {
   const [connection, setConnection] = useState<GitHubConnectionDto | null>(null);
@@ -70,7 +65,7 @@ export default function SettingsPage() {
           />
           <div className="connection-identity">
             <strong>{connection.username}</strong>
-            <span>{formatDate(connection.connectedAt)}부터 연동됨</span>
+            <span>{formatLongDay(connection.connectedAt)}부터 연동됨</span>
           </div>
           <Link className="text-link" href={connection.profileUrl} target="_blank" rel="noreferrer">
             GitHub 프로필 열기 <span aria-hidden="true">→</span>

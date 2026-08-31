@@ -14,6 +14,7 @@ type JobRecord = {
   highlights: unknown;
   status: string;
   portfolio_id: string | null;
+  repository_analysis_id: string | null;
 };
 
 async function updateJob(jobId: string, values: Record<string, unknown>): Promise<void> {
@@ -37,7 +38,7 @@ async function readJobRepositoryIds(job: JobRecord): Promise<string[]> {
 export async function runGenerationJob(jobId: string): Promise<void> {
   const { data, error } = await getSupabaseClient()
     .from("generation_jobs")
-    .select("id, user_id, repository_id, prompt, target_role, tone, highlights, status, portfolio_id")
+    .select("id, user_id, repository_id, prompt, target_role, tone, highlights, status, portfolio_id, repository_analysis_id")
     .eq("id", jobId)
     .maybeSingle();
   if (error || !data) throw new Error("Generation job is unavailable.");
@@ -70,22 +71,11 @@ export async function runGenerationJob(jobId: string): Promise<void> {
     highlights: Array.isArray(job.highlights) ? job.highlights.filter((value): value is string => typeof value === "string") : [],
   });
 
-  // 분석 기록은 저장소마다 남기고, 단일 FK인 job에는 대표 저장소 것만 연결한다.
-  const { data: analyses, error: analysisError } = await getSupabaseClient().from("repository_analyses").insert(
-    evidence.repositories.map((repository) => ({
-      user_id: job.user_id,
-      repository_id: repository.id,
-      source_pushed_at: new Date().toISOString(),
-      language_breakdown: repository.languages,
-      commit_count: repository.commitTitles.length,
-      pull_request_count: repository.pullRequestTitles.length,
-      summary: repository.description || repository.name,
-    })),
-  ).select("id, repository_id");
-  if (analysisError || !analyses?.length) throw new Error("Unable to persist repository analysis.");
-  const primaryAnalysis = analyses.find((analysis) => analysis.repository_id === evidence.repositories[0].id) ?? analyses[0];
+  /* 재시도로 이 step이 다시 돌 수 있다. 앞선 시도가 이미 분석을 남겼다면 그대로
+     쓴다. 다시 넣으면 같은 내용이 중복으로 쌓여 로그를 흐린다. */
+  const analysisId = job.repository_analysis_id ?? (await insertRepositoryAnalyses(job, evidence));
 
-  await updateJob(jobId, { repository_analysis_id: primaryAnalysis.id, stage: "generating_content", progress: 55, message: "포트폴리오 콘텐츠를 작성하고 있습니다." });
+  await updateJob(jobId, { repository_analysis_id: analysisId, stage: "generating_content", progress: 55, message: "포트폴리오 콘텐츠를 작성하고 있습니다." });
   const draft = await generatePortfolioDraft(evidence);
   const { data: user, error: userError } = await getSupabaseClient().from("users")
     .select("display_name, email, avatar_url, profile_url").eq("id", job.user_id).maybeSingle();
@@ -149,12 +139,36 @@ export async function runGenerationJob(jobId: string): Promise<void> {
   await updateJob(jobId, { status: "completed", stage: "completed", progress: 100, message: "포트폴리오가 완성되었습니다.", portfolio_id: portfolio.id, completed_at: new Date().toISOString() });
 }
 
-export async function markGenerationJobFailed(jobId: string): Promise<void> {
+// 분석 기록은 저장소마다 남기고, 단일 FK인 job에는 대표 저장소 것만 연결한다.
+async function insertRepositoryAnalyses(
+  job: JobRecord,
+  evidence: Awaited<ReturnType<typeof collectPortfolioEvidence>>,
+): Promise<string> {
+  const { data: analyses, error } = await getSupabaseClient().from("repository_analyses").insert(
+    evidence.repositories.map((repository) => ({
+      user_id: job.user_id,
+      repository_id: repository.id,
+      source_pushed_at: new Date().toISOString(),
+      language_breakdown: repository.languages,
+      commit_count: repository.ownCommitTitles.length,
+      pull_request_count: repository.ownPullRequestTitles.length,
+      summary: repository.description || repository.name,
+    })),
+  ).select("id, repository_id");
+  if (error || !analyses?.length) throw new Error("Unable to persist repository analysis.");
+  const primary = analyses.find((analysis) => analysis.repository_id === evidence.repositories[0].id) ?? analyses[0];
+  return primary.id;
+}
+
+export async function markGenerationJobFailed(
+  jobId: string,
+  failure?: { code: string; message: string },
+): Promise<void> {
   await updateJob(jobId, {
     status: "failed",
     stage: "failed",
     message: "포트폴리오 생성에 실패했습니다.",
-    error_code: "GENERATION_FAILED",
-    error_message: "잠시 후 다시 시도해주세요.",
+    error_code: failure?.code ?? "GENERATION_FAILED",
+    error_message: failure?.message ?? "잠시 후 다시 시도해주세요.",
   });
 }

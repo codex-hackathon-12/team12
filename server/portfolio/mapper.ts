@@ -5,6 +5,7 @@ import type {
   PortfolioSummaryDto,
   PublicPortfolioDto,
 } from "@/contracts/api-contract";
+import { CONTENT_LIMITS, TEXT_LIMITS, clampText, clampTextArray } from "@/server/portfolio/content-limits";
 
 export type PortfolioRepositoryRecord = {
   id: string;
@@ -61,19 +62,6 @@ function readNullableString(value: unknown): string | null {
 function readNumber(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
-
-// 결과 화면이 감당할 수 있는 분량 상한. 생성 스키마와 같은 값을 쓰며,
-// 모델이 상한을 어기거나 규격 이전에 저장된 결과를 열어도 화면이 무너지지 않게 한다.
-const CONTENT_LIMITS = {
-  skillGroups: 5,
-  skillsPerGroup: 8,
-  techStack: 10,
-  highlights: 4,
-  challenges: 3,
-  solutions: 3,
-  impact: 3,
-  notablePatterns: 4,
-} as const;
 
 function readStringArray(value: unknown, limit?: number): string[] {
   const items = Array.isArray(value)
@@ -144,14 +132,14 @@ function mapProjects(
     return [{
       id: readString(item.id, `project-${index + 1}`),
       title: readString(item.title),
-      description: readString(item.description),
+      description: clampText(readString(item.description), TEXT_LIMITS.description),
       repositoryUrl: readString(item.repositoryUrl, repository.htmlUrl),
       role: readString(item.role, targetRole),
       techStack: readStringArray(item.techStack, CONTENT_LIMITS.techStack),
-      highlights: readStringArray(item.highlights, CONTENT_LIMITS.highlights),
-      challenges: readStringArray(item.challenges, CONTENT_LIMITS.challenges),
-      solutions: readStringArray(item.solutions, CONTENT_LIMITS.solutions),
-      impact: readStringArray(item.impact, CONTENT_LIMITS.impact),
+      highlights: clampTextArray(readStringArray(item.highlights, CONTENT_LIMITS.highlights), TEXT_LIMITS.highlight),
+      challenges: clampTextArray(readStringArray(item.challenges, CONTENT_LIMITS.challenges), TEXT_LIMITS.story),
+      solutions: clampTextArray(readStringArray(item.solutions, CONTENT_LIMITS.solutions), TEXT_LIMITS.story),
+      impact: clampTextArray(readStringArray(item.impact, CONTENT_LIMITS.impact), TEXT_LIMITS.story),
     }];
   });
 }
@@ -205,11 +193,11 @@ export function mapPortfolioContent(
   return {
     profile: {
       displayName: readString(profile.displayName),
-      headline: readString(profile.headline),
+      headline: clampText(readString(profile.headline), TEXT_LIMITS.headline),
       targetRole: readString(profile.targetRole, targetRole),
       avatarUrl: readNullableString(profile.avatarUrl),
     },
-    introduction: readString(source.introduction),
+    introduction: clampText(readString(source.introduction), TEXT_LIMITS.introduction),
     skills: mapSkills(source.skills),
     projects: mapProjects(source.projects, repository, targetRole),
     gitAnalysis: {

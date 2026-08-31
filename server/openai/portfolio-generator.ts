@@ -1,4 +1,5 @@
 import { getOpenAIEnvironment } from "@/server/config/env";
+import { TIMEOUTS, fetchWithTimeout } from "@/server/net/fetch";
 import { buildPortfolioPrompt, type PortfolioEvidence } from "@/server/openai/portfolio-prompt";
 
 export type { PortfolioEvidence } from "@/server/openai/portfolio-prompt";
@@ -95,18 +96,30 @@ function isDraft(value: unknown): value is GeneratedPortfolioDraft {
 export async function generatePortfolioDraft(evidence: PortfolioEvidence): Promise<GeneratedPortfolioDraft> {
   const configuration = getConfiguration();
   const prompt = buildPortfolioPrompt(evidence);
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${configuration.apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: configuration.model,
-      instructions: prompt.instructions,
-      input: prompt.input,
-      text: { format: { type: "json_schema", name: "portfolio_draft", strict: true, schema } },
-    }),
-  });
-  if (!response.ok) throw new Error(`OpenAI response failed with status ${response.status}.`);
+  const response = await fetchWithTimeout(
+    "https://api.openai.com/v1/responses",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${configuration.apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: configuration.model,
+        instructions: prompt.instructions,
+        input: prompt.input,
+        text: { format: { type: "json_schema", name: "portfolio_draft", strict: true, schema } },
+      }),
+    },
+    TIMEOUTS.openai,
+  );
+  if (!response.ok) {
+    const failure = new Error(`OpenAI response failed with status ${response.status}.`);
+    failure.name = "OpenAIResponseError";
+    throw failure;
+  }
   const draft = JSON.parse(extractOutputText(await response.json()));
-  if (!isDraft(draft)) throw new Error("OpenAI output did not match the portfolio schema.");
+  if (!isDraft(draft)) {
+    const failure = new Error("OpenAI output did not match the portfolio schema.");
+    failure.name = "OpenAISchemaError";
+    throw failure;
+  }
   return draft;
 }

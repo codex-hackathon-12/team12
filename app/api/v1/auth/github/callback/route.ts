@@ -1,6 +1,6 @@
 import { connectGitHubAccount } from "@/server/auth/github";
 import { createSession, sessionCookie } from "@/server/auth/session";
-import { failure, parseCookie, serializeCookie } from "@/server/http";
+import { failure, isSafeReturnPath, parseCookie, serializeCookie } from "@/server/http";
 import { getRequestId, logOperationFailure, withApiLogging } from "@/server/observability/api-logging";
 
 const OAUTH_STATE_COOKIE_NAME = "github_oauth_state";
@@ -19,7 +19,10 @@ async function handleGET(request: Request): Promise<Response> {
   try {
     const userId = await connectGitHubAccount(code);
     const session = await createSession(userId);
-    const returnTo = parseCookie(request, RETURN_TO_COOKIE_NAME) || "/dashboard";
+    /* 쿠키는 우리가 심었지만 그대로 믿고 리다이렉트하면 안 된다. 검증은
+       심을 때와 쓸 때 양쪽에서 한다. */
+    const savedReturnTo = parseCookie(request, RETURN_TO_COOKIE_NAME);
+    const returnTo = isSafeReturnPath(savedReturnTo) ? savedReturnTo : "/dashboard";
     const headers = new Headers({ Location: returnTo });
     headers.append("Set-Cookie", sessionCookie(session.token, session.maxAge));
     headers.append("Set-Cookie", serializeCookie(OAUTH_STATE_COOKIE_NAME, "", { maxAge: 0 }));

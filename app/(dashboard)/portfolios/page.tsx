@@ -4,14 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { PortfolioSummaryDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
+import { formatDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(value));
 
 export default function PortfolioListPage() {
   const [portfolios, setPortfolios] = useState<PortfolioSummaryDto[] | null>(null);
@@ -94,7 +89,7 @@ export default function PortfolioListPage() {
                     <span>{portfolio.targetRole}</span>
                     <span>
                       {portfolio.share.published && <em className="share-badge">공개 중</em>}
-                      {formatDate(portfolio.createdAt)}
+                      {formatDay(portfolio.createdAt)}
                     </span>
                   </p>
                   <h2>{portfolio.title}</h2>

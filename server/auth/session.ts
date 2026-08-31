@@ -1,3 +1,4 @@
+import { getMockCreditSummary } from "@/server/billing/mock-catalog";
 import { getSupabaseClient } from "@/server/supabase/client";
 import { hashToken, randomToken } from "@/server/auth/crypto";
 import { parseCookie, serializeCookie } from "@/server/http";
@@ -30,7 +31,7 @@ export function toAuthSessionDto(user: AuthenticatedUser | null): AuthSessionDto
           avatarUrl: user.avatarUrl,
           profileUrl: user.profileUrl,
           email: user.email,
-          creditBalance: 100,
+          creditBalance: getMockCreditSummary().balance,
           createdAt: user.createdAt,
         }
       : null,

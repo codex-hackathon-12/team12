@@ -23,6 +23,7 @@ type OperationFailureContext = {
   operation: string;
   error: unknown;
   requestId?: string;
+  userId?: string;
   jobId?: string;
   portfolioId?: string;
 };
@@ -30,6 +31,9 @@ type OperationFailureContext = {
 export const REQUEST_ID_HEADER = "x-request-id";
 
 const requestIds = new WeakMap<Request, string>();
+/* 로그에 사용자가 없으면 "이 사람에게 무슨 일이 있었나"를 되짚을 수 없다.
+   requestId와 같은 방식으로 요청에 매달아 둔다. */
+const userIds = new WeakMap<Request, string>();
 
 function elapsedMilliseconds(startedAt: number): number {
   return Math.round(performance.now() - startedAt);
@@ -69,12 +73,22 @@ export function getRequestId(request: Request): string | undefined {
   return requestIds.get(request);
 }
 
+/** 인증을 통과한 시점에 한 번 부르면 이후 로그가 사용자를 함께 남긴다. */
+export function setLogUser(request: Request, userId: string): void {
+  userIds.set(request, userId);
+}
+
+export function getLogUser(request: Request): string | undefined {
+  return userIds.get(request);
+}
+
 export function logOperationFailure(context: OperationFailureContext): void {
   writeLog("error", {
     event: "backend.operation.failed",
     domain: context.domain,
     operation: context.operation,
     requestId: context.requestId,
+    userId: context.userId,
     jobId: context.jobId,
     portfolioId: context.portfolioId,
     ...safeErrorMetadata(context.error),
@@ -105,6 +119,7 @@ export function withApiLogging<Arguments extends [Request, ...unknown[]]>(
           status: response.status,
           errorCode: response.headers.get("x-api-error-code"),
           requestId,
+          userId: userIds.get(request),
           durationMs: elapsedMilliseconds(startedAt),
         });
       }
@@ -122,12 +137,14 @@ export function withApiLogging<Arguments extends [Request, ...unknown[]]>(
         status: response.status,
         errorCode: "INTERNAL_ERROR",
         requestId,
+        userId: userIds.get(request),
         durationMs: elapsedMilliseconds(startedAt),
         ...safeErrorMetadata(error),
       });
       return response;
     } finally {
       requestIds.delete(request);
+      userIds.delete(request);
     }
   };
 }

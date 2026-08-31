@@ -76,8 +76,10 @@ const evidenceRepository = (name) => ({
   forkCount: 0,
   languages: [{ name: "TypeScript", percentage: 100 }],
   readme: `# ${name}`,
-  commitTitles: [],
-  pullRequestTitles: [],
+  ownCommitTitles: [],
+  teamCommitTitles: [],
+  ownPullRequestTitles: [],
+  teamPullRequestTitles: [],
 });
 
 test("프롬프트 입력에 저장소 전체가 순서대로 담긴다", () => {
