@@ -1,5 +1,6 @@
 import type { GitHubConnectionDto, GitHubScopeDto } from "@/contracts/api-contract";
 import { encryptSecret } from "@/server/auth/crypto";
+import { isTokenExpiring } from "@/server/auth/github-token";
 import { getGitHubEnvironment } from "@/server/config/env";
 import { TIMEOUTS, fetchWithTimeout } from "@/server/net/fetch";
 import { getSupabaseClient } from "@/server/supabase/client";
@@ -185,7 +186,7 @@ export async function getGitHubConnection(user: {
 }): Promise<GitHubConnectionDto | null> {
   const { data, error } = await getSupabaseClient()
     .from("github_connections")
-    .select("scopes, connected_at")
+    .select("scopes, connected_at, token_expires_at, refresh_token_ciphertext")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -209,7 +210,11 @@ export async function getGitHubConnection(user: {
     extraScopes: [...granted].filter(
       (scope) => !REQUESTED_SCOPES.some((requested) => requested.name === scope),
     ),
-    needsReauthorization: scopes.some((scope) => !scope.granted),
+    /* 만료된 토큰이라도 refresh token이 있으면 다음 호출에서 스스로 갱신된다.
+       갱신할 수단이 없을 때만 사용자에게 재연동을 요구한다. */
+    needsReauthorization:
+      scopes.some((scope) => !scope.granted) ||
+      (isTokenExpiring(data.token_expires_at) && !data.refresh_token_ciphertext),
     manageUrl: getGitHubConnectionSettingsUrl(),
   };
 }

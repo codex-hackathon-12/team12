@@ -1,4 +1,4 @@
-import { decryptSecret } from "@/server/auth/crypto";
+import { getUsableAccessToken } from "@/server/auth/github-token";
 import { TIMEOUTS, fetchWithTimeout } from "@/server/net/fetch";
 import { getSupabaseClient } from "@/server/supabase/client";
 
@@ -107,17 +107,12 @@ function mapRepository(record: RepositoryRecord): RepositoryDto {
 }
 
 async function getAccessToken(userId: string): Promise<string> {
-  const { data, error } = await getSupabaseClient()
-    .from("github_connections")
-    .select("access_token_ciphertext, access_token_iv")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error || !data) {
+  // 만료가 임박하면 여기서 갱신한다. 실패하면 재연동이 필요한 상태다.
+  try {
+    return await getUsableAccessToken(userId);
+  } catch {
     throw new GitHubApiError("connection", "GitHub account is not connected.");
   }
-
-  return decryptSecret(data.access_token_ciphertext, data.access_token_iv);
 }
 
 async function requestGitHubRepositories(accessToken: string): Promise<GitHubRepository[]> {

@@ -16,8 +16,15 @@ export type PortfolioEvidenceRepository = {
   ownCommitTitles: string[];
   /** 같은 저장소의 다른 사람 커밋 제목. 프로젝트 맥락을 읽는 용도다. */
   teamCommitTitles: string[];
-  ownPullRequestTitles: string[];
+  /** 본인 PR. 제목만으로는 무엇을 왜 했는지 알 수 없어 본문과 머지 여부를 함께 본다. */
+  ownPullRequests: Array<{ title: string; merged: boolean; body: string }>;
   teamPullRequestTitles: string[];
+  /** 저장소 최상위 구성. 구조와 사용 도구를 읽는 근거다. */
+  topLevelPaths: string[];
+  /** GitHub Actions 워크플로가 있는지. 자동화 경험의 근거가 된다. */
+  hasContinuousIntegration: boolean;
+  /** 기여자 수. 혼자 한 일인지 팀 작업인지 구분해 역할 서술을 정확하게 만든다. */
+  contributorCount: number;
 };
 
 export type PortfolioEvidence = {
@@ -56,7 +63,11 @@ const instructions = [
   "프로젝트 role은 확인된 책임이 없으면 '프로젝트 개발'처럼 중립적인 표현을 사용하세요.",
   "highlights, challenges, solutions, impact는 각각 직접 근거가 있을 때만 채우고, 충분한 근거가 없으면 빈 배열을 반환하세요.",
   "impact는 수치가 없어도 됩니다. README나 커밋·PR 제목에서 확인되는 변화, 예를 들어 기능이 동작하게 된 상태, 구조가 바뀐 결과, 사용자가 할 수 있게 된 일을 사실 그대로 씁니다. 다만 제공되지 않은 수치나 비율은 절대 만들지 마세요.",
-  "ownCommitTitles와 ownPullRequestTitles는 지원자 본인이 작성한 것이고, teamCommitTitles와 teamPullRequestTitles는 같은 저장소의 다른 사람이 작성한 것입니다. 지원자의 기여, 역할, 성과는 own 항목과 README에서만 끌어오세요.",
+  "ownCommitTitles와 ownPullRequests는 지원자 본인이 작성한 것이고, teamCommitTitles와 teamPullRequestTitles는 같은 저장소의 다른 사람이 작성한 것입니다. 지원자의 기여, 역할, 성과는 own 항목과 README에서만 끌어오세요.",
+  "ownPullRequests의 body는 무엇을 왜 바꿨는지 설명하는 가장 좋은 근거입니다. challenges와 solutions는 여기와 README에서 우선 찾고, merged가 true인 작업은 실제로 반영된 변경으로 볼 수 있습니다.",
+  "topLevelPaths는 저장소 최상위 구성입니다. 구조나 사용 도구를 말할 때 근거로 쓰되, 파일 이름만 보고 기능이나 성과를 지어내지 마세요.",
+  "hasContinuousIntegration이 true이면 자동화된 검증 흐름이 있다는 뜻입니다. 다만 그 설정을 지원자가 했다는 근거는 아니므로, own 항목에 관련 작업이 없으면 지원자의 기여로 쓰지 마세요.",
+  "contributorCount가 1이면 혼자 만든 프로젝트, 2 이상이면 협업 프로젝트입니다. role과 서술의 주어를 정할 때 참고하세요.",
   "team 항목은 프로젝트가 무엇이고 어떤 환경에서 개발됐는지 이해하는 맥락으로만 쓰고, 그 작업을 지원자가 했다고 서술하지 마세요. 팀 작업을 근거로 지원자의 책임이나 성과를 추론해서도 안 됩니다.",
   "notablePatterns에는 커밋과 PR 제목에서 반복적으로 드러나는 작업 방식을 씁니다. 예를 들어 리팩터링을 별도 커밋으로 분리했다거나, 기능 단위로 PR을 나눴다거나, 버그 수정에 재현 절차를 남긴 흐름입니다. 저장소 전체를 아우르는 내용이며 특정 프로젝트 설명과 중복되지 않게 씁니다. 근거가 없으면 빈 배열을 반환하세요.",
   "결과 화면은 채용 담당자가 빠르게 훑는 단일 컬럼이므로 분량 상한을 지키세요. headline은 80자, introduction은 220자, 프로젝트 description은 160자 이내입니다.",
@@ -89,9 +100,12 @@ export function buildPortfolioPrompt(evidence: PortfolioEvidence): PortfolioProm
           languages: repository.languages,
           readme: repository.readme,
           ownCommitTitles: repository.ownCommitTitles,
-          ownPullRequestTitles: repository.ownPullRequestTitles,
+          ownPullRequests: repository.ownPullRequests,
           teamCommitTitles: repository.teamCommitTitles,
           teamPullRequestTitles: repository.teamPullRequestTitles,
+          topLevelPaths: repository.topLevelPaths,
+          hasContinuousIntegration: repository.hasContinuousIntegration,
+          contributorCount: repository.contributorCount,
         })),
       },
     }),

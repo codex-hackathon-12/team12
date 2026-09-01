@@ -557,7 +557,7 @@ MVP 백엔드는 Vercel Functions와 Supabase Postgres를 기준으로 구현한
 | --- | --- |
 | Vercel Functions | REST Route Handler, 세션 검증, 입력 검증과 응답 변환 |
 | Supabase Postgres | 사용자, Git 연결, 저장소 메타데이터, 생성 작업과 결과 저장 |
-| Vercel Workflows | 분석, 콘텐츠 생성과 포트폴리오 저장 단계 실행 및 재시도 |
+| Vercel Workflows | 근거 수집, 콘텐츠 생성, 포트폴리오 저장을 각각 별도 step으로 실행하고 재시도. 각 step은 이미 끝난 일을 건너뛰므로 실패한 지점만 다시 돈다 |
 | Supabase Storage | 향후 사용자 업로드 문서의 비공개 저장 |
 
 생성 흐름은 다음 순서를 따른다.
@@ -708,6 +708,7 @@ mocks/api/
 | `Repository` | `id`, `userId`, `providerRepoId`, `name`, `url`, `language`, `isPrivate`, `updatedAt` | 동기화된 저장소 |
 | `RepositoryAnalysis` | `id`, `repositoryId`, `languageBreakdown`, `commitCount`, `pullRequestCount`, `summary` | 원본 코드 없이 보관한 분석 요약 |
 | `GenerationJob` | `id`, `userId`, `repositoryId`, `workflowInstanceId`, `prompt`, `status`, `stage`, `errorCode`, `portfolioId`, `createdAt` | 비동기 생성 작업 |
+| `GenerationEvidence` | `generationJobId`, `evidence`, `draft`, `createdAt` | 생성 단계 사이의 중간 산출물. 재시도가 GitHub 수집과 모델 호출을 되풀이하지 않게 한다 |
 | `Portfolio` | `id`, `userId`, `repositoryId`, `title`, `content`, `style`, `createdAt` | 생성 결과 |
 | `AccountDeletionJob` | `id`, `userId`, `workflowInstanceId`, `status`, `errorCode` | 계정과 Storage 파일의 비동기 삭제 작업 |
 | `GalleryExample` | `id`, `title`, `role`, `techStack`, `thumbnailUrl`, `portfolioContent`, `isPublished` | 공개 예시 |

@@ -78,7 +78,10 @@ const evidenceRepository = (name) => ({
   readme: `# ${name}`,
   ownCommitTitles: [],
   teamCommitTitles: [],
-  ownPullRequestTitles: [],
+  ownPullRequests: [],
+  topLevelPaths: [],
+  hasContinuousIntegration: false,
+  contributorCount: 1,
   teamPullRequestTitles: [],
 });
 
