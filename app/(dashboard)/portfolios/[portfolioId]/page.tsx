@@ -7,6 +7,7 @@ import type { PortfolioShareDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { PortfolioPreview } from "@/components/portfolio/PortfolioPreview";
+import { PrintButton } from "@/components/portfolio/PrintButton";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function PortfolioResultPage() {
@@ -99,11 +100,7 @@ export default function PortfolioResultPage() {
         </div>
         <div className="result-actions">
           <Link className="button secondary" href="/repositories">다시 만들기</Link>
-          {/* PDF는 브라우저 인쇄의 "PDF로 저장"으로 만든다. 문서가 A4 세로 규격이라
-              인쇄 대화상자에서 바로 규격에 맞는 파일이 나온다. */}
-          <button className="button primary" type="button" onClick={() => window.print()}>
-            인쇄 · PDF로 저장
-          </button>
+          <PrintButton />
           {share?.published ? (
             /* 공개 해제는 이미 보낸 링크를 전부 죽인다. 링크 복사 바로 옆에서
                한 번의 실수로 일어나면 받은 사람은 404만 보고 이유를 알 수 없다.

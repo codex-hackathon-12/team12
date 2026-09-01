@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PortfolioPreview } from "@/components/portfolio/PortfolioPreview";
+import { PrintButton } from "@/components/portfolio/PrintButton";
 import { getRequestOrigin, resolvePublicBaseUrl } from "@/server/http";
 import { getPublicPortfolio } from "@/server/portfolio/portfolios";
 
@@ -55,6 +56,15 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
 
   return (
     <main className="public-portfolio-page">
+      {/* 받은 사람이 바로 종이나 PDF로 챙겨갈 수 있게 한다. 인쇄에는 나오지 않는다. */}
+      <div className="public-portfolio-toolbar">
+        <div>
+          <p className="eyebrow">SHARED PORTFOLIO</p>
+          <strong>{portfolio.content.profile.displayName}</strong>
+        </div>
+        <PrintButton className="button secondary" />
+      </div>
+
       <div className="portfolio-canvas-wrap">
         <PortfolioPreview content={portfolio.content} variant="result" paginated />
       </div>
