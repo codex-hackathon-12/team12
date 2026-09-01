@@ -24,3 +24,15 @@ export function formatDay(value: string): string {
 export function formatLongDay(value: string): string {
   return longDayFormatter.format(new Date(value));
 }
+
+/**
+ * 조밀한 목록의 좁은 칸에 들어가는 날짜. 예: 26.08.30
+ *
+ * 한 줄 목록에서는 날짜 칸이 66px밖에 안 된다. 연도를 버리면 오래된 저장소와
+ * 최근 저장소가 같아 보이므로 두 자리로 남긴다.
+ */
+export function formatListDay(value: string): string {
+  const date = new Date(value);
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${pad(date.getFullYear() % 100)}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}`;
+}
