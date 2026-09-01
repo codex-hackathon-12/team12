@@ -298,7 +298,7 @@ export async function markGenerationJobFailed(
   await updateJob(jobId, {
     status: "failed",
     stage: "failed",
-    message: "포트폴리오 생성에 실패했습니다.",
+    message: "포트폴리오를 만들지 못했어요.",
     error_code: failure?.code ?? "GENERATION_FAILED",
     error_message: failure?.message ?? "잠시 후 다시 시도해주세요.",
   });

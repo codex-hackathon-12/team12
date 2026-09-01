@@ -86,6 +86,10 @@ export class MockApiClient implements ApiClient {
   async getDashboard() {
     await maybeFail("getDashboard");
     await wait();
+    /* 진행 카드는 실제로 생성을 돌려야 보이므로 로컬에서 확인할 방법이 필요하다. */
+    if (process.env.NEXT_PUBLIC_MOCK_ACTIVE_JOB) {
+      return { ...mockDashboard, activeGeneration: this.buildGenerationJob("job_demo", 1) };
+    }
     return mockDashboard;
   }
 

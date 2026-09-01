@@ -125,10 +125,6 @@ export default function ProcessingPage() {
       ) : (
         <>
           <GenerationProgress job={job} />
-          <div className="processing-footnote">
-            <p>페이지를 닫아도 작업은 계속돼요. 같은 주소로 돌아오면 진행 상태를 이어서 확인할 수 있습니다.</p>
-            <Link className="text-link" href="/dashboard">대시보드로 이동</Link>
-          </div>
         </>
       )}
     </div>

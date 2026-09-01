@@ -1,4 +1,5 @@
 import { start } from "workflow/api";
+import type { ApiErrorCode, GenerationStage, GenerationStatus } from "@/contracts/api-contract";
 import { getMockCreditSummary } from "@/server/billing/mock-catalog";
 import { getRepository } from "@/server/github/repositories";
 import { expireStaleJobs } from "@/server/generation/stale-jobs";
@@ -71,14 +72,18 @@ function toDto(record: Record<string, unknown>) {
     jobId: record.id as string,
     repositoryId: record.repository_id as string,
     repositoryIds,
-    status: record.status as string,
-    stage: toStage(record.stage as string),
+    status: record.status as GenerationStatus,
+    stage: toStage(record.stage as string) as GenerationStage,
     progress: record.progress as number,
     message: record.message as string,
     portfolioId: record.portfolio_id as string | null,
     creditQuote: buildQuote(repositoryIds.length),
     error: record.error_code
-      ? { code: record.error_code, message: record.error_message || "생성에 실패했습니다.", retryable: record.status === "failed" }
+      ? {
+          code: record.error_code as ApiErrorCode,
+          message: (record.error_message as string) || "생성에 실패했어요.",
+          retryable: record.status === "failed",
+        }
       : null,
     createdAt: record.created_at as string,
     updatedAt: record.updated_at as string,
@@ -176,7 +181,7 @@ export async function createJob(userId: string, input: Input) {
     });
     await getSupabaseClient()
       .from("generation_jobs")
-      .update({ status: "failed", stage: "failed", error_code: "GENERATION_FAILED", error_message: "생성 작업을 시작하지 못했습니다." })
+      .update({ status: "failed", stage: "failed", error_code: "GENERATION_FAILED", error_message: "생성을 시작하지 못했어요." })
       .eq("id", data.id);
   }
   return getJob(userId, data.id);
@@ -217,6 +222,31 @@ export async function retryJob(userId: string, jobId: string): Promise<RetryJobR
   }
 
   return { kind: "created", previousJobId: source.id, job };
+}
+
+/**
+ * 대시보드에 보여줄, 지금 신경 써야 할 작업 하나.
+ *
+ * 활성 작업은 부분 유니크 인덱스가 사용자당 하나로 보장한다. 실패한 작업도
+ * 함께 본다 — 화면을 떠난 사이에 실패하면 지금은 흔적도 없이 사라진다.
+ * 조회 전에 멈춘 작업을 정리해, 영원히 처리 중인 것처럼 보이지 않게 한다.
+ */
+export async function getActiveJob(userId: string) {
+  await expireStaleJobs(userId);
+
+  const { data, error } = await getSupabaseClient()
+    .from("generation_jobs")
+    .select("id, repository_id, status, stage, progress, message, portfolio_id, error_code, error_message, created_at, updated_at, generation_job_repositories(repository_id, position)")
+    .eq("user_id", userId)
+    .in("status", ["queued", "processing", "failed"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Unable to load the active generation job.");
+  }
+  return data ? toDto(data as Record<string, unknown>) : null;
 }
 
 export { getJob };
