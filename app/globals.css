@@ -2861,6 +2861,20 @@ a {
 /* 공개 페이지. 대시보드 레이아웃 밖이라 여백을 직접 준다. */
 .public-portfolio-page { padding-bottom: var(--space-16); }
 
+/* 공유 링크로 들어온 사람이 바로 인쇄하거나 PDF로 저장할 수 있게 한다. */
+.public-portfolio-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  width: min(1240px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: var(--space-6) 0 var(--space-4);
+}
+
+.public-portfolio-toolbar strong { display: block; margin-top: var(--space-1); font-size: var(--text-lg); }
+
 .public-portfolio-footer {
   display: flex;
   flex-wrap: wrap;
@@ -2915,7 +2929,10 @@ a {
   .mobile-nav,
   .result-toolbar,
   .result-portfolio-nav,
-  .result-footer-actions { display: none !important; }
+  .result-footer-actions,
+  /* 공유 페이지의 안내와 인쇄 버튼은 종이에 남을 이유가 없다. */
+  .public-portfolio-toolbar,
+  .public-portfolio-footer { display: none !important; }
 
   body { padding: 0; background: white; }
   .portfolio-canvas-wrap { padding: 0; background: white; }
