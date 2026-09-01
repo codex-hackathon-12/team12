@@ -79,11 +79,20 @@
   --surface: #fffefa;
   --ink: #17231d;
   --ink-soft: #4f5e55;
+  /* 흐리게 보이되 읽히는 글자. 5.39/4.89/5.04 */
+  --ink-muted: #5f6d64;
   --line: #d4d7cb;
   --line-dark: #afb8ae;
+  /* 입력·선택처럼 경계 자체가 정보인 곳. 3.79/3.43/3.08.
+     line-dark를 통째로 어둡게 하면 장식용 구분선 서른 곳이 무거워진다. */
+  --line-control: #7b857d;
   --lime: #c8f55d;
   --lime-soft: #e7ffc0;
-  --coral: #ff715b;
+  /* 코랄은 글자로도 쓰이고 흰 글자의 배경으로도 쓰인다. 둘 다 어두운 쪽을
+     요구하므로 한 값으로 해결된다. 글자 5.09/4.62, 흰 글자 위 5.14. */
+  --coral: #c9391c;
+  /* 장식 전용. 정보를 담지 않는 점·막대에만 쓴다. */
+  --coral-bright: #ff715b;
   --blue: #6170ff;
   --pink: #f7b8d0;
   --amber: #f1be57;
@@ -123,6 +132,9 @@
 html {
   scroll-behavior: smooth;
   background: var(--paper);
+  /* 고정 헤더와 하단 바 아래로 포커스가 숨지 않게 한다(WCAG 2.4.11). */
+  scroll-padding-top: calc(var(--header-height) + var(--space-2));
+  scroll-padding-bottom: calc(var(--mobile-nav-height) + 96px);
 }
 
 body {
@@ -951,7 +963,7 @@ a {
 }
 
 .signal-bars span:nth-child(2) { background: var(--blue); }
-.signal-bars span:nth-child(3) { background: var(--coral); }
+.signal-bars span:nth-child(3) { background: var(--coral-bright); }
 
 .floating-note {
   position: absolute;
@@ -1326,7 +1338,7 @@ a {
   align-items: center;
   height: 44px;
   padding: 0 15px;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--line-control);
   background: var(--surface);
 }
 
@@ -1335,7 +1347,7 @@ a {
    포커스는 바깥 상자가 받는다(.filter-select와 같은 방식). */
 .search-field:focus-within { border-color: var(--ink); }
 .search-field input { width: 100%; border: 0; outline: 0; background: transparent; font-size: 15px; }
-.search-field input::placeholder { color: #8b958e; }
+.search-field input::placeholder { color: var(--ink-muted); }
 
 /* 검색 상자와 같은 높이·테두리를 써서 툴바가 한 줄로 붙어 보이게 한다.
    네이티브 select라 모바일 피커와 키보드 타이핑 탐색을 그대로 얻는다. */
@@ -1344,7 +1356,7 @@ a {
   display: inline-flex;
   align-items: center;
   height: 44px;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--line-control);
   background: var(--surface);
 }
 
@@ -1376,7 +1388,7 @@ a {
   display: flex;
   gap: 3px;
   padding: 3px;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--line-control);
   background: var(--surface);
 }
 
@@ -1596,7 +1608,7 @@ a {
   gap: 13px;
   align-items: center;
   padding-top: 30px;
-  color: #8f9991;
+  color: var(--ink-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   font-weight: 650;
@@ -1693,7 +1705,7 @@ a {
   display: grid;
   gap: 26px;
   padding: 36px;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--line-control);
   background: var(--surface);
 }
 
@@ -1706,7 +1718,7 @@ a {
 .prompt-form select,
 .prompt-form textarea {
   width: 100%;
-  border: 1px solid var(--line-dark);
+  border: 1px solid var(--line-control);
   border-radius: 0;
   outline: 0;
   background: var(--paper);
@@ -1781,8 +1793,12 @@ a {
   border-radius: 48% 52% 55% 45%;
 }
 
-.ring-one { inset: 8px; animation: orbit 8s linear infinite; }
-.ring-two { inset: 35px; border-style: dashed; animation: orbit 11s linear reverse infinite; }
+/* 예전에는 두 링이 생성이 끝날 때까지 몇 분이고 돌았다. 자동으로 시작해 5초를
+   넘게 움직이는 내용에는 멈출 방법이 있어야 한다(WCAG 2.2.2, 레벨 A).
+   반복을 없애 화면에 들어올 때 한 바퀴만 돌고 멈추게 한다. 진행 상황은 단계
+   목록과 막대가 전달하므로 링이 계속 돌 이유가 없다. */
+.ring-one { inset: 8px; animation: orbit 8s ease-in-out; }
+.ring-two { inset: 35px; border-style: dashed; animation: orbit 11s ease-in-out reverse; }
 
 @keyframes orbit { to { transform: rotate(360deg); } }
 
@@ -1826,7 +1842,7 @@ a {
   gap: 12px;
   padding-top: 13px;
   border-top: 2px solid var(--line-dark);
-  color: #909991;
+  color: var(--ink-muted);
   font-size: 13px;
   font-weight: 650;
 }
@@ -1834,17 +1850,19 @@ a {
 .generation-steps li.current,
 .generation-steps li.complete { border-color: var(--ink); color: var(--ink); }
 .step-indicator { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.generation-steps li.complete .step-indicator { color: #557e5f; }
+.generation-steps li.complete .step-indicator { color: #3f6b52; }
 
 .progress-bar {
   grid-column: 1 / -1;
   height: 8px;
   margin-top: 15px;
   border: 1px solid var(--ink);
-  background: var(--surface);
+  background: var(--lime-soft);
 }
 
-.progress-bar span { display: block; height: 100%; background: var(--lime); transition: width 500ms ease; }
+/* 라임 채움은 흰 트랙 위에서 1.25:1이라 어디까지 찼는지 보이지 않았다.
+   채움과 트랙을 뒤집어 대비를 만든다. */
+.progress-bar span { display: block; height: 100%; background: var(--ink); transition: width 500ms ease; }
 
 .processing-footnote {
   display: flex;
@@ -2404,7 +2422,7 @@ a {
 .mock-notice p { margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.65; }
 .billing-products { padding-top: 72px; }
 .product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.product-card { position: relative; display: flex; flex-direction: column; align-items: stretch; min-height: 350px; padding: 28px; border: 1px solid var(--line-dark); background: var(--surface); cursor: pointer; color: var(--ink); text-align: left; transition: transform 160ms ease, border 160ms ease, box-shadow 160ms ease; }
+.product-card { position: relative; display: flex; flex-direction: column; align-items: stretch; min-height: 350px; padding: 28px; border: 1px solid var(--line-control); background: var(--surface); cursor: pointer; color: var(--ink); text-align: left; transition: transform 160ms ease, border 160ms ease, box-shadow 160ms ease; }
 .product-card:hover { transform: translateY(-4px); }
 .product-card.selected { border-color: var(--ink); box-shadow: 7px 8px 0 var(--ink); }
 .product-card.featured { background: var(--lime-soft); }
@@ -2521,7 +2539,7 @@ a {
   .mobile-nav-link { min-width: 0; display: flex; flex-direction: column; gap: 7px; align-items: center; justify-content: center; color: var(--ink-soft); font-size: 9px; font-weight: 750; }
   .mobile-nav-dot { width: 4px; height: 4px; border-radius: 50%; background: transparent; }
   .mobile-nav-link.active { color: var(--ink); }
-  .mobile-nav-link.active .mobile-nav-dot { background: var(--coral); }
+  .mobile-nav-link.active .mobile-nav-dot { background: var(--coral-bright); }
   .dashboard-page { padding-bottom: 75px; }
   .landing-header { min-height: 72px; }
   .landing-header nav .text-link { display: none; }
@@ -3021,4 +3039,17 @@ a {
   .result-project-title-row { break-after: avoid; }
 
   a { text-decoration: none; }
+}
+
+/* 움직임을 줄이도록 설정한 사용자에게는 전환과 반복을 걷어낸다.
+   의미는 전부 글자로도 전달되므로 잃는 정보가 없다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
