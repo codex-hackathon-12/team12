@@ -17,6 +17,7 @@ export default function PortfolioListPage() {
   // 삭제는 되돌릴 수 없어 카드 자리에서 한 번 더 확인받는다.
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     apiClient
@@ -28,23 +29,37 @@ export default function PortfolioListPage() {
       .catch(() => setError("포트폴리오 목록을 불러오지 못했어요."));
   }, []);
 
+  /* 실패해도 진행 표시를 반드시 되돌린다. 되돌리지 않으면 버튼이 "불러오는 중…"
+     상태로 영영 잠겨 새로고침 말고는 방법이 없다. 상세 화면은 이미 이렇게 한다. */
   const loadMore = async () => {
     if (!nextCursor) return;
     setLoadingMore(true);
-    const response = await apiClient.getPortfolios({ cursor: nextCursor });
-    setPortfolios((current) => [...(current ?? []), ...response.portfolios]);
-    setNextCursor(response.hasNextPage ? response.nextCursor : null);
-    setLoadingMore(false);
+    setActionError(null);
+    try {
+      const response = await apiClient.getPortfolios({ cursor: nextCursor });
+      setPortfolios((current) => [...(current ?? []), ...response.portfolios]);
+      setNextCursor(response.hasNextPage ? response.nextCursor : null);
+    } catch {
+      setActionError("더 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const remove = async (portfolioId: string) => {
     setDeletingId(portfolioId);
-    await apiClient.deletePortfolio(portfolioId);
-    setPortfolios((current) =>
-      (current ?? []).filter((portfolio) => portfolio.id !== portfolioId),
-    );
-    setConfirmingId(null);
-    setDeletingId(null);
+    setActionError(null);
+    try {
+      await apiClient.deletePortfolio(portfolioId);
+      setPortfolios((current) =>
+        (current ?? []).filter((portfolio) => portfolio.id !== portfolioId),
+      );
+      setConfirmingId(null);
+    } catch {
+      setActionError("삭제하지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (error) {
@@ -144,6 +159,10 @@ export default function PortfolioListPage() {
               </article>
             ))}
           </div>
+
+          {actionError ? (
+            <p className="inline-error" role="alert">{actionError}</p>
+          ) : null}
 
           {nextCursor && (
             <div className="portfolio-list-more">
