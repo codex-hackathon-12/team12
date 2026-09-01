@@ -1,14 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { TasteSampleDto } from "@/contracts/api-contract";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { apiClient } from "@/lib/api-client";
 
+/* 로그인 콜백이 실패를 사유와 함께 돌려보낸다. 사유마다 사용자가 할 일이 다르다. */
+const AUTH_FAILURE_MESSAGES: Record<string, string> = {
+  state_expired: "로그인 창을 너무 오래 열어뒀어요. 다시 시작해주세요.",
+  denied: "GitHub에서 권한 요청을 취소했어요. 저장소를 읽어야 포트폴리오를 만들 수 있어요.",
+  failed: "GitHub 로그인을 마치지 못했어요. 잠시 후 다시 시도해주세요.",
+};
+
+/* useSearchParams는 정적 프리렌더를 중단시키므로 Suspense 경계가 필요하다.
+   랜딩 본문 전체를 감싸 두면 나중에 다른 쿼리 파라미터를 읽어도 그대로 쓸 수 있다. */
 export default function Home() {
+  return (
+    <Suspense fallback={<LoadingState label="화면을 불러오고 있어요" />}>
+      <LandingPage />
+    </Suspense>
+  );
+}
+
+function LandingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const authFailure = AUTH_FAILURE_MESSAGES[searchParams.get("auth") ?? ""];
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [tasteSample, setTasteSample] = useState<TasteSampleDto | null>(null);
 
@@ -86,6 +105,12 @@ export default function Home() {
             저장소 속 선택과 성과를 읽고, 지원 직무에 맞는 포트폴리오로
             정리해드려요. 복잡한 편집 없이 프롬프트 하나면 충분합니다.
           </p>
+          {/* 로그인이 실패한 채 돌아온 경우, 왜 그런지와 다음에 뭘 하면 되는지를
+              로그인 버튼 바로 옆에서 알려준다. */}
+          {authFailure ? (
+            <p className="inline-error" role="alert">{authFailure}</p>
+          ) : null}
+
           <div className="hero-actions">
             <Link className="button primary large" href={loginHref}>
               <span className="github-glyph" aria-hidden="true">GH</span>
@@ -151,7 +176,7 @@ export default function Home() {
               <h3>{tasteSample.portfolioPreview.profile.headline}</h3>
               <p>{tasteSample.portfolioPreview.introduction}</p>
               <div className="tag-row">
-                {tasteSample.portfolioPreview.skills[0].skills.slice(0, 4).map((skill) => (
+                {(tasteSample.portfolioPreview.skills[0]?.skills ?? []).slice(0, 4).map((skill) => (
                   <span className="plain-tag" key={skill}>{skill}</span>
                 ))}
               </div>

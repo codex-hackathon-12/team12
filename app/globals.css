@@ -363,11 +363,6 @@ a {
   color: var(--ink);
 }
 
-.logout-button:focus-visible {
-  outline: 3px solid rgb(97 112 255 / 38%);
-  outline-offset: 3px;
-}
-
 .logout-button:disabled {
   cursor: not-allowed;
   opacity: 0.56;
@@ -615,12 +610,14 @@ a {
   transform: translateY(-2px);
 }
 
-.button:focus-visible,
-.text-link:focus-visible,
-.nav-link:focus-visible,
-.gallery-card:focus-visible,
-.repository-checkbox:focus-visible {
-  outline: 3px solid rgb(97 112 255 / 38%);
+/* 포커스 표시는 하나로 둔다.
+   예전에는 선언이 세 곳에 흩어져 있었고, 목록에 다섯 클래스만 적혀 있어
+   select·textarea·아바타·모바일 내비·칩 삭제 버튼에는 표시가 아예 없었다.
+   반투명 파랑은 종이 위에서 1.56:1이라 사실상 보이지 않았다. 불투명으로 바꾸면
+   모든 배경에서 3:1을 넘는다(종이 3.58, 흰 면 3.95, 먹 4.07, 라임 3.16).
+   :where()는 특정도가 0이라 개별 화면의 포커스 스타일을 덮지 않는다. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--blue);
   outline-offset: 3px;
 }
 
@@ -1334,6 +1331,9 @@ a {
 }
 
 .search-field > span:first-child { font-size: 21px; }
+/* outline: 0만 두고 대체 표시가 없어 키보드로 들어와도 아무 변화가 없었다.
+   포커스는 바깥 상자가 받는다(.filter-select와 같은 방식). */
+.search-field:focus-within { border-color: var(--ink); }
 .search-field input { width: 100%; border: 0; outline: 0; background: transparent; font-size: 15px; }
 .search-field input::placeholder { color: #8b958e; }
 
@@ -1521,7 +1521,6 @@ a {
   box-shadow: 7px 8px 0 var(--lime);
 }
 
-.repository-selection-bar:focus-visible { outline: 3px solid rgb(97 112 255 / 38%); outline-offset: 3px; }
 
 .selection-summary { display: flex; gap: var(--space-2); align-items: center; }
 .selection-summary strong { font-size: var(--text-lg); }
