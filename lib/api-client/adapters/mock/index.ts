@@ -104,7 +104,20 @@ export class MockApiClient implements ApiClient {
         repository.visibility === query.visibility;
       return matchesKeyword && matchesVisibility;
     });
-    return { repositories };
+
+    /* 목이 limit을 무시하면 페이지네이션 경로가 로컬에서 한 번도 실행되지
+       않는다. 서버와 같은 커서 규칙(오프셋의 base64)을 흉내 낸다. */
+    const offset = query.cursor ? Number(atob(query.cursor)) : 0;
+    const limit = Math.min(Math.max(query.limit ?? 20, 1), 50);
+    const page = repositories.slice(offset, offset + limit);
+    const nextOffset = offset + page.length;
+    const hasNextPage = nextOffset < repositories.length;
+
+    return {
+      repositories: page,
+      nextCursor: hasNextPage ? btoa(String(nextOffset)) : null,
+      hasNextPage,
+    };
   }
 
   async syncRepositories() {

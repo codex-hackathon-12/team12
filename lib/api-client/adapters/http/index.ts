@@ -174,11 +174,14 @@ export class HttpApiClient implements ApiClient {
   }
 
   async getRepositories(query: RepositoryListQuery = {}) {
-    return (
-      await request<RepositoryListDto>(
-        withQuery(API_ROUTES.repositories, { ...query }),
-      )
-    ).data;
+    const response = await request<RepositoryListDto>(
+      withQuery(API_ROUTES.repositories, { ...query }),
+    );
+    return {
+      ...response.data,
+      nextCursor: response.meta?.nextCursor ?? null,
+      hasNextPage: response.meta?.hasNextPage ?? false,
+    };
   }
 
   async syncRepositories() {

@@ -36,7 +36,10 @@ export interface ApiClient {
   getConnection(): Promise<GitHubConnectionDto>;
   logout(): Promise<void>;
   getDashboard(): Promise<DashboardDto>;
-  getRepositories(query?: RepositoryListQuery): Promise<RepositoryListDto>;
+  /** 목록은 커서 페이지네이션을 쓴다. meta 없이는 기본 20건에서 조용히 잘린다. */
+  getRepositories(
+    query?: RepositoryListQuery,
+  ): Promise<RepositoryListDto & CursorPaginationMeta>;
   syncRepositories(): Promise<RepositorySyncDto>;
   getRepository(repositoryId: string): Promise<GitRepositoryDto>;
   createGeneration(request: CreateGenerationRequest): Promise<GenerationJobDto>;
