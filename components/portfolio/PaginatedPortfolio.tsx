@@ -3,12 +3,15 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 /**
- * A4 세로를 96dpi로 환산한 값이다. 인쇄 CSS의 `@page`와 같은 규격을 쓴다.
- * 여백 10mm를 빼면 본문이 들어갈 수 있는 높이가 나온다.
+ * A4 세로를 96dpi로 환산한 값이다. 인쇄 CSS의 `@page`와 같은 규격을 써야 한다.
+ *
+ * 여백은 `@page { margin: 8mm }`과 같은 값이다. 예전에는 여기만 10mm(38px)로
+ * 남아 있어서, 화면은 인쇄보다 한 장에 30px씩 적게 담는다고 계산했다. 그 차이로
+ * 프로젝트 두 개가 아슬아슬하게 넘쳐 한 장에 하나씩 잘렸다.
  */
 const PAGE_WIDTH = 794;
 const PAGE_HEIGHT = 1123;
-const PAGE_MARGIN = 38;
+const PAGE_MARGIN = 30;
 const CONTENT_HEIGHT = PAGE_HEIGHT - PAGE_MARGIN * 2;
 
 type Block = { key: string; node: ReactNode; kind?: "project" };
@@ -127,7 +130,7 @@ export function PaginatedPortfolio({ blocks }: { blocks: Block[] }) {
           `.result-portfolio-preview`가 문서 토큰과 컨테이너 쿼리 기준을 갖고 있어,
           이 래퍼가 없으면 여백과 반응형이 달라져 높이가 어긋난다. */}
       <div
-        className="portfolio-pages-measure portfolio-page-inner portfolio-preview result-portfolio-preview"
+        className="portfolio-pages-measure portfolio-page-inner portfolio-preview result-portfolio-preview result-paper"
         aria-hidden={pages !== null}
         ref={measureRef}
       >
@@ -146,7 +149,7 @@ export function PaginatedPortfolio({ blocks }: { blocks: Block[] }) {
         >
           {pages.map((page, pageIndex) => (
             <article className="portfolio-page" key={`page-${pageIndex}`}>
-              <div className="portfolio-page-inner portfolio-preview result-portfolio-preview">
+              <div className="portfolio-page-inner portfolio-preview result-portfolio-preview result-paper">
                 {page.indexes.map((index, slot) => (
                   <div
                     key={blocks[index].key}

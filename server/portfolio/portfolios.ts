@@ -149,8 +149,10 @@ export async function updatePortfolioShare(
   }
 
   const content = data.content as { profile?: { displayName?: string } } | null;
+  /* 공개할 때만 슬러그를 만든다. 비공개 전환에서 슬러그를 새로 찍으면
+     "슬러그가 있다"가 공개된 적이 있다는 뜻이 아니게 되어 나중에 추적이 어렵다. */
   const slug = data.public_slug
-    ?? buildPortfolioSlug(content?.profile?.displayName, data.target_role);
+    ?? (published ? buildPortfolioSlug(content?.profile?.displayName, data.target_role) : null);
 
   const { data: updated, error: updateError } = await getSupabaseClient()
     .from("portfolios")

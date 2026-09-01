@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PortfolioPreview } from "@/components/portfolio/PortfolioPreview";
+import { getRequestOrigin, resolvePublicBaseUrl } from "@/server/http";
 import { getPublicPortfolio } from "@/server/portfolio/portfolios";
 
 /**
@@ -23,12 +24,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "포트폴리오를 찾을 수 없습니다" };
   }
 
+  /* 링크를 만들 때와 같은 정식 주소를 써야 canonical과 og:url이 공유된 주소와
+     어긋나지 않는다. */
   const requestHeaders = await headers();
-  const host =
-    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
-  const protocol =
-    requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const baseUrl = new URL(`${protocol}://${host}`);
+  const baseUrl = new URL(resolvePublicBaseUrl(getRequestOrigin(requestHeaders)));
 
   const name = portfolio.content.profile.displayName;
   const title = `${name} · ${portfolio.targetRole}`;

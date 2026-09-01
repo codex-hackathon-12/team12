@@ -98,9 +98,38 @@ export function isSafeReturnPath(value: string | null): value is string {
  * 배포 환경마다 도메인이 달라 환경변수로 고정하면 프리뷰에서 어긋나므로,
  * `app/layout.tsx`가 metadata를 만들 때와 같은 방식을 쓴다.
  */
-export function getBaseUrl(request: Request): string {
-  const headers = request.headers;
+/**
+ * 공유 링크에 쓸 정식 주소를 만든다.
+ *
+ * 요청 호스트를 그대로 쓰면 안 된다. 소유자가 프리뷰 배포에서 "공개 링크
+ * 만들기"를 누르면 그 프리뷰 호스트가 링크에 박히는데, 프리뷰에는 배포 보호가
+ * 걸려 있어 만든 사람만 열리고 링크를 받은 사람은 로그인 벽을 만난다.
+ * localhost에서 만든 링크도 마찬가지로 남에게는 열리지 않는다.
+ *
+ * 그래서 설정된 정식 주소를 먼저 쓰고, 없으면 Vercel이 배포마다 넣어주는
+ * 프로덕션 도메인을 쓴다. 둘 다 없을 때만 요청 호스트로 돌아간다(로컬 개발).
+ */
+export function resolvePublicBaseUrl(fallbackUrl: string): string {
+  const configured = process.env.PUBLIC_BASE_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/+$/u, "");
+  }
+
+  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (productionHost) {
+    return `https://${productionHost.replace(/\/+$/u, "")}`;
+  }
+
+  return fallbackUrl.replace(/\/+$/u, "");
+}
+
+/** 요청이 도착한 호스트. 정식 주소를 알 수 없을 때의 마지막 수단이다. */
+export function getRequestOrigin(headers: Headers): string {
   const host = headers.get("x-forwarded-host") ?? headers.get("host") ?? "localhost:3000";
   const protocol = headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return `${protocol}://${host}`;
+}
+
+export function getBaseUrl(request: Request): string {
+  return resolvePublicBaseUrl(getRequestOrigin(request.headers));
 }

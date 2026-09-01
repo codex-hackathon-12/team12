@@ -25,6 +25,7 @@ export default function PortfolioResultPage() {
   const [shareOverride, setShareOverride] = useState<PortfolioShareDto | null>(null);
   const share = shareOverride ?? portfolio?.share ?? null;
   const [sharing, setSharing] = useState(false);
+  const [confirmingUnpublish, setConfirmingUnpublish] = useState(false);
   const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -67,6 +68,7 @@ export default function PortfolioResultPage() {
     setActionError(null);
     try {
       setShareOverride(await apiClient.updatePortfolioShare(portfolio.id, published));
+      setConfirmingUnpublish(false);
     } catch {
       setActionError("공개 설정을 바꾸지 못했어요. 잠시 후 다시 시도해주세요.");
     } finally {
@@ -103,20 +105,45 @@ export default function PortfolioResultPage() {
             인쇄 · PDF로 저장
           </button>
           {share?.published ? (
-            <span className="share-box" role="status">
-              <span className="share-url" title={share.url ?? ""}>{share.url}</span>
-              <button className="button secondary" type="button" onClick={copyLink}>
-                {copied ? "복사됨" : "링크 복사"}
-              </button>
-              <button
-                className="text-link"
-                type="button"
-                disabled={sharing}
-                onClick={() => togglePublish(false)}
-              >
-                {sharing ? "처리 중…" : "비공개로"}
-              </button>
-            </span>
+            /* 공개 해제는 이미 보낸 링크를 전부 죽인다. 링크 복사 바로 옆에서
+               한 번의 실수로 일어나면 받은 사람은 404만 보고 이유를 알 수 없다.
+               삭제와 같은 2단계 확인을 둔다. */
+            confirmingUnpublish ? (
+              <span className="delete-confirm" role="status">
+                <strong>이미 보낸 링크가 열리지 않게 돼요.</strong>
+                <button
+                  className="button danger"
+                  type="button"
+                  disabled={sharing}
+                  onClick={() => togglePublish(false)}
+                >
+                  {sharing ? "처리 중…" : "비공개로 바꿀게요"}
+                </button>
+                <button
+                  className="text-link"
+                  type="button"
+                  disabled={sharing}
+                  onClick={() => setConfirmingUnpublish(false)}
+                >
+                  취소
+                </button>
+              </span>
+            ) : (
+              <span className="share-box" role="status">
+                <em className="share-badge">공개 중</em>
+                <span className="share-url" title={share.url ?? ""}>{share.url}</span>
+                <button className="button secondary" type="button" onClick={copyLink}>
+                  {copied ? "복사됨" : "링크 복사"}
+                </button>
+                <button
+                  className="text-link"
+                  type="button"
+                  onClick={() => setConfirmingUnpublish(true)}
+                >
+                  비공개로
+                </button>
+              </span>
+            )
           ) : (
             <button
               className="button secondary"

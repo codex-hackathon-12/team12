@@ -25,6 +25,13 @@ Supabase Dashboard의 **Project Settings > API**에서 값을 확인한다.
 Supabase SQL Editor 또는 CLI에서 `supabase/migrations/202608160001_initial_backend.sql`을
 실행해 테이블과 private `resumes` bucket을 만든다.
 
+`PUBLIC_BASE_URL`에는 공유 링크에 쓸 정식 주소를 넣는다(예: `https://folio.klr.kr`).
+이 값이 없으면 요청이 도착한 호스트로 링크를 만들기 때문에, 프리뷰 배포에서 공개 링크를
+만들면 프리뷰 주소가 링크에 박힌다. 프리뷰에는 배포 보호가 걸려 있어 만든 사람만 열리고
+링크를 받은 사람은 Vercel 로그인 화면을 만난다. Vercel에서는 시스템 변수
+`VERCEL_PROJECT_PRODUCTION_URL`이 대신 쓰이지만, 도메인을 바꿔도 흔들리지 않게
+명시해두는 편이 안전하다.
+
 ## 3. GitHub OAuth
 
 GitHub의 **Settings > Developer settings > OAuth Apps**에서 OAuth App을 만든다.
