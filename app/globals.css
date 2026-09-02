@@ -123,6 +123,13 @@
   --space-8: 32px;
   --space-12: 48px;
   --space-16: 64px;
+
+  /* 컨트롤 높이. 확인 줄이 버튼 자리를 넘겨받을 때 행 높이가 안 변하려면
+     .button과 확인 줄이 같은 값을 봐야 한다. 두 곳에 따로 적으면 갈라진다. */
+  --control-height: 48px;
+  --control-height-sm: 38px;
+  /* 확인 줄의 바깥 높이. 작은 버튼 + 위아래 테두리 1px씩. */
+  --confirm-height: calc(var(--control-height-sm) + 2px);
 }
 
 * {
@@ -609,7 +616,7 @@ a {
   gap: 12px;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
+  min-height: var(--control-height);
   padding: 0 20px;
   border: 1px solid transparent;
   border-radius: 14px;
@@ -1933,7 +1940,17 @@ a {
 .result-toolbar p { margin: 0; color: #467052; font-size: 13px; font-weight: 700; }
 .result-toolbar strong { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 .success-check { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--ink); border-radius: 50%; background: var(--lime); font-size: 12px; font-weight: 900; }
-.result-actions { display: flex; flex-wrap: wrap; gap: 11px; align-items: center; }
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 11px;
+  align-items: center;
+  /* 확인 줄이 버튼 자리를 넘겨받아도 행 높이가 그대로여야 아래 문서가 안 밀린다.
+     확인 줄은 40px, 버튼은 48px이라 예약이 없으면 오히려 8px 줄어든다. */
+  min-height: var(--control-height);
+}
+
+.result-actions > .delete-confirm { min-height: var(--control-height); }
 
 /* 삭제는 되돌릴 수 없어 브라우저 대화상자 대신 그 자리에서 한 번 더 확인받는다. */
 .delete-confirm {
@@ -1948,7 +1965,7 @@ a {
 }
 
 .delete-confirm strong { color: #b03a26; font-weight: 700; }
-.delete-confirm .button { min-height: 38px; padding: 0 var(--space-3); font-size: var(--text-xs); }
+.delete-confirm .button { min-height: var(--control-height-sm); padding: 0 var(--space-3); font-size: var(--text-xs); }
 .delete-confirm .text-link { border: 0; background: none; cursor: pointer; font: inherit; }
 
 
@@ -2685,8 +2702,6 @@ a {
   .repository-updated { display: none; }
   .repository-language { gap: 0; font-size: 0; }
   .repository-checkbox { width: 20px; height: 20px; }
-  .share-box { width: 100%; padding: var(--space-3); }
-  .share-url { flex: 1 0 100%; max-width: 100%; }
   .delete-confirm strong { flex: 1 0 100%; white-space: normal; }
   .repository-selection-bar { grid-template-columns: 1fr; }
   .repository-selection-bar .button { width: 100%; }
@@ -2707,7 +2722,21 @@ a {
   .processing-footnote { flex-direction: column; gap: 20px; align-items: flex-start; }
   .result-toolbar { flex-direction: column; gap: 18px; align-items: stretch; }
   .result-toolbar > div:first-child > div { display: grid; }
-  .result-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .result-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* 평소 두 줄(공유 / 만들기·삭제)을 쓴다. 확인 줄이 한 줄로 넘겨받아도
+       줄어들지 않게 두 줄분을 미리 잡는다. 11px은 이 규칙의 gap이다. */
+    min-height: calc(var(--control-height) * 2 + 11px);
+    /* 예약한 자리 가운데에 떠 있지 않고, 원래 첫 줄이 있던 자리에 앉는다. */
+    align-content: start;
+  }
+  /* 공유는 이 화면의 주 행동이라 한 줄을 통째로 쓴다.
+     확인 묶음도 한 칸에 갇히면 눌리므로 두 칸을 쓴다. */
+  .result-actions > .button:first-child,
+  .result-actions > .delete-confirm { grid-column: 1 / -1; }
+  .result-actions > * { width: 100%; }
+  .share-row { justify-content: flex-start; }
   .portfolio-canvas-wrap { padding: 20px 10px; }
   .portfolio-hero { grid-template-columns: 1fr; padding: 45px 28px; }
   .portfolio-role-block { justify-self: start; }
@@ -2848,6 +2877,10 @@ a {
 .portfolio-list-card .tag-row { margin-top: var(--space-3); }
 
 .portfolio-list-actions {
+  /* 삭제를 누르면 이 자리에 확인 줄이 들어선다. 미리 비워두지 않으면 카드가
+     10px 자라고 같은 줄의 카드들까지 함께 커진다. 아래 padding-top 위에 확인
+     줄이 얹히므로 둘을 더한 값이다 — 확인 줄이 바뀌면 여기가 따라온다. */
+  min-height: calc(var(--space-4) + var(--confirm-height));
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-4);
@@ -2860,36 +2893,28 @@ a {
 .danger-link { border: 0; background: none; color: var(--coral); cursor: pointer; font: inherit; }
 
 /* 공유 링크 컨트롤. 되돌릴 수 있는 동작이라 삭제와 달리 확인 단계를 두지 않는다. */
-.share-box {
-  display: inline-flex;
+/* 주소가 자기 줄을 갖는다. 액션 행에 있을 때는 260px에서 잘려 끝이
+   안 보였다 — 공유하려고 만든 주소인데 복사 말고는 확인할 방법이 없었다. */
+.share-row {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
-  max-width: 100%;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line-dark);
-  border-radius: 14px;
-  background: var(--lime-soft);
-  font-size: var(--text-sm);
+  /* 비공개 확인 줄로 바뀔 때 높이가 안 변하게. */
+  min-height: var(--confirm-height);
+  padding-bottom: var(--space-4);
 }
 
 .share-url {
-  overflow: hidden;
-  max-width: 260px;
+  min-width: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--text-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* 긴 주소는 자르지 말고 접는다. */
+  overflow-wrap: anywhere;
 }
 
 /* 좁아지면 눌러 담지 말고 줄을 바꾼다. 예전에는 배지와 버튼 글자가
    "공/개/중"처럼 세로로 쪼개졌다. */
-.share-box { flex-wrap: wrap; }
-.share-box .button,
-.share-box .text-link,
-.share-badge { flex: none; white-space: nowrap; }
-.share-box .button { min-height: 38px; padding: 0 var(--space-3); font-size: var(--text-xs); }
-.share-box .text-link { border: 0; background: none; cursor: pointer; font: inherit; }
-
 /* 삭제 확인 줄도 같은 구조라 같은 규칙을 쓴다. */
 .delete-confirm { flex-wrap: wrap; }
 .delete-confirm .button,
@@ -2897,6 +2922,8 @@ a {
 .delete-confirm strong { flex: none; white-space: nowrap; }
 
 .share-badge {
+  flex: none;
+  white-space: nowrap;
   margin-right: var(--space-2);
   padding: 2px var(--space-2);
   border-radius: 999px;
