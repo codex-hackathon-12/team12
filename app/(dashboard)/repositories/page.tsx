@@ -124,6 +124,12 @@ export default function RepositoriesPage() {
     setCapNotice(null);
   };
 
+  const clearFilters = () => {
+    setQuery("");
+    setVisibility("all");
+    setLanguage(LANGUAGE_ALL);
+  };
+
   const continueToPrompt = () => {
     if (selectedRepositoryIds.length === 0) return;
     const queryString = new URLSearchParams({
@@ -201,6 +207,20 @@ export default function RepositoriesPage() {
 
       {syncError ? <p className="inline-error" role="alert">{syncError}</p> : null}
 
+      {/* 개수 알림은 어떤 분기에도 들어가면 안 된다. 예전에는 목록 안에 있어서
+          결과가 0건이 되는 바로 그 순간 알림 영역째 사라졌고, 화면 낭독기는
+          아무것도 듣지 못했다. 살아 있는 영역이어야 변화가 읽힌다. */}
+      {repositories ? (
+        <div className="list-caption">
+          <span aria-live="polite">
+            {visible.length}개 표시 · 전체 {repositories.length}개
+          </span>
+          <span className={atCap ? "at-cap" : undefined} aria-live="polite">
+            {selectedRepositoryIds.length}/{MAX_GENERATION_REPOSITORIES} 선택
+          </span>
+        </div>
+      ) : null}
+
       {loadError ? (
         <p className="inline-error" role="alert">
           {loadError}
@@ -210,27 +230,39 @@ export default function RepositoriesPage() {
         </p>
       ) : !repositories ? (
         <LoadingState label="GitHub 저장소를 불러오고 있어요" />
+      ) : repositories.length === 0 ? (
+        /* 저장소가 아예 없는 사람에게 "필터를 바꿔보세요"라고 하면 할 수 없는 일을
+           시키는 셈이다. 필터로 걸러진 경우와 갈라놓는다. */
+        <div className="empty-state">
+          <span>NO REPOSITORY</span>
+          <h2>GitHub에 아직 저장소가 없어요.</h2>
+          <p>저장소를 만든 뒤 새로고침하면 여기에 나타나요.</p>
+          <button className="button secondary" type="button" onClick={sync} aria-disabled={syncing}>
+            {syncing ? "동기화 중…" : "다시 불러오기"}
+          </button>
+        </div>
       ) : visible.length === 0 ? (
         <div className="empty-state">
           <span>0 results</span>
-          <h2>조건에 맞는 저장소가 없어요.</h2>
+          <h2>
+            {query.trim()
+              ? `‘${query.trim()}’에 맞는 저장소가 없어요.`
+              : "조건에 맞는 저장소가 없어요."}
+          </h2>
           <p>검색어를 지우거나 언어·공개 범위 필터를 바꿔보세요.</p>
+          <button className="button secondary" type="button" onClick={clearFilters}>
+            필터 지우기
+          </button>
         </div>
       ) : (
         <div className="repository-list">
-          <div className="list-caption">
-            <span aria-live="polite">
-              {visible.length}개 표시 · 전체 {repositories.length}개
-            </span>
-            <span className={atCap ? "at-cap" : undefined}>
-              {selectedRepositoryIds.length}/{MAX_GENERATION_REPOSITORIES} 선택
-            </span>
-          </div>
-
-          {/* 목록이 길어 탭으로만 이동하면 아래 선택 바까지 가는 데 오래 걸린다. */}
-          <a className="sr-only sr-only-focusable" href="#repository-selection-bar">
-            선택한 저장소로 건너뛰기
-          </a>
+          {/* 목록이 길어 탭으로만 이동하면 아래 선택 바까지 가는 데 오래 걸린다.
+              대상이 있을 때만 내보낸다 — 선택이 없으면 선택 바 자체가 없다. */}
+          {selectedRepositories.length > 0 ? (
+            <a className="sr-only sr-only-focusable" href="#repository-selection-bar">
+              선택한 저장소로 건너뛰기
+            </a>
+          ) : null}
 
           <ul className="repository-rows" aria-label="저장소 목록">
             {visible.map((repository) => {

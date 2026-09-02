@@ -633,6 +633,15 @@ a {
   outline-offset: 3px;
 }
 
+/* aria-disabled는 포커스와 클릭을 살려둔 채 "지금은 안 된다"만 알린다.
+   disabled를 쓰면 브라우저가 포커스를 떨어뜨려, 작업 중이라는 사실을 알리는
+   유일한 문구(삭제 중…)에서 사용자가 튕겨 나간다. 진행 표시가 라벨로 이미
+   전달되므로 흐리게까지 만들 이유가 없다. */
+.button[aria-disabled="true"],
+.text-link[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 .button:disabled {
   cursor: not-allowed;
   opacity: 0.56;
@@ -2422,14 +2431,20 @@ a {
 .mock-notice span { flex: 0 0 auto; padding: 6px 8px; background: var(--coral); color: white; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; font-weight: 800; }
 .mock-notice p { margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.65; }
 .billing-products { padding-top: 72px; }
-.product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 .product-card { position: relative; display: flex; flex-direction: column; align-items: stretch; min-height: 350px; padding: 28px; border: 1px solid var(--line-control); background: var(--surface); cursor: pointer; color: var(--ink); text-align: left; transition: transform 160ms ease, border 160ms ease, box-shadow 160ms ease; }
 .product-card:hover { transform: translateY(-4px); }
-.product-card.selected { border-color: var(--ink); box-shadow: 7px 8px 0 var(--ink); }
+/* 선택 상태는 라디오가 들고 있다. 클래스로 흉내 내지 않는다. */
+.product-card:has(:checked) { border-color: var(--ink); box-shadow: 7px 8px 0 var(--ink); }
+.product-card:focus-within { outline: 3px solid var(--blue); outline-offset: 3px; }
 .product-card.featured { background: var(--lime-soft); }
 .recommended-label { position: absolute; top: 0; right: 0; padding: 8px 11px; background: var(--ink); color: white; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8px; letter-spacing: 0.08em; }
 .product-radio { display: block; width: 18px; height: 18px; margin-bottom: 48px; border: 1px solid var(--ink); border-radius: 50%; }
-.product-card.selected .product-radio { box-shadow: inset 0 0 0 4px var(--surface); background: var(--ink); }
+.product-card:has(:checked) .product-radio { box-shadow: inset 0 0 0 4px var(--surface); background: var(--ink); }
 .product-card > div { display: grid; gap: 14px; }
 .product-card > div > strong { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 44px; letter-spacing: -0.06em; }
 .product-card small { font-size: 10px; }
@@ -2846,6 +2861,25 @@ a {
 }
 
 .progress-exit p { margin: 0; color: var(--ink-soft); font-size: var(--text-sm); }
+
+.notice-empty { margin: 0; padding: var(--space-6) 0; color: var(--ink-soft); font-size: var(--text-sm); }
+
+/* 건너뛰기 링크는 탭으로 닿았을 때만 보인다. 헤더 위에 겹쳐 띄운다. */
+.skip-link:focus {
+  position: absolute;
+  z-index: 60;
+  top: var(--space-2);
+  left: var(--space-2);
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+/* 본문으로 포커스를 옮길 때 테두리가 화면 전체를 두르지 않게 한다. */
+.site-main:focus { outline: none; }
+.site-main:focus-visible { outline: none; }
 
 /* 진행 중인 생성을 대시보드 맨 위에서 알려준다. */
 .active-generation {

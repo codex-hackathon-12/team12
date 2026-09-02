@@ -82,6 +82,18 @@ export default function DashboardPage() {
               <Link className="text-link" href="/repositories">새로 만들기 →</Link>
             </div>
           </div>
+          {/* 처음 온 사람의 첫 화면이 제목 두 개 아래 아무것도 없는 상태였다. */}
+          {dashboard.recentPortfolios.length === 0 ? (
+            <div className="empty-state">
+              <span>NO PORTFOLIO</span>
+              <h2>아직 만든 포트폴리오가 없어요.</h2>
+              <p>GitHub 저장소를 고르면 첫 포트폴리오를 만들어드려요.</p>
+              <Link className="button primary" href="/repositories">
+                첫 포트폴리오 만들기
+              </Link>
+            </div>
+          ) : null}
+
           <div className="recent-list">
             {dashboard.recentPortfolios.map((portfolio, index) => (
               <Link
@@ -107,6 +119,10 @@ export default function DashboardPage() {
               <h2>새로운 소식</h2>
             </div>
           </div>
+          {dashboard.announcements.length === 0 ? (
+            <p className="notice-empty">아직 전할 소식이 없어요.</p>
+          ) : null}
+
           <div className="notice-list">
             {dashboard.announcements.map((announcement) => (
               <Link

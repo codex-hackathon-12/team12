@@ -108,8 +108,12 @@ for (const [fg, bg, label] of BOUNDARY_PAIRS) {
 test("포커스 표시는 한 곳에서만 정의한다", () => {
   /* 예전에는 선언이 세 곳에 흩어져 있었고 목록에 다섯 클래스만 적혀 있어서
      select·textarea·아바타에는 표시가 아예 없었다. */
-  const declarations = css.match(/:focus-visible\s*\{[^}]*outline:/gu) ?? [];
-  assert.equal(declarations.length, 1, "포커스 outline 선언이 하나여야 해요");
+  /* outline: none으로 끄는 것(본문 컨테이너처럼 프로그램으로만 포커스를 받는 곳)은
+     세지 않는다. 세려는 건 "링을 그리는 곳"이다. */
+  const drawn = (css.match(/:focus-visible\s*\{[^}]*outline:[^;]*;/gu) ?? []).filter(
+    (rule) => !/outline:\s*none/u.test(rule),
+  );
+  assert.equal(drawn.length, 1, `포커스 링을 그리는 선언이 하나여야 해요 (지금 ${drawn.length}개)`);
   assert.ok(!css.includes("rgb(97 112 255 / 38%)"), "반투명 포커스 링이 남아 있어요");
 });
 

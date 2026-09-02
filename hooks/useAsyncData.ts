@@ -6,9 +6,13 @@ type State<TData> = {
   data: TData | null;
   /** 실패했을 때만 채워진다. 로딩 중인지와 구분하려면 이 값을 본다. */
   error: string | null;
+  /** 이 데이터가 어떤 조건으로 받아온 것인지. 조건이 바뀌면 낡은 값이 된다. */
+  key: string;
 };
 
-export type AsyncData<TData> = State<TData> & {
+export type AsyncData<TData> = {
+  data: TData | null;
+  error: string | null;
   isLoading: boolean;
   reload: () => void;
 };
@@ -29,17 +33,23 @@ export function useAsyncData<TData>(
   dependencies: unknown[],
   errorMessage: string,
 ): AsyncData<TData> {
-  const [state, setState] = useState<State<TData>>({ data: null, error: null });
+  const [state, setState] = useState<State<TData>>({ data: null, error: null, key: "" });
   const [attempt, setAttempt] = useState(0);
+
+  /* 조건이 바뀌었는데 아직 새 결과가 오지 않았다면 지금 들고 있는 값은 낡은 것이다.
+     갤러리에서 필터를 바꾸면 이전 직무의 카드가 그대로 남아 클릭까지 됐다.
+     이펙트로 비우면 렌더 중 setState가 되므로, 렌더 시점에 파생해서 판단한다. */
+  const key = JSON.stringify(dependencies) + `#${attempt}`;
+  const isStale = state.key !== key;
 
   useEffect(() => {
     let active = true;
     loader()
       .then((result) => {
-        if (active) setState({ data: result, error: null });
+        if (active) setState({ data: result, error: null, key });
       })
       .catch(() => {
-        if (active) setState({ data: null, error: errorMessage });
+        if (active) setState({ data: null, error: errorMessage, key });
       });
     return () => {
       // 늦게 도착한 응답이 최신 결과를 덮지 않게 한다.
@@ -52,8 +62,9 @@ export function useAsyncData<TData>(
   const reload = useCallback(() => setAttempt((value) => value + 1), []);
 
   return {
-    ...state,
-    isLoading: state.data === null && state.error === null,
+    data: isStale ? null : state.data,
+    error: isStale ? null : state.error,
+    isLoading: isStale || (state.data === null && state.error === null),
     reload,
   };
 }
