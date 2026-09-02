@@ -3,8 +3,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { PortfolioPreview } from "@/components/portfolio/PortfolioPreview";
-import { PrintButton } from "@/components/portfolio/PrintButton";
+import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
 import { getRequestOrigin, resolvePublicBaseUrl } from "@/server/http";
 import { getPublicPortfolio } from "@/server/portfolio/portfolios";
 
@@ -62,12 +61,9 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
           <p className="eyebrow">SHARED PORTFOLIO</p>
           <strong>{portfolio.content.profile.displayName}</strong>
         </div>
-        <PrintButton className="button secondary" />
       </div>
 
-      <div className="portfolio-canvas-wrap">
-        <PortfolioPreview content={portfolio.content} variant="result" paginated />
-      </div>
+      <PortfolioDocument content={portfolio.content} printClassName="button secondary" />
 
       <footer className="public-portfolio-footer">
         <p>GitHub 저장소로 이런 포트폴리오를 만들 수 있어요.</p>

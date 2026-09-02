@@ -7,8 +7,7 @@ import type { PortfolioShareDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { useReturnFocus } from "@/hooks/useReturnFocus";
-import { PortfolioPreview } from "@/components/portfolio/PortfolioPreview";
-import { PrintButton } from "@/components/portfolio/PrintButton";
+import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function PortfolioResultPage() {
@@ -116,7 +115,6 @@ export default function PortfolioResultPage() {
         </div>
         <div className="result-actions">
           <Link className="button secondary" href="/repositories">다시 만들기</Link>
-          <PrintButton />
           {share?.published ? (
             /* 공개 해제는 이미 보낸 링크를 전부 죽인다. 링크 복사 바로 옆에서
                한 번의 실수로 일어나면 받은 사람은 404만 보고 이유를 알 수 없다.
@@ -203,9 +201,7 @@ export default function PortfolioResultPage() {
           )}
         </div>
       </div>
-      <div className="portfolio-canvas-wrap">
-        <PortfolioPreview content={portfolio.content} variant="result" paginated />
-      </div>
+      <PortfolioDocument content={portfolio.content} />
       {actionError ? (
         <div className="page-container">
           <p className="inline-error" role="alert">{actionError}</p>

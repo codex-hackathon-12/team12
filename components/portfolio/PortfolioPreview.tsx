@@ -18,12 +18,15 @@ export function PortfolioPreview({
   compact = false,
   variant = "default",
   paginated = false,
+  onPageCount,
 }: {
   content: PortfolioContentDto;
   compact?: boolean;
   variant?: "default" | "result";
   /** A4 낱장으로 나눠 인쇄 미리보기처럼 보여준다. */
   paginated?: boolean;
+  /** 나눠본 장수. 인쇄 전 분량 안내에 쓴다. */
+  onPageCount?: (count: number) => void;
 }) {
   if (variant === "result") {
     const initials =
@@ -246,7 +249,7 @@ export function PortfolioPreview({
     ) });
 
     if (paginated) {
-      return <PaginatedPortfolio blocks={blocks} />;
+      return <PaginatedPortfolio blocks={blocks} onPageCount={onPageCount} />;
     }
 
     return (

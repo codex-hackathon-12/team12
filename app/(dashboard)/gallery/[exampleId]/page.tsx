@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
-import { PortfolioPreview } from "@/components/portfolio/PortfolioPreview";
+import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function GalleryDetailPage() {
@@ -42,14 +42,14 @@ export default function GalleryDetailPage() {
         </div>
         <Link className="button primary" href="/repositories">내 포트폴리오 만들기</Link>
       </div>
-      <div className="portfolio-canvas-wrap gallery-canvas">
-        <PortfolioPreview
-          content={{
-            ...example.portfolio,
-            contact: { ...example.portfolio.contact, email: null },
-          }}
-        />
-      </div>
+      {/* 예시가 실제 결과물과 다른 형식이면, 보고 기대한 것과 받는 것이 달라진다. */}
+      <PortfolioDocument
+        content={{
+          ...example.portfolio,
+          contact: { ...example.portfolio.contact, email: null },
+        }}
+        printClassName="button secondary"
+      />
     </div>
   );
 }

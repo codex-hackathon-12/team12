@@ -28,6 +28,15 @@ const FILL_SAFETY = 0.9;
 /** 소수점 반올림이 쌓여 한 장을 넘기지 않도록 두는 최소 여유. */
 const FILL_GUARD = 6;
 
+/**
+ * 축소 하한.
+ *
+ * 예전 하한은 0.3이었다. 그 값에서 본문 14px은 4px가 되어 아무도 읽을 수 없는데,
+ * 화면은 "보이기는 하니까" 문제를 알리지 않았다. 읽을 수 있는 선에서 멈추고,
+ * 그 아래 폭은 A4 보기 대신 읽기 보기가 받는다.
+ */
+const MIN_SCALE = 0.85;
+
 type Page = { indexes: number[]; gap: number };
 
 /**
@@ -40,7 +49,14 @@ type Page = { indexes: number[]; gap: number };
  * 폰트와 이미지 로딩 시점에 따라 몇 px 차이가 날 수 있어, 측정은 두 요소가 준비된
  * 뒤 한 번 더 한다.
  */
-export function PaginatedPortfolio({ blocks }: { blocks: Block[] }) {
+export function PaginatedPortfolio({
+  blocks,
+  onPageCount,
+}: {
+  blocks: Block[];
+  /** 나눠본 결과를 도구 모음이 인쇄 전 안내에 쓴다. */
+  onPageCount?: (count: number) => void;
+}) {
   const measureRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<Page[] | null>(null);
@@ -81,6 +97,8 @@ export function PaginatedPortfolio({ blocks }: { blocks: Block[] }) {
 
       if (current.length > 0) grouped.push({ indexes: current, used });
 
+      onPageCount?.(grouped.length);
+
       // 마지막 장을 뺀 나머지는 남는 공간을 블록 사이로 나눠 채운다.
       // 문서가 끝난 마지막 장까지 늘리면 어색하다.
       setPages(grouped.map((page, pageIndex) => {
@@ -108,7 +126,7 @@ export function PaginatedPortfolio({ blocks }: { blocks: Block[] }) {
       image.addEventListener("error", measure, { once: true });
     });
     if (pending === 0) measure();
-  }, [blocks]);
+  }, [blocks, onPageCount]);
 
   // 좁은 화면에서는 A4 낱장이 그대로 들어가지 않으므로 폭에 맞춰 줄인다.
   useEffect(() => {
@@ -116,7 +134,7 @@ export function PaginatedPortfolio({ blocks }: { blocks: Block[] }) {
       const frame = frameRef.current;
       if (!frame) return;
       const available = frame.clientWidth;
-      setScale(available >= PAGE_WIDTH ? 1 : Math.max(available / PAGE_WIDTH, 0.3));
+      setScale(available >= PAGE_WIDTH ? 1 : Math.max(available / PAGE_WIDTH, MIN_SCALE));
     };
 
     fit();
