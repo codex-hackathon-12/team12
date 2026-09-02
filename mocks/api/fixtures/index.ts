@@ -15,6 +15,8 @@ import type {
   PortfolioSummaryDto,
   TasteSampleDto,
 } from "@/contracts/api-contract";
+import { MOCK_NOTE } from "@/lib/copy";
+import { REQUESTED_SCOPES } from "@/lib/scopes";
 
 const now = "2026-08-16T04:00:00.000Z";
 
@@ -39,36 +41,12 @@ export const mockConnection = {
   profileUrl: "https://github.com/frontend-builder",
   avatarUrl: "https://avatars.githubusercontent.com/u/9919",
   connectedAt: now,
-  scopes: [
-    {
-      name: "read:user",
-      label: "프로필 읽기",
-      description: "이름과 아바타 등 공개 프로필을 읽어 포트폴리오 머리말에 씁니다.",
-      required: true,
-      granted: true,
-    },
-    {
-      name: "user:email",
-      label: "이메일 읽기",
-      description: "연락처로 쓸 대표 이메일을 읽습니다.",
-      required: false,
-      granted: true,
-    },
-    {
-      name: "repo",
-      label: "저장소 접근 (private 포함)",
-      description: "저장소 목록과 커밋·PR 근거를 읽습니다. 코드를 쓰거나 바꾸지 않습니다.",
-      required: true,
-      granted: true,
-    },
-    {
-      name: "read:org",
-      label: "조직 정보 읽기",
-      description: "조직 소속 저장소를 목록에 함께 보여줍니다.",
-      required: false,
-      granted: false,
-    },
-  ],
+  /* 설명과 라벨은 lib/scopes.ts가 정의한다. 목이 문장을 따로 들고 있으면
+     한쪽만 고쳐졌을 때 화면과 목이 다른 말을 하게 된다. 실제로 그랬다. */
+  scopes: REQUESTED_SCOPES.map((scope) => ({
+    ...scope,
+    granted: scope.name !== "read:org",
+  })),
   extraScopes: [],
   needsReauthorization: true,
   manageUrl: "https://github.com/settings/connections/applications/mock-client-id",
@@ -280,8 +258,8 @@ export const mockAnnouncements = [
   {
     id: "notice_mock",
     type: "notice",
-    title: "현재 크레딧과 결제는 체험용으로 제공됩니다",
-    summary: "MVP 기간에는 실제 결제나 크레딧 차감이 발생하지 않습니다.",
+    title: "크레딧과 결제는 아직 체험이에요",
+    summary: "표시되는 크레딧과 상품은 흐름을 확인하기 위한 체험 데이터예요.",
     publishedAt: "2026-08-14T02:00:00.000Z",
     endsAt: null,
     isPinned: false,
@@ -293,8 +271,8 @@ export const mockAnnouncementDetails = mockAnnouncements.map(
     ...announcement,
     content:
       announcement.type === "event"
-        ? "완성된 포트폴리오 예시를 살펴보고 내 GitHub 저장소로 새로운 소개를 만들어보세요. MVP 기간에는 생성 과정 전체를 부담 없이 체험할 수 있습니다."
-        : "현재 표시되는 100크레딧과 상품은 사용자 흐름을 확인하기 위한 mock 데이터입니다. 실제 결제, 지급 또는 차감은 발생하지 않습니다.",
+        ? "완성된 포트폴리오 예시를 살펴보고, 내 GitHub 저장소로 새로운 소개를 만들어보세요. 생성 과정 전체를 부담 없이 체험할 수 있어요."
+        : `${MOCK_NOTE} 표시되는 크레딧과 상품은 흐름을 확인하기 위한 체험 데이터라, 실제 승인도 일어나지 않아요.`,
   }),
 ) satisfies AnnouncementDto[];
 
@@ -338,7 +316,7 @@ export const mockBillingProducts = [
   {
     id: "credit_700",
     name: "Pro 700",
-    description: "다양한 프로젝트를 꾸준히 정리하는 사용자를 위한 구성입니다.",
+    description: "다양한 프로젝트를 꾸준히 정리하고 싶다면 넉넉해요.",
     credits: 700,
     priceKrw: 49900,
     isFeatured: false,

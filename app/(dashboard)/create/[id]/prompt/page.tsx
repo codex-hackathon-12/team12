@@ -63,7 +63,16 @@ export default function PromptPage() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!prompt.trim() || remaining < 0) return;
+    /* 조용히 return하면 버튼이 고장 난 것으로 보인다. aria-disabled는 상태를
+       알릴 뿐 이유를 말하지 않으므로, 누른 사람에게는 이유가 남아야 한다. */
+    if (remaining < 0) {
+      setSubmitError(`프롬프트가 ${(-remaining).toLocaleString("ko-KR")}자 넘어요. 줄인 뒤 다시 눌러주세요.`);
+      return;
+    }
+    if (!prompt.trim()) {
+      setSubmitError("AI에게 전달할 프롬프트를 적어주세요.");
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -145,8 +154,8 @@ export default function PromptPage() {
               </div>
             ))}
           </div>
-          <p>선택한 프로젝트의 공통 강점과 서로 다른 역할을 한 흐름으로 정리합니다.</p>
-          <Link className="text-link" href="/repositories">← 저장소 다시 선택</Link>
+          <p>선택한 프로젝트의 공통 강점과 서로 다른 역할을 한 흐름으로 정리해드려요.</p>
+          <Link className="text-link" href="/repositories">← 저장소 다시 고르기</Link>
         </aside>
 
         <form className="prompt-form" onSubmit={submit}>
@@ -204,10 +213,15 @@ export default function PromptPage() {
             <textarea
               id="portfolio-prompt"
               value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
+              /* 고친 뒤에도 옛 오류가 남아 있으면 문구가 거짓말이 된다. */
+              onChange={(event) => {
+                setPrompt(event.target.value);
+                setSubmitError(null);
+              }}
               placeholder="예: 문제를 정의하고 해결한 과정, 그 선택을 한 이유가 드러나게 써줘."
               rows={8}
-              required
+              /* required를 두면 브라우저 말풍선이 세 번째 오류 모양이 되고,
+                 그 단계에서 막혀 아래 인라인 안내가 아예 나오지 않는다. */
             />
           </div>
 

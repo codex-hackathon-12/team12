@@ -84,7 +84,7 @@ export default function SettingsPage() {
 
         {connection.needsReauthorization ? (
           <p className="settings-notice" role="status">
-            빠진 권한이 있어요. 아래에서 다시 연동하면 GitHub이 부족한 권한만 물어봅니다.
+            빠진 권한이 있어요. 아래에서 다시 연동하면 GitHub이 부족한 권한만 물어봐요.
           </p>
         ) : null}
 
@@ -126,8 +126,8 @@ export default function SettingsPage() {
           <div className="settings-action">
             <strong>GitHub 다시 연동하기</strong>
             <p>
-              권한을 새로 받거나 토큰을 갱신합니다. 이미 승인한 권한만 필요하면 GitHub이
-              동의 화면 없이 바로 돌아옵니다.
+              권한을 새로 받거나 토큰을 갱신해요. 이미 승인한 권한만 필요하면 GitHub이
+              동의 화면 없이 바로 돌아와요.
             </p>
             <Link className="button primary" href={reauthorizeHref}>
               <span className="github-glyph" aria-hidden="true">GH</span>
