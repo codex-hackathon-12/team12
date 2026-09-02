@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { GitHubUserDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { LABEL, SHORT_LABEL } from "@/lib/copy";
+import { SteadyLabel } from "@/components/ui/SteadyLabel";
 
 // 항목 수를 바꾸면 app/globals.css의 .mobile-nav 열 수도 함께 바꿔야 한다.
 const navigation = [
@@ -130,7 +131,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               onClick={handleLogout}
               disabled={isLoggingOut}
             >
-              {isLoggingOut ? "로그아웃 중…" : "로그아웃"}
+              <SteadyLabel
+                states={["로그아웃", "로그아웃 중…"]}
+                value={isLoggingOut ? "로그아웃 중…" : "로그아웃"}
+              />
             </button>
           </div>
         </div>

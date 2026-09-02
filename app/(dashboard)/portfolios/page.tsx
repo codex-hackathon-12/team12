@@ -8,6 +8,7 @@ import { formatDay } from "@/lib/format";
 import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { LABEL } from "@/lib/copy";
+import { SteadyLabel } from "@/components/ui/SteadyLabel";
 
 
 export default function PortfolioListPage() {
@@ -161,7 +162,10 @@ export default function PortfolioListPage() {
                 disabled={loadingMore}
                 onClick={loadMore}
               >
-                {loadingMore ? "불러오는 중…" : "더 보기"}
+                <SteadyLabel
+                  states={["더 보기", "불러오는 중…"]}
+                  value={loadingMore ? "불러오는 중…" : "더 보기"}
+                />
               </button>
             </div>
           )}
@@ -216,7 +220,10 @@ function DeleteAction({
           onConfirm();
         }}
       >
-        {deleting ? "삭제 중…" : "삭제할게요"}
+        <SteadyLabel
+          states={["삭제할게요", "삭제 중…"]}
+          value={deleting ? "삭제 중…" : "삭제할게요"}
+        />
       </button>
       <button
         className="text-link"

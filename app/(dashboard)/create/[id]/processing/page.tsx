@@ -8,6 +8,7 @@ import { ApiClientError, apiClient } from "@/lib/api-client";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { LABEL } from "@/lib/copy";
+import { SteadyLabel } from "@/components/ui/SteadyLabel";
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_CONSECUTIVE_POLL_FAILURES = 3;
@@ -127,7 +128,10 @@ export default function ProcessingPage() {
           <p>{job.error?.message ?? "잠시 후 다시 시도해주세요."}</p>
           <div className="page-state-actions">
             <button className="button primary" type="button" onClick={retry} disabled={isRetrying}>
-              {isRetrying ? "다시 시도하는 중…" : "다시 시도하기"}
+              <SteadyLabel
+                states={["다시 시도하기", "다시 시도하는 중…"]}
+                value={isRetrying ? "다시 시도하는 중…" : "다시 시도하기"}
+              />
             </button>
             <Link className="button secondary" href="/repositories">저장소 다시 고르기</Link>
           </div>

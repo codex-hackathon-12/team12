@@ -10,6 +10,10 @@ import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { LABEL } from "@/lib/copy";
+import { SteadyLabel } from "@/components/ui/SteadyLabel";
+
+/** 공유 자리에 나올 수 있는 문구 전부. 가장 넓은 것이 칸 폭을 정한다. */
+const SHARE_LABELS = ["공개 링크 만들기", "공개하는 중…", "링크 복사", "복사됨"];
 
 export default function PortfolioResultPage() {
   const params = useParams<{ portfolioId: string }>();
@@ -114,61 +118,17 @@ export default function PortfolioResultPage() {
             <strong>{sourceLabel}</strong>
           </div>
         </div>
-        <div className="result-actions">
-          <Link className="button secondary" href="/repositories">{LABEL.create}</Link>
-          {share?.published ? (
-            /* 공개 해제는 이미 보낸 링크를 전부 죽인다. 링크 복사 바로 옆에서
-               한 번의 실수로 일어나면 받은 사람은 404만 보고 이유를 알 수 없다.
-               삭제와 같은 2단계 확인을 둔다. */
-            confirmingUnpublish ? (
-              <span className="delete-confirm" role="status">
-                <strong>이미 보낸 링크가 열리지 않게 돼요.</strong>
-                <button
-                  className="button danger"
-                  type="button"
-                  ref={unpublishConfirmRef}
-                  aria-disabled={sharing}
-                  onClick={() => togglePublish(false)}
-                >
-                  {sharing ? "처리 중…" : "비공개로 바꿀게요"}
-                </button>
-                <button
-                  className="text-link"
-                  type="button"
-                  aria-disabled={sharing}
-                  onClick={() => setConfirmingUnpublish(false)}
-                >
-                  취소
-                </button>
-              </span>
-            ) : (
-              <span className="share-box" role="status">
-                <em className="share-badge">공개 중</em>
-                <span className="share-url" title={share.url ?? ""}>{share.url}</span>
-                <button className="button secondary" type="button" onClick={copyLink}>
-                  {copied ? "복사됨" : "링크 복사"}
-                </button>
-                <button
-                  className="text-link"
-                  type="button"
-                  ref={unpublishTriggerRef}
-                  onClick={() => setConfirmingUnpublish(true)}
-                >
-                  비공개로
-                </button>
-              </span>
-            )
-          ) : (
-            <button
-              className="button secondary"
-              type="button"
-              disabled={sharing}
-              onClick={() => togglePublish(true)}
-            >
-              {sharing ? "공개하는 중…" : "공개 링크 만들기"}
-            </button>
-          )}
+        {/*
+          확인 묶음은 트리거 버튼보다 훨씬 넓다. 예전에는 이것이 형제와 같은
+          줄에 끼어들어, 삭제를 누르면 옆 버튼들이 186px, 공개 링크를 만들면
+          359px 왼쪽으로 튀었다. 좁은 화면에서는 줄이 접히며 문서가 122px
+          아래로 내려갔다.
 
+          확인 중에는 이 행을 확인 묶음이 통째로 넘겨받는다. 형제가 없으니
+          밀릴 것도 없고, 되돌릴 수 없는 결정에 주의가 모인다. 취소하면
+          전부 돌아온다.
+        */}
+        <div className="result-actions">
           {confirmingDelete ? (
             <span className="delete-confirm" role="status">
               <strong>되돌릴 수 없어요.</strong>
@@ -179,7 +139,10 @@ export default function PortfolioResultPage() {
                 aria-disabled={deleting}
                 onClick={remove}
               >
-                {deleting ? "삭제 중…" : "삭제할게요"}
+                <SteadyLabel
+                  states={["삭제할게요", "삭제 중…"]}
+                  value={deleting ? "삭제 중…" : "삭제할게요"}
+                />
               </button>
               <button
                 className="text-link"
@@ -191,17 +154,93 @@ export default function PortfolioResultPage() {
               </button>
             </span>
           ) : (
-            <button
-              className="button secondary"
-              type="button"
-              ref={deleteTriggerRef}
-              onClick={() => setConfirmingDelete(true)}
-            >
-              삭제
-            </button>
+            <>
+              {/* 공유 자리는 네 가지 문구를 오간다. 한 칸에 모아 가장 넓은 문구로
+                  예약해두면 공개 전후로도 폭이 안 변한다. 되돌리기(비공개로)는
+                  자기가 되돌릴 대상인 주소 옆으로 내려간다. */}
+              {share?.published ? (
+                <button className="button secondary" type="button" onClick={copyLink}>
+                  <SteadyLabel
+                    states={SHARE_LABELS}
+                    value={copied ? "복사됨" : "링크 복사"}
+                  />
+                </button>
+              ) : (
+                <button
+                  className="button secondary"
+                  type="button"
+                  aria-disabled={sharing}
+                  onClick={() => togglePublish(true)}
+                >
+                  <SteadyLabel
+                    states={SHARE_LABELS}
+                    value={sharing ? "공개하는 중…" : "공개 링크 만들기"}
+                  />
+                </button>
+              )}
+              {/* 파괴적이지 않은 이동은 공유 다음. 삭제는 마지막. */}
+              <Link className="button secondary" href="/repositories">{LABEL.create}</Link>
+              <button
+                className="button secondary"
+                type="button"
+                ref={deleteTriggerRef}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                삭제
+              </button>
+            </>
           )}
         </div>
       </div>
+      {/*
+        주소는 액션 행이 아니라 자기 줄에 둔다. 예전에는 배지·주소·버튼 두 개가
+        통째로 액션 행에 끼어들어 형제를 359px 밀어냈고, 정작 주소는 260px에서
+        잘려 끝이 보이지 않았다. 줄을 따로 주면 행이 안정되고 주소도 온전히 보인다.
+      */}
+      {share?.published ? (
+        <div className="page-container share-row">
+          {confirmingUnpublish ? (
+            <span className="delete-confirm" role="status">
+              <strong>이미 보낸 링크가 열리지 않게 돼요.</strong>
+              <button
+                className="button danger"
+                type="button"
+                ref={unpublishConfirmRef}
+                aria-disabled={sharing}
+                onClick={() => togglePublish(false)}
+              >
+                <SteadyLabel
+                  states={["비공개로 바꿀게요", "처리 중…"]}
+                  value={sharing ? "처리 중…" : "비공개로 바꿀게요"}
+                />
+              </button>
+              <button
+                className="text-link"
+                type="button"
+                aria-disabled={sharing}
+                onClick={() => setConfirmingUnpublish(false)}
+              >
+                취소
+              </button>
+            </span>
+          ) : (
+            <>
+              <em className="share-badge">공개 중</em>
+              <span className="share-url">{share.url}</span>
+              {/* 공개 해제는 이미 보낸 링크를 전부 죽인다. 받은 사람은 404만 보고
+                  이유를 알 수 없다. 삭제와 같은 2단계 확인을 둔다. */}
+              <button
+                className="text-link"
+                type="button"
+                ref={unpublishTriggerRef}
+                onClick={() => setConfirmingUnpublish(true)}
+              >
+                비공개로
+              </button>
+            </>
+          )}
+        </div>
+      ) : null}
       <PortfolioDocument content={portfolio.content} />
       {actionError ? (
         <div className="page-container">
