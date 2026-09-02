@@ -86,9 +86,28 @@ export class MockApiClient implements ApiClient {
   async getDashboard() {
     await maybeFail("getDashboard");
     await wait();
-    /* 진행 카드는 실제로 생성을 돌려야 보이므로 로컬에서 확인할 방법이 필요하다. */
-    if (process.env.NEXT_PUBLIC_MOCK_ACTIVE_JOB) {
-      return { ...mockDashboard, activeGeneration: this.buildGenerationJob("job_demo", 1) };
+    /* 진행 카드는 실제로 생성을 돌려야 보이므로 로컬에서 확인할 방법이 필요하다.
+       실패 변형은 만들 방법이 아예 없어 눈으로 확인한 적이 없었고, 그 사이에
+       진행 중과 같은 라임 배경을 쓰고 있었다. `=failed`로 그 상태도 연다. */
+    const activeJobMode = process.env.NEXT_PUBLIC_MOCK_ACTIVE_JOB;
+    if (activeJobMode) {
+      const job = this.buildGenerationJob("job_demo", 1);
+      return {
+        ...mockDashboard,
+        activeGeneration:
+          activeJobMode === "failed"
+            ? {
+                ...job,
+                status: "failed" as const,
+                stage: "failed" as const,
+                error: {
+                  code: "GENERATION_FAILED" as const,
+                  message: "저장소를 읽는 중에 멈췄어요.",
+                  retryable: true,
+                },
+              }
+            : job,
+      };
     }
     return mockDashboard;
   }

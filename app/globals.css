@@ -2955,12 +2955,21 @@ a {
   gap: var(--space-4);
   align-items: center;
   justify-content: space-between;
-  margin-top: var(--space-6);
-  padding: var(--space-4) var(--space-6);
+  /* 아래 여백이 0이라 바로 다음 섹션에 붙어 있었다. 뒤따르는
+     .dashboard-main-section은 자기가 페이지의 첫 요소라는 전제로
+     padding-top: 0이라, 이 카드가 끼면 둘이 맞닿는다. 위쪽 여백은 컨테이너의
+     padding-top(64px)이 이미 주므로 여기서 더하지 않고, 아래에 같은 크기를
+     둬서 카드가 하나의 띠로 읽히게 한다. */
+  margin: 0 0 var(--space-16);
+  padding: var(--space-6) var(--space-8);
   border: 1px solid var(--ink);
   border-radius: 14px;
   background: var(--lime-soft);
 }
+
+/* 멈춘 작업은 진행 중과 같은 색이면 안 된다. 색이 상태를 거꾸로 말한다. */
+.active-generation.stopped { border-color: var(--coral); background: #fdeeea; }
+.active-generation.stopped .eyebrow { color: var(--coral); }
 
 .active-generation strong { display: block; margin-top: var(--space-1); font-size: var(--text-md); }
 .active-generation span { color: var(--ink-soft); font-size: var(--text-xs); }
