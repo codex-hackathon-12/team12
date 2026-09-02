@@ -225,10 +225,20 @@ export async function retryJob(userId: string, jobId: string): Promise<RetryJobR
 }
 
 /**
+ * 실패를 대시보드에 붙여두는 기간.
+ *
+ * 실패한 작업도 보여주는 이유는 화면을 떠난 사이에 실패하면 흔적도 없이
+ * 사라지기 때문이다. 그런데 기한을 두지 않아, 언제 실패했든 대시보드 맨 위에
+ * 영원히 남았다. 만들기를 누른 적조차 없는 사람에게 "다시 시도하기"가 계속
+ * 떠 있었다. 실패는 소식이지 상태가 아니다 — 하루가 지나면 소식이 아니다.
+ * 그 뒤로는 작업 자체가 사라지는 게 아니라 이 자리에서만 내려간다.
+ */
+const FAILURE_NOTICE_MS = 24 * 60 * 60 * 1000;
+
+/**
  * 대시보드에 보여줄, 지금 신경 써야 할 작업 하나.
  *
- * 활성 작업은 부분 유니크 인덱스가 사용자당 하나로 보장한다. 실패한 작업도
- * 함께 본다 — 화면을 떠난 사이에 실패하면 지금은 흔적도 없이 사라진다.
+ * 진행 중인 작업은 부분 유니크 인덱스가 사용자당 하나로 보장한다.
  * 조회 전에 멈춘 작업을 정리해, 영원히 처리 중인 것처럼 보이지 않게 한다.
  */
 export async function getActiveJob(userId: string) {
@@ -246,7 +256,17 @@ export async function getActiveJob(userId: string) {
   if (error) {
     throw new Error("Unable to load the active generation job.");
   }
-  return data ? toDto(data as Record<string, unknown>) : null;
+  if (!data) return null;
+
+  const job = toDto(data as Record<string, unknown>);
+  if (job.status === "failed" && !isRecentFailure(job.updatedAt)) return null;
+  return job;
+}
+
+/** 실패 시각이 안내 기간 안인지. 시각을 못 읽으면 오래된 것으로 본다. */
+function isRecentFailure(updatedAt: string, now: number = Date.now()): boolean {
+  const at = Date.parse(updatedAt);
+  return Number.isFinite(at) && now - at < FAILURE_NOTICE_MS;
 }
 
 export { getJob };

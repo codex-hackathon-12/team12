@@ -66,7 +66,12 @@ export default function DashboardPage() {
           진행 중인 작업을 보여주는 곳이 없었다. 실패한 작업도 함께 보여준다 —
           화면을 떠난 사이에 실패하면 흔적도 없이 사라졌다. */}
       {active ? (
-        <section className="active-generation" aria-label="진행 중인 생성">
+        /* 실패한 작업이 진행 중과 같은 라임 배경이었다. 멈춘 일이 진행처럼
+           보이면 색이 상태를 거꾸로 말한다. */
+        <section
+          className={active.status === "failed" ? "active-generation stopped" : "active-generation"}
+          aria-label={active.status === "failed" ? "멈춘 생성" : "진행 중인 생성"}
+        >
           <div>
             <p className="eyebrow">
               {active.status === "failed" ? "GENERATION STOPPED" : "IN PROGRESS"}

@@ -80,6 +80,18 @@ for (const [fg, bg, min, label] of TEXT_PAIRS) {
   });
 }
 
+test("멈춘 생성 카드의 글자가 읽힌다", () => {
+  /* 실패 카드는 진행 중과 구분하려고 연한 코랄 배경을 쓴다. 토큰이 아니라
+     이 카드에서만 쓰는 값이라 :root에 없고, 그래서 위 표가 덮지 못한다. */
+  const match = css.match(/\.active-generation\.stopped\s*\{[^}]*background:\s*(#[0-9a-fA-F]{6})/u);
+  assert.ok(match, ".active-generation.stopped의 배경색을 찾지 못했어요");
+  const background = match[1];
+  for (const [fg, label] of [["--coral", "STOPPED 라벨"], ["--ink", "실패 사유"], ["--ink-soft", "보조 설명"]]) {
+    const ratio = contrast(hex(fg), background);
+    assert.ok(ratio >= 4.5, `${label}: ${ratio.toFixed(2)}:1 — 4.5:1 이상이어야 해요`);
+  }
+});
+
 test("흰 글자를 얹는 배경은 흰색 기준으로도 통과해야 한다", () => {
   // 로그아웃 실패 배너, 공지 배지, 위험 버튼이 전부 코랄 배경에 흰 글자다.
   const ratio = contrast("#ffffff", hex("--coral"));
