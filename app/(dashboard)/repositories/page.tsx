@@ -243,7 +243,7 @@ export default function RepositoriesPage() {
         </div>
       ) : visible.length === 0 ? (
         <div className="empty-state">
-          <span>0 results</span>
+          <span>NO MATCH</span>
           <h2>
             {query.trim()
               ? `‘${query.trim()}’에 맞는 저장소가 없어요.`

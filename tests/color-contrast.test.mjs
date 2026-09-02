@@ -110,10 +110,16 @@ test("포커스 표시는 한 곳에서만 정의한다", () => {
      select·textarea·아바타에는 표시가 아예 없었다. */
   /* outline: none으로 끄는 것(본문 컨테이너처럼 프로그램으로만 포커스를 받는 곳)은
      세지 않는다. 세려는 건 "링을 그리는 곳"이다. */
-  const drawn = (css.match(/:focus-visible\s*\{[^}]*outline:[^;]*;/gu) ?? []).filter(
+  const drawn = (css.match(/:focus-visible\)?\s*\{[^}]*outline:[^;]*;/gu) ?? []).filter(
     (rule) => !/outline:\s*none/u.test(rule),
   );
-  assert.equal(drawn.length, 1, `포커스 링을 그리는 선언이 하나여야 해요 (지금 ${drawn.length}개)`);
+  /* 둘째는 결제 상품 카드다. 포커스를 받는 라디오가 시각적으로 숨겨져 있어
+     카드가 표시를 대신 그린다 — 규칙을 어기는 게 아니라 위임하는 경우다. */
+  assert.equal(drawn.length, 2, `포커스 링을 그리는 선언이 둘이어야 해요 (지금 ${drawn.length}개)`);
+  assert.ok(
+    css.includes(".product-card:has(:focus-visible)"),
+    "상품 카드의 포커스 표시는 :focus-within이 아니라 :focus-visible이어야 해요",
+  );
   assert.ok(!css.includes("rgb(97 112 255 / 38%)"), "반투명 포커스 링이 남아 있어요");
 });
 

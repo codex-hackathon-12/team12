@@ -2440,7 +2440,9 @@ a {
 .product-card:hover { transform: translateY(-4px); }
 /* 선택 상태는 라디오가 들고 있다. 클래스로 흉내 내지 않는다. */
 .product-card:has(:checked) { border-color: var(--ink); box-shadow: 7px 8px 0 var(--ink); }
-.product-card:focus-within { outline: 3px solid var(--blue); outline-offset: 3px; }
+/* 실제 포커스를 받는 라디오는 시각적으로 숨겨져 있으므로 표시를 카드가 대신 그린다.
+   :focus-within은 마우스 클릭에도 켜지므로 조건은 :focus-visible이다. */
+.product-card:has(:focus-visible) { outline: 3px solid var(--blue); outline-offset: 3px; }
 .product-card.featured { background: var(--lime-soft); }
 .recommended-label { position: absolute; top: 0; right: 0; padding: 8px 11px; background: var(--ink); color: white; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8px; letter-spacing: 0.08em; }
 .product-radio { display: block; width: 18px; height: 18px; margin-bottom: 48px; border: 1px solid var(--ink); border-radius: 50%; }
