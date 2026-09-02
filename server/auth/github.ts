@@ -1,37 +1,13 @@
 import type { GitHubConnectionDto, GitHubScopeDto } from "@/contracts/api-contract";
+import { REQUESTED_SCOPES } from "@/lib/scopes";
+
+export { REQUESTED_SCOPES };
 import { encryptSecret } from "@/server/auth/crypto";
 import { isTokenExpiring } from "@/server/auth/github-token";
 import { getGitHubEnvironment } from "@/server/config/env";
 import { TIMEOUTS, fetchWithTimeout } from "@/server/net/fetch";
 import { getSupabaseClient } from "@/server/supabase/client";
 
-/** 로그인에서 요청하는 스코프. 화면에 설명을 보여줘야 하므로 여기 한 곳에서만 정의한다. */
-export const REQUESTED_SCOPES: Array<Omit<GitHubScopeDto, "granted">> = [
-  {
-    name: "read:user",
-    label: "프로필 읽기",
-    description: "이름과 아바타 등 공개 프로필을 읽어 포트폴리오 머리말에 씁니다.",
-    required: true,
-  },
-  {
-    name: "user:email",
-    label: "이메일 읽기",
-    description: "연락처로 쓸 대표 이메일을 읽습니다.",
-    required: false,
-  },
-  {
-    name: "repo",
-    label: "저장소 접근 (private 포함)",
-    description: "저장소 목록과 커밋·PR 근거를 읽습니다. 코드를 쓰거나 바꾸지 않습니다.",
-    required: true,
-  },
-  {
-    name: "read:org",
-    label: "조직 정보 읽기",
-    description: "조직 소속 저장소를 목록에 함께 보여줍니다.",
-    required: false,
-  },
-];
 
 /* GitHub는 토큰 응답에서 스코프를 쉼표로 이어 준다("repo,read:org"). 공백으로만 자르면
    통째로 한 덩어리가 저장돼 어떤 권한을 받았는지 비교할 수 없다. */

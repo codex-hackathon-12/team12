@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { TasteSampleDto } from "@/contracts/api-contract";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { apiClient } from "@/lib/api-client";
+import { MOCK_CHIP } from "@/lib/copy";
+import { REQUESTED_SCOPES } from "@/lib/scopes";
+import { LABEL } from "@/lib/copy";
 
 /* 로그인 콜백이 실패를 사유와 함께 돌려보낸다. 사유마다 사용자가 할 일이 다르다. */
 const AUTH_FAILURE_MESSAGES: Record<string, string> = {
@@ -72,7 +75,7 @@ function LandingPage() {
   }, [router]);
 
   if (!isAnonymous) {
-    return <LoadingState label="로그인 상태를 확인하고 있어요" />;
+    return <LoadingState label="화면을 불러오고 있어요" />;
   }
 
   const loginHref = apiClient.getGitHubLoginUrl("/dashboard");
@@ -86,7 +89,7 @@ function LandingPage() {
           <span className="brand-beta">beta</span>
         </Link>
         <nav aria-label="랜딩 메뉴">
-          <Link className="text-link" href="/gallery">갤러리</Link>
+          <Link className="text-link" href="/gallery">{LABEL.gallery}</Link>
           <Link className="button secondary" href={loginHref}>
             GitHub 로그인
           </Link>
@@ -103,7 +106,7 @@ function LandingPage() {
           </h1>
           <p className="hero-description">
             저장소 속 선택과 성과를 읽고, 지원 직무에 맞는 포트폴리오로
-            정리해드려요. 복잡한 편집 없이 프롬프트 하나면 충분합니다.
+            정리해드려요. 복잡한 편집 없이 프롬프트 하나면 충분해요.
           </p>
           {/* 로그인이 실패한 채 돌아온 경우, 왜 그런지와 다음에 뭘 하면 되는지를
               로그인 버튼 바로 옆에서 알려준다. */}
@@ -122,8 +125,27 @@ function LandingPage() {
           </div>
           <div className="hero-proof">
             <span>✓ 회원가입 없이 GitHub로 로그인</span>
-            <span>✓ MVP 기간 실제 결제 없음</span>
+            <span>✓ {MOCK_CHIP}</span>
           </div>
+
+          {/* 어떤 권한을 왜 요구하는지 GitHub 동의 화면에 가기 전에 읽을 수 있어야
+              한다. 예전에는 같은 설명이 설정 화면에만 있었고, 그건 권한을 이미 준
+              뒤다. 근거: NN/g — 이유를 먼저 설명하면 승인률이 크게 오른다. */}
+          <details className="scope-disclosure">
+            <summary>GitHub에서 어떤 권한을 요청하나요?</summary>
+            <ul>
+              {REQUESTED_SCOPES.map((scope) => (
+                <li key={scope.name}>
+                  <strong>
+                    {scope.label}
+                    {scope.required ? null : <em> (선택)</em>}
+                  </strong>
+                  <span>{scope.description}</span>
+                </li>
+              ))}
+            </ul>
+            <p>권한은 GitHub 설정에서 언제든 거둘 수 있어요.</p>
+          </details>
         </div>
 
         <div className="hero-product" aria-label="포트폴리오 생성 과정 미리보기">

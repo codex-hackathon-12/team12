@@ -58,7 +58,7 @@ test("returns a safe internal error response and redacts secrets from exception 
     assert.equal(response.status, 500);
     assert.equal(response.headers.get("x-api-error-code"), "INTERNAL_ERROR");
     assert.deepEqual(await response.json(), {
-      error: { code: "INTERNAL_ERROR", message: "요청을 처리하지 못했습니다." },
+      error: { code: "INTERNAL_ERROR", message: "요청을 처리하지 못했어요." },
     });
     assert.equal(entry.event, "api.request.exception");
     assert.equal(entry.domain, "auth");

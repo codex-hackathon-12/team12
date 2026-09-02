@@ -31,7 +31,7 @@ export default function GalleryPage() {
           <p className="eyebrow">PORTFOLIO GALLERY</p>
           <h1>완성된 결과에서<br />나만의 방향을 찾아보세요.</h1>
         </div>
-        <p>직무와 기술은 달라도 좋은 포트폴리오에는 분명한 맥락과 선택의 이유가 있습니다.</p>
+        <p>직무와 기술은 달라도 좋은 포트폴리오에는 분명한 맥락과 선택의 이유가 있어요.</p>
       </header>
 
       <div className="gallery-filters" aria-label="직무 필터">
@@ -53,7 +53,7 @@ export default function GalleryPage() {
           <button type="button" onClick={reload}>다시 불러오기</button>
         </p>
       ) : !examples ? (
-        <LoadingState label="포트폴리오 예시를 모으고 있어요" />
+        <LoadingState label="포트폴리오 예시를 불러오고 있어요" />
       ) : examples.length === 0 ? (
         <div className="empty-state">
           <span>NO MATCH</span>

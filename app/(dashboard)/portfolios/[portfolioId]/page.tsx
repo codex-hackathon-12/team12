@@ -9,6 +9,7 @@ import { useAsyncData } from "@/hooks/useAsyncData";
 import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { LABEL } from "@/lib/copy";
 
 export default function PortfolioResultPage() {
   const params = useParams<{ portfolioId: string }>();
@@ -48,13 +49,13 @@ export default function PortfolioResultPage() {
         <h1>{loadError}</h1>
         <div className="page-state-actions">
           <button className="button primary" type="button" onClick={reload}>다시 불러오기</button>
-          <Link className="button secondary" href="/portfolios">목록으로 돌아가기</Link>
+          <Link className="button secondary" href="/portfolios">{LABEL.portfolios}로 돌아가기</Link>
         </div>
       </section>
     );
   }
 
-  if (!portfolio) return <LoadingState label="완성된 포트폴리오를 펼치고 있어요" />;
+  if (!portfolio) return <LoadingState label="포트폴리오를 불러오고 있어요" />;
 
   const sourceLabel = portfolio.repositories.length > 1
     ? `${portfolio.repository.fullName} 외 ${portfolio.repositories.length - 1}개`
@@ -114,7 +115,7 @@ export default function PortfolioResultPage() {
           </div>
         </div>
         <div className="result-actions">
-          <Link className="button secondary" href="/repositories">다시 만들기</Link>
+          <Link className="button secondary" href="/repositories">{LABEL.create}</Link>
           {share?.published ? (
             /* 공개 해제는 이미 보낸 링크를 전부 죽인다. 링크 복사 바로 옆에서
                한 번의 실수로 일어나면 받은 사람은 404만 보고 이유를 알 수 없다.
@@ -208,7 +209,7 @@ export default function PortfolioResultPage() {
         </div>
       ) : null}
       <div className="page-container result-footer-actions">
-        <Link className="text-link" href="/dashboard">← 대시보드로 돌아가기</Link>
+        <Link className="text-link" href="/dashboard">← {LABEL.dashboard}로 돌아가기</Link>
         <p>인쇄 화면에서 “PDF로 저장”을 고르면 A4 이력서로 남길 수 있어요.</p>
       </div>
     </div>

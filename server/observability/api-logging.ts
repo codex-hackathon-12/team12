@@ -58,7 +58,7 @@ function writeLog(level: "warn" | "error", values: Record<string, unknown>): voi
 
 function internalErrorResponse(): Response {
   return new Response(
-    JSON.stringify({ error: { code: "INTERNAL_ERROR", message: "요청을 처리하지 못했습니다." } }),
+    JSON.stringify({ error: { code: "INTERNAL_ERROR", message: "요청을 처리하지 못했어요." } }),
     {
       status: 500,
       headers: {

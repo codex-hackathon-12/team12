@@ -7,6 +7,7 @@ import { apiClient } from "@/lib/api-client";
 import { formatDay } from "@/lib/format";
 import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { LABEL } from "@/lib/copy";
 
 
 export default function PortfolioListPage() {
@@ -14,6 +15,8 @@ export default function PortfolioListPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* 로드 실패의 복구는 실패한 요청만 다시 보내는 것으로 통일한다. */
+  const [reloadToken, setReloadToken] = useState(0);
 
   // 삭제는 되돌릴 수 없어 카드 자리에서 한 번 더 확인받는다.
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -28,7 +31,7 @@ export default function PortfolioListPage() {
         setNextCursor(response.hasNextPage ? response.nextCursor : null);
       })
       .catch(() => setError("포트폴리오 목록을 불러오지 못했어요."));
-  }, []);
+  }, [reloadToken]);
 
   /* 실패해도 진행 표시를 반드시 되돌린다. 되돌리지 않으면 버튼이 "불러오는 중…"
      상태로 영영 잠겨 새로고침 말고는 방법이 없다. 상세 화면은 이미 이렇게 한다. */
@@ -68,7 +71,14 @@ export default function PortfolioListPage() {
       <section className="page-container page-state">
         <p className="eyebrow">MY PORTFOLIOS</p>
         <h1>{error}</h1>
-        <button className="button primary" type="button" onClick={() => window.location.reload()}>
+        <button
+          className="button primary"
+          type="button"
+          onClick={() => {
+            setError(null);
+            setReloadToken((value) => value + 1);
+          }}
+        >
           다시 불러오기
         </button>
       </section>
@@ -82,7 +92,7 @@ export default function PortfolioListPage() {
           <p className="eyebrow">MY PORTFOLIOS</p>
           <h1>내가 만든 포트폴리오</h1>
         </div>
-        <Link className="text-link" href="/repositories">새로 만들기 →</Link>
+        <Link className="text-link" href="/repositories">{LABEL.create} →</Link>
       </header>
 
       {!portfolios ? (
@@ -92,7 +102,7 @@ export default function PortfolioListPage() {
           <div>
             <span className="eyebrow">NO PORTFOLIO</span>
             <h2>아직 만든 포트폴리오가 없어요.</h2>
-            <Link className="button primary" href="/repositories">첫 포트폴리오 만들기 →</Link>
+            <Link className="button primary" href="/repositories">{LABEL.create} →</Link>
           </div>
         </div>
       ) : (

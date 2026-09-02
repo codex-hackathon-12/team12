@@ -109,7 +109,7 @@ const request = async <TData>(url: string, init?: RequestInit) => {
     });
   } catch {
     throw new ApiClientError(
-      "서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요.",
+      "서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.",
       0,
     );
   }
@@ -121,7 +121,7 @@ const request = async <TData>(url: string, init?: RequestInit) => {
     const error = isApiErrorResponse(body) ? body : undefined;
     if (response.status === 401) redirectToGitHubLogin();
     throw new ApiClientError(
-      error?.error.message ?? "요청을 처리하지 못했습니다.",
+      error?.error.message ?? "요청을 처리하지 못했어요.",
       response.status,
       error,
       requestId,
@@ -130,7 +130,7 @@ const request = async <TData>(url: string, init?: RequestInit) => {
 
   if (!isApiSuccessResponse<TData>(body)) {
     throw new ApiClientError(
-      "서버 응답 형식을 확인하지 못했습니다.",
+      "서버 응답 형식을 확인하지 못했어요.",
       response.status,
       undefined,
       requestId,

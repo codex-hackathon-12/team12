@@ -5,15 +5,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { GitHubUserDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
+import { LABEL, SHORT_LABEL } from "@/lib/copy";
 
 // 항목 수를 바꾸면 app/globals.css의 .mobile-nav 열 수도 함께 바꿔야 한다.
 const navigation = [
-  { href: "/dashboard", label: "대시보드" },
-  { href: "/portfolios", label: "내 포트폴리오" },
-  { href: "/repositories", label: "포트폴리오 만들기" },
-  { href: "/gallery", label: "갤러리" },
-  { href: "/billing", label: "크레딧" },
-];
+  { href: "/dashboard", key: "dashboard" },
+  { href: "/portfolios", key: "portfolios" },
+  { href: "/repositories", key: "create" },
+  { href: "/gallery", key: "gallery" },
+  { href: "/billing", key: "billing" },
+] as const;
 
 const isCurrentPath = (pathname: string, href: string) => {
   if (href === "/dashboard") return pathname === href;
@@ -103,7 +104,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   isCurrentPath(pathname, item.href) ? "nav-link active" : "nav-link"
                 }
               >
-                {item.label}
+                {LABEL[item.key]}
               </Link>
             ))}
           </nav>
@@ -119,7 +120,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <Link
               className={pathname.startsWith("/settings") ? "avatar-button active" : "avatar-button"}
               href="/settings"
-              aria-label={user ? `${user.displayName} 계정 설정` : "계정 설정"}
+              aria-label={user ? `${user.displayName} ${LABEL.settings}` : LABEL.settings}
             >
               {user ? [...user.displayName][0] : ""}
             </Link>
@@ -156,11 +157,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             }
           >
             <span className="mobile-nav-dot" aria-hidden="true" />
-            {item.label === "포트폴리오 만들기"
-              ? "만들기"
-              : item.label === "내 포트폴리오"
-                ? "내 작업"
-                : item.label}
+            {SHORT_LABEL[item.key] ?? LABEL[item.key]}
           </Link>
         ))}
       </nav>

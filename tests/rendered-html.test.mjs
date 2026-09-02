@@ -82,7 +82,7 @@ test("server-renders the folio.ai dashboard shell", async (context) => {
 
   const html = await response.text();
   assert.match(html, /folio\.ai/);
-  assert.match(html, /오늘의 작업 공간을 준비하고 있어요/);
+  assert.match(html, /대시보드를 불러오고 있어요/);
   assert.match(html, /GitHub 포트폴리오 AI/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });

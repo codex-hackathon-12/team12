@@ -10,6 +10,7 @@ import type {
 import { apiClient } from "@/lib/api-client";
 import { formatLongDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { MOCK_CHIP, MOCK_NOTE } from "@/lib/copy";
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW" }).format(price);
@@ -79,7 +80,7 @@ export default function BillingPage() {
     );
   }
 
-  if (!products) return <LoadingState label="크레딧 정보를 준비하고 있어요" />;
+  if (!products) return <LoadingState label="크레딧 정보를 불러오고 있어요" />;
 
   return (
     <div className="page-container billing-page">
@@ -97,7 +98,7 @@ export default function BillingPage() {
           <div className="credit-balance-card">
             <span>남은 크레딧</span>
             <strong>{user.creditBalance}<small> credits</small></strong>
-            <p>포트폴리오 한 번 만들 때 1 크레딧을 써요.</p>
+            <p>포트폴리오 한 번 만들 때 1 크레딧을 써요. {MOCK_NOTE}</p>
           </div>
         ) : null}
         {/* 하나만 고르는 묶음인데 선택 여부가 클래스에만 있었다. 화면 낭독기로는
@@ -130,7 +131,7 @@ export default function BillingPage() {
           ))}
         </fieldset>
         <button className="button primary checkout-button" type="button" onClick={checkout} disabled={submitting}>
-          {submitting ? "Mock 결제 처리 중…" : "선택한 상품으로 결제 체험하기"}
+          {submitting ? "결제 체험 처리 중…" : "선택한 상품으로 결제 체험하기"}
           {!submitting && <span aria-hidden="true">→</span>}
         </button>
         {checkoutError ? <p className="inline-error" role="alert">{checkoutError}</p> : null}
@@ -142,7 +143,7 @@ export default function BillingPage() {
             <p className="eyebrow">HISTORY</p>
             <h2>최근 결제 내역</h2>
           </div>
-          <span>Mock data</span>
+          <span>{MOCK_CHIP}</span>
         </div>
         {payments.map((payment) => (
           <div className="payment-row" key={payment.id}>
@@ -152,7 +153,7 @@ export default function BillingPage() {
               <span>{formatLongDay(payment.createdAt)} · 체험 완료</span>
             </div>
             <strong>{formatPrice(payment.priceKrw)}</strong>
-            <span className="mock-badge">잔액 변동 없음</span>
+            <span className="mock-badge">차감 없음</span>
           </div>
         ))}
       </section>

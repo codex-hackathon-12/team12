@@ -8,12 +8,16 @@ import { apiClient } from "@/lib/api-client";
 import { stageMessage, stageValueText } from "@/lib/copy";
 import { formatDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { LABEL, MOCK_NOTE } from "@/lib/copy";
 
 
 export default function DashboardPage() {
   const router = useRouter();
   const [dashboard, setDashboard] = useState<DashboardDto | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /* 실패했을 때 window.location.reload()로 화면을 통째로 다시 열고 있었다.
+     스크롤도 다른 화면의 입력도 함께 날아간다. 실패한 요청만 다시 보낸다. */
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     apiClient
@@ -26,21 +30,28 @@ export default function DashboardPage() {
         setDashboard(response);
       })
       .catch(() => setError("대시보드 정보를 불러오지 못했어요."));
-  }, [router]);
+  }, [router, reloadToken]);
 
   if (error) {
     return (
       <section className="page-container page-state">
         <p className="eyebrow">DASHBOARD</p>
         <h1>{error}</h1>
-        <button className="button primary" onClick={() => window.location.reload()}>
+        <button
+          className="button primary"
+          type="button"
+          onClick={() => {
+            setError(null);
+            setReloadToken((value) => value + 1);
+          }}
+        >
           다시 불러오기
         </button>
       </section>
     );
   }
 
-  if (!dashboard) return <LoadingState label="오늘의 작업 공간을 준비하고 있어요" />;
+  if (!dashboard) return <LoadingState label="대시보드를 불러오고 있어요" />;
 
   const active = dashboard.activeGeneration;
 
@@ -78,8 +89,8 @@ export default function DashboardPage() {
               <h2>이어서 다듬기</h2>
             </div>
             <div className="section-title-links">
-              <Link className="text-link" href="/portfolios">전체 보기 →</Link>
-              <Link className="text-link" href="/repositories">새로 만들기 →</Link>
+              <Link className="text-link" href="/portfolios">{LABEL.portfolios} →</Link>
+              <Link className="text-link" href="/repositories">{LABEL.create} →</Link>
             </div>
           </div>
           {/* 처음 온 사람의 첫 화면이 제목 두 개 아래 아무것도 없는 상태였다. */}
@@ -89,7 +100,7 @@ export default function DashboardPage() {
               <h2>아직 만든 포트폴리오가 없어요.</h2>
               <p>GitHub 저장소를 고르면 첫 포트폴리오를 만들어드려요.</p>
               <Link className="button primary" href="/repositories">
-                첫 포트폴리오 만들기
+                {LABEL.create}
               </Link>
             </div>
           ) : null}
@@ -157,7 +168,7 @@ export default function DashboardPage() {
           <span>최근 포트폴리오</span>
           <strong>{dashboard.recentPortfolios.length}</strong>
         </div>
-        <p>현재 모든 크레딧은 체험용이며 실제로 차감되지 않아요.</p>
+        <p>{MOCK_NOTE}</p>
       </section>
     </div>
   );

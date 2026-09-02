@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { GenerationJobDto } from "@/contracts/api-contract";
 import {
   GENERATION_STEPS,
+  LABEL,
   elapsedLabel,
   progressPercent,
   stageIndex,
@@ -86,7 +87,7 @@ export function GenerationProgress({ job }: { job: GenerationJobDto }) {
       <div className="progress-exit">
         <p>이 화면을 닫아도 계속 만들어져요.</p>
         <Link className="button secondary" href="/dashboard">
-          대시보드에서 보기
+          {LABEL.dashboard}에서 보기
         </Link>
       </div>
     </div>
