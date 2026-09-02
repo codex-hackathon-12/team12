@@ -443,6 +443,9 @@ export const mockDashboard = {
   session: mockSession,
   credits: mockCredits,
   tasteSample: mockTasteSample,
+  /* 목에서는 진행 중인 작업이 없는 상태를 기본으로 둔다. 진행 카드를 보려면
+     NEXT_PUBLIC_MOCK_ACTIVE_JOB=1로 켠다. */
+  activeGeneration: null,
   recentPortfolios: mockPortfolioSummaries,
   announcements: mockAnnouncements,
 } satisfies DashboardDto;

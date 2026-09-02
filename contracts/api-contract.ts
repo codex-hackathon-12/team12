@@ -248,6 +248,7 @@ export interface GenerationJobDto {
   status: GenerationStatus;
   stage: GenerationStage;
   progress: number;
+  /** 진단용 기록. 화면에 그대로 쓰지 않는다 — 문구는 lib/copy.ts가 만든다. */
   message: string;
   portfolioId: EntityId | null;
   creditQuote: CreditQuoteDto;
@@ -444,6 +445,8 @@ export interface DashboardDto {
   session: AuthSessionDto;
   credits: CreditSummaryDto;
   tasteSample: TasteSampleDto;
+  /** 진행 중이거나 방금 실패한 생성. 없으면 null. 사용자당 하나만 존재한다. */
+  activeGeneration: GenerationJobDto | null;
   recentPortfolios: PortfolioSummaryDto[];
   announcements: AnnouncementSummaryDto[];
 }
