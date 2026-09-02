@@ -2967,6 +2967,26 @@ a {
   background: var(--lime-soft);
 }
 
+.active-generation-actions { display: flex; gap: var(--space-3); align-items: center; }
+
+/* 닫기는 옆 버튼보다 약하게 보여야 한다. 다시 시도하기가 주 행동이다. */
+.notice-dismiss {
+  display: grid;
+  place-items: center;
+  /* flex 안에서 줄어들면 원이 타원이 된다. 320px에서 30×38이 됐다. */
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line-control);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.notice-dismiss:hover { border-color: var(--ink); color: var(--ink); }
+
 /* 멈춘 작업은 진행 중과 같은 색이면 안 된다. 색이 상태를 거꾸로 말한다. */
 .active-generation.stopped { border-color: var(--coral); background: #fdeeea; }
 .active-generation.stopped .eyebrow { color: var(--coral); }
@@ -2977,6 +2997,8 @@ a {
 @media (max-width: 780px) {
   .active-generation { align-items: stretch; flex-direction: column; }
   .active-generation .button { width: 100%; }
+  /* 주 행동만 늘리고 닫기는 원래 크기를 지킨다. */
+  .active-generation-actions .button { flex: 1; }
 }
 
 /* 종이 조판.

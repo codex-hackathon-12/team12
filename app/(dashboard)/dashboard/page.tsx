@@ -9,6 +9,7 @@ import { stageMessage, stageValueText } from "@/lib/copy";
 import { formatDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { LABEL, MOCK_NOTE } from "@/lib/copy";
+import { dismissNotice, useDismissedNotice } from "@/lib/dismissed-notice";
 
 
 export default function DashboardPage() {
@@ -18,6 +19,7 @@ export default function DashboardPage() {
   /* 실패했을 때 window.location.reload()로 화면을 통째로 다시 열고 있었다.
      스크롤도 다른 화면의 입력도 함께 날아간다. 실패한 요청만 다시 보낸다. */
   const [reloadToken, setReloadToken] = useState(0);
+  const dismissed = useDismissedNotice();
 
   useEffect(() => {
     apiClient
@@ -53,7 +55,12 @@ export default function DashboardPage() {
 
   if (!dashboard) return <LoadingState label="대시보드를 불러오고 있어요" />;
 
-  const active = dashboard.activeGeneration;
+  /* 이미 본 안내는 치울 수 있어야 한다. 서버가 24시간 뒤에 내려주지만,
+     그때까지 같은 자리를 차지한다. */
+  const active =
+    dashboard.activeGeneration && dashboard.activeGeneration.jobId !== dismissed
+      ? dashboard.activeGeneration
+      : null;
 
   return (
     <div className="page-container dashboard-page authenticated-dashboard">
@@ -85,9 +92,27 @@ export default function DashboardPage() {
               <span>{stageValueText(active)}</span>
             )}
           </div>
-          <Link className="button secondary" href={`/create/${active.jobId}/processing`}>
-            {active.status === "failed" ? "다시 시도하기" : "진행 상황 보기"}
-          </Link>
+          <div className="active-generation-actions">
+            <Link className="button secondary" href={`/create/${active.jobId}/processing`}>
+              {active.status === "failed" ? "다시 시도하기" : "진행 상황 보기"}
+            </Link>
+            {/* 진행 중인 작업은 지금 벌어지는 일이라 닫을 대상이 아니다.
+                멈춘 작업만 치운다. 카드가 사라지면 포커스가 body로 떨어지므로
+                본문으로 옮긴다 — 키보드 사용자가 처음부터 훑지 않게. */}
+            {active.status === "failed" ? (
+              <button
+                className="notice-dismiss"
+                type="button"
+                aria-label="멈춘 생성 안내 닫기"
+                onClick={() => {
+                  dismissNotice(active.jobId);
+                  document.getElementById("main-content")?.focus({ preventScroll: true });
+                }}
+              >
+                <span aria-hidden="true">✕</span>
+              </button>
+            ) : null}
+          </div>
         </section>
       ) : null}
 
