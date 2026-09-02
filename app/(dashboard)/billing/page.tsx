@@ -11,6 +11,7 @@ import { apiClient } from "@/lib/api-client";
 import { formatLongDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { MOCK_CHIP, MOCK_NOTE } from "@/lib/copy";
+import { LABEL } from "@/lib/copy";
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW" }).format(price);
@@ -84,6 +85,11 @@ export default function BillingPage() {
 
   return (
     <div className="page-container billing-page">
+        {/* 이 화면들은 시각적 제목이 없는 디자인이다. 화면에서는 내비게이션이
+            강조돼 지금 어디인지 알 수 있지만, 낭독기에는 그 단서가 없다.
+            제목 하나로 이동하는 사용자에게 화면 이름을 준다(SC 2.4.6).
+            내비게이션 라벨과 같은 말을 써야 눌러서 온 링크와 이어진다. */}
+        <h1 className="sr-only">{LABEL.billing}</h1>
       <section className="billing-products">
         <div className="section-title-row compact-title">
           <div>

@@ -57,6 +57,11 @@ export default function DashboardPage() {
 
   return (
     <div className="page-container dashboard-page authenticated-dashboard">
+        {/* 이 화면들은 시각적 제목이 없는 디자인이다. 화면에서는 내비게이션이
+            강조돼 지금 어디인지 알 수 있지만, 낭독기에는 그 단서가 없다.
+            제목 하나로 이동하는 사용자에게 화면 이름을 준다(SC 2.4.6).
+            내비게이션 라벨과 같은 말을 써야 눌러서 온 링크와 이어진다. */}
+        <h1 className="sr-only">{LABEL.dashboard}</h1>
       {/* 진행 화면이 "대시보드에서 확인해주세요"라고 안내하는데 정작 여기에
           진행 중인 작업을 보여주는 곳이 없었다. 실패한 작업도 함께 보여준다 —
           화면을 떠난 사이에 실패하면 흔적도 없이 사라졌다. */}

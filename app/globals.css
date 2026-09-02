@@ -549,7 +549,11 @@ a {
 
 .settings-action-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  /* min()이 없으면 280px가 하한이 되어, 그보다 좁은 화면에서 칸이 줄지 못하고
+     화면 밖으로 나간다. 320px에서 페이지 전체에 28px 가로 스크롤이 생겼다
+     (WCAG 1.4.10 Reflow). 두 칸으로 놓고 싶다는 뜻은 그대로 두되, 자리가
+     없으면 화면 폭을 따르게 한다. */
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 16px;
   margin-top: 18px;
 }
