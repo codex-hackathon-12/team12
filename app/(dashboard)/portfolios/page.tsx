@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { PortfolioSummaryDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { formatDay } from "@/lib/format";
+import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 
@@ -126,35 +127,13 @@ export default function PortfolioListPage() {
 
                 <div className="portfolio-list-actions">
                   <Link className="text-link" href={`/portfolios/${portfolio.id}`}>열기 ↗</Link>
-                  {confirmingId === portfolio.id ? (
-                    <span className="delete-confirm" role="status">
-                      <strong>되돌릴 수 없어요.</strong>
-                      <button
-                        className="button danger"
-                        type="button"
-                        disabled={deletingId === portfolio.id}
-                        onClick={() => remove(portfolio.id)}
-                      >
-                        {deletingId === portfolio.id ? "삭제 중…" : "삭제할게요"}
-                      </button>
-                      <button
-                        className="text-link"
-                        type="button"
-                        disabled={deletingId === portfolio.id}
-                        onClick={() => setConfirmingId(null)}
-                      >
-                        취소
-                      </button>
-                    </span>
-                  ) : (
-                    <button
-                      className="text-link danger-link"
-                      type="button"
-                      onClick={() => setConfirmingId(portfolio.id)}
-                    >
-                      삭제
-                    </button>
-                  )}
+                  <DeleteAction
+                    confirming={confirmingId === portfolio.id}
+                    deleting={deletingId === portfolio.id}
+                    onAsk={() => setConfirmingId(portfolio.id)}
+                    onCancel={() => setConfirmingId(null)}
+                    onConfirm={() => remove(portfolio.id)}
+                  />
                 </div>
               </article>
             ))}
@@ -179,5 +158,67 @@ export default function PortfolioListPage() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * 카드 하나의 삭제 동작.
+ *
+ * 확인 줄이 열리면 눌렀던 버튼이 사라져 포커스가 body로 떨어졌다. 카드마다
+ * 독립된 복귀 지점이 필요해서 컴포넌트로 나눈다.
+ */
+function DeleteAction({
+  confirming,
+  deleting,
+  onAsk,
+  onCancel,
+  onConfirm,
+}: {
+  confirming: boolean;
+  deleting: boolean;
+  onAsk: () => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const { triggerRef, confirmRef, cancelReturn } = useReturnFocus(confirming);
+
+  if (!confirming) {
+    return (
+      <button className="text-link danger-link" type="button" ref={triggerRef} onClick={onAsk}>
+        삭제
+      </button>
+    );
+  }
+
+  return (
+    <span className="delete-confirm" role="status">
+      <strong>되돌릴 수 없어요.</strong>
+      <button
+        className="button danger"
+        type="button"
+        ref={confirmRef}
+        aria-disabled={deleting}
+        onClick={() => {
+          // aria-disabled는 클릭을 막지 않는다. 중복 실행은 여기서 막는다.
+          if (deleting) return;
+          // 삭제에 성공하면 카드가 사라진다. 돌아갈 자리가 없다.
+          cancelReturn();
+          onConfirm();
+        }}
+      >
+        {deleting ? "삭제 중…" : "삭제할게요"}
+      </button>
+      <button
+        className="text-link"
+        type="button"
+        aria-disabled={deleting}
+        onClick={() => {
+          if (deleting) return;
+          onCancel();
+        }}
+      >
+        취소
+      </button>
+    </span>
   );
 }

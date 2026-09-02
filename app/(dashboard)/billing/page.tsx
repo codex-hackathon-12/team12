@@ -83,14 +83,24 @@ export default function BillingPage() {
             <h2>크레딧 상품</h2>
           </div>
         </div>
-        <div className="product-grid">
+        {/* 하나만 고르는 묶음인데 선택 여부가 클래스에만 있었다. 화면 낭독기로는
+            어떤 상품이 결제되는지 알 수 없었고, 결제 직전 화면이다.
+            진짜 라디오로 만들면 화살표 이동과 상태 전달이 공짜로 따라온다. */}
+        <fieldset className="product-grid">
+          <legend className="sr-only">크레딧 상품 선택</legend>
           {products.map((product) => (
-            <button
-              className={`product-card ${selected === product.id ? "selected" : ""} ${product.isFeatured ? "featured" : ""}`}
-              type="button"
+            <label
+              className={`product-card ${product.isFeatured ? "featured" : ""}`}
               key={product.id}
-              onClick={() => setSelected(product.id)}
             >
+              <input
+                type="radio"
+                name="product"
+                className="sr-only"
+                value={product.id}
+                checked={selected === product.id}
+                onChange={() => setSelected(product.id)}
+              />
               {product.isFeatured && <span className="recommended-label">MOST POPULAR</span>}
               <span className="product-radio" aria-hidden="true" />
               <div>
@@ -99,9 +109,9 @@ export default function BillingPage() {
                 <p>{product.description}</p>
               </div>
               <span className="product-price">{formatPrice(product.priceKrw)}</span>
-            </button>
+            </label>
           ))}
-        </div>
+        </fieldset>
         <button className="button primary checkout-button" type="button" onClick={checkout} disabled={submitting}>
           {submitting ? "Mock 결제 처리 중…" : "선택한 상품으로 결제 체험하기"}
           {!submitting && <span aria-hidden="true">→</span>}

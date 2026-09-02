@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { PortfolioShareDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
+import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { PortfolioPreview } from "@/components/portfolio/PortfolioPreview";
 import { PrintButton } from "@/components/portfolio/PrintButton";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -29,6 +30,17 @@ export default function PortfolioResultPage() {
   const [confirmingUnpublish, setConfirmingUnpublish] = useState(false);
   const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  /* 훅이 돌려주는 객체를 JSX에서 점으로 꺼내면 린터가 렌더 중 ref 접근으로 본다.
+     여기서 풀어 둔다. */
+  const {
+    triggerRef: unpublishTriggerRef,
+    confirmRef: unpublishConfirmRef,
+  } = useReturnFocus(confirmingUnpublish);
+  const {
+    triggerRef: deleteTriggerRef,
+    confirmRef: deleteConfirmRef,
+    cancelReturn: cancelDeleteReturn,
+  } = useReturnFocus(confirmingDelete);
 
   if (loadError) {
     return (
@@ -52,7 +64,10 @@ export default function PortfolioResultPage() {
   /* 실패해도 진행 표시를 반드시 되돌린다. 되돌리지 않으면 버튼이 영영
      "삭제 중…"에 머물러 사용자가 다시 시도할 수 없다. */
   const remove = async () => {
+    // aria-disabled는 클릭을 막지 않는다. 중복 실행은 여기서 막는다.
+    if (deleting) return;
     setDeleting(true);
+    cancelDeleteReturn();
     setActionError(null);
     try {
       await apiClient.deletePortfolio(portfolio.id);
@@ -64,6 +79,7 @@ export default function PortfolioResultPage() {
   };
 
   const togglePublish = async (published: boolean) => {
+    if (sharing) return;
     setSharing(true);
     setCopied(false);
     setActionError(null);
@@ -111,7 +127,8 @@ export default function PortfolioResultPage() {
                 <button
                   className="button danger"
                   type="button"
-                  disabled={sharing}
+                  ref={unpublishConfirmRef}
+                  aria-disabled={sharing}
                   onClick={() => togglePublish(false)}
                 >
                   {sharing ? "처리 중…" : "비공개로 바꿀게요"}
@@ -119,7 +136,7 @@ export default function PortfolioResultPage() {
                 <button
                   className="text-link"
                   type="button"
-                  disabled={sharing}
+                  aria-disabled={sharing}
                   onClick={() => setConfirmingUnpublish(false)}
                 >
                   취소
@@ -135,6 +152,7 @@ export default function PortfolioResultPage() {
                 <button
                   className="text-link"
                   type="button"
+                  ref={unpublishTriggerRef}
                   onClick={() => setConfirmingUnpublish(true)}
                 >
                   비공개로
@@ -158,7 +176,8 @@ export default function PortfolioResultPage() {
               <button
                 className="button danger"
                 type="button"
-                disabled={deleting}
+                ref={deleteConfirmRef}
+                aria-disabled={deleting}
                 onClick={remove}
               >
                 {deleting ? "삭제 중…" : "삭제할게요"}
@@ -166,7 +185,7 @@ export default function PortfolioResultPage() {
               <button
                 className="text-link"
                 type="button"
-                disabled={deleting}
+                aria-disabled={deleting}
                 onClick={() => setConfirmingDelete(false)}
               >
                 취소
@@ -176,6 +195,7 @@ export default function PortfolioResultPage() {
             <button
               className="button secondary"
               type="button"
+              ref={deleteTriggerRef}
               onClick={() => setConfirmingDelete(true)}
             >
               삭제
