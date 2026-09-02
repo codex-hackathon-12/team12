@@ -144,7 +144,10 @@ export function PortfolioPreview({
     // 빈 공간이 크게 남는다. 인쇄에서도 카드 단위로 나뉘므로 같은 단위를 쓴다.
     blocks.push({ key: "projects-label", node: (
         <div className="result-block" id="portfolio-work">
-          <p className="result-section-label">PROJECTS</p>
+          {/* 보기에는 섹션 제목인데 <p>라, 제목만으로 이동하는 사용자에게는
+              이 문서에 프로젝트 절이 있다는 사실이 없는 것과 같았다. 클래스가
+              모양을 전부 지정하므로 태그만 바꾼다. */}
+          <h2 className="result-section-label">PROJECTS</h2>
         </div>
     ) });
 
@@ -200,7 +203,7 @@ export function PortfolioPreview({
           className="result-expertise-section"
           id="portfolio-expertise"
         >
-          <p className="result-section-label">SKILLS</p>
+          <h2 className="result-section-label">SKILLS</h2>
 
           <div className="result-expertise-content">
             {content.gitAnalysis.summary && (
