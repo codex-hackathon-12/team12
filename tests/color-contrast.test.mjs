@@ -105,20 +105,31 @@ for (const [fg, bg, label] of BOUNDARY_PAIRS) {
   });
 }
 
-test("포커스 표시는 한 곳에서만 정의한다", () => {
+test("포커스 표시는 한 곳에서 그리고, 위임할 때만 예외를 둔다", () => {
   /* 예전에는 선언이 세 곳에 흩어져 있었고 목록에 다섯 클래스만 적혀 있어서
      select·textarea·아바타에는 표시가 아예 없었다. */
   /* outline: none으로 끄는 것(본문 컨테이너처럼 프로그램으로만 포커스를 받는 곳)은
      세지 않는다. 세려는 건 "링을 그리는 곳"이다. */
-  const drawn = (css.match(/:focus-visible\)?\s*\{[^}]*outline:[^;]*;/gu) ?? []).filter(
+  const drawn = (css.match(/[^{}]*:focus[^{}]*\{[^}]*outline:[^;]*;/gu) ?? []).filter(
     (rule) => !/outline:\s*none/u.test(rule),
   );
-  /* 둘째는 결제 상품 카드다. 포커스를 받는 라디오가 시각적으로 숨겨져 있어
-     카드가 표시를 대신 그린다 — 규칙을 어기는 게 아니라 위임하는 경우다. */
-  assert.equal(drawn.length, 2, `포커스 링을 그리는 선언이 둘이어야 해요 (지금 ${drawn.length}개)`);
+
+  /* 진짜 규칙은 "선언이 하나"가 아니라 "직접 그리는 곳이 하나"다. 상품 카드와
+     보기 전환처럼 포커스를 받는 라디오가 시각적으로 숨겨진 곳은 라벨이 표시를
+     대신 그려야 하고, 그건 늘어나도 된다. 대신 조건이 :focus-visible이어야
+     한다 — :focus-within이면 마우스 클릭에도 링이 뜬다. */
+  const delegated = drawn.filter((rule) => rule.includes(":has(:focus-visible)"));
+  const direct = drawn.filter((rule) => !rule.includes(":has("));
+
+  assert.equal(direct.length, 1, `직접 포커스 링을 그리는 선언이 하나여야 해요 (지금 ${direct.length}개)`);
+  assert.equal(
+    delegated.length,
+    drawn.length - direct.length,
+    "위임한 포커스 표시는 :has(:focus-visible)로만 걸어야 해요",
+  );
   assert.ok(
-    css.includes(".product-card:has(:focus-visible)"),
-    "상품 카드의 포커스 표시는 :focus-within이 아니라 :focus-visible이어야 해요",
+    !drawn.some((rule) => /:focus-within[^)]*\{/u.test(rule)),
+    ":focus-within으로 링을 그리면 마우스 클릭에도 켜져요",
   );
   assert.ok(!css.includes("rgb(97 112 255 / 38%)"), "반투명 포커스 링이 남아 있어요");
 });

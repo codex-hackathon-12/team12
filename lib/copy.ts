@@ -1,4 +1,8 @@
-import type { GenerationJobDto, GenerationStage } from "@/contracts/api-contract";
+import type {
+  GenerationJobDto,
+  GenerationStage,
+  PortfolioContentDto,
+} from "@/contracts/api-contract";
 
 /**
  * 생성 진행을 사용자에게 설명하는 문구와 수치.
@@ -105,4 +109,27 @@ export function elapsedLabel(createdAt: string, now: number = Date.now()): strin
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   return rest === 0 ? `${minutes}분 지났어요` : `${minutes}분 ${rest}초 지났어요`;
+}
+
+/**
+ * 인쇄하기 전에 무엇이 몇 장으로 나가는지 알려준다.
+ *
+ * 인쇄 대화상자를 연 뒤에야 분량을 알게 되면, 12장짜리를 뽑으려던 사람은 이미
+ * 종이를 쓴 뒤다. 장수는 A4 보기에서 실제로 나눠본 결과이므로 알 때만 말하고,
+ * 모를 때는 지어내지 않고 규격만 밝힌다.
+ *
+ * 근거: NN/g — 인쇄 전에 분량과 포함 내용을 알릴 것.
+ */
+export function documentSummary(
+  content: Pick<PortfolioContentDto, "projects" | "skills">,
+  pageCount: number | null,
+): string {
+  const parts = ["프로필"];
+  if (content.projects.length > 0) parts.push(`프로젝트 ${content.projects.length}건`);
+  if (content.skills.length > 0) parts.push("역량");
+  const included = `${parts.join(", ")} 포함`;
+
+  return pageCount === null
+    ? `인쇄하면 A4 세로로 나와요 · ${included}`
+    : `A4 ${pageCount}장 · ${included}`;
 }

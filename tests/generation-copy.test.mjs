@@ -3,6 +3,7 @@ import test from "node:test";
 
 const {
   GENERATION_STEPS,
+  documentSummary,
   elapsedLabel,
   progressPercent,
   stageIndex,
@@ -97,4 +98,19 @@ test("경과 시간을 사람이 읽는 단위로 말한다", () => {
 test("읽을 수 없는 시각에도 무너지지 않는다", () => {
   assert.equal(elapsedLabel("알 수 없음"), "");
   assert.ok(Number.isFinite(progressPercent(job({ updatedAt: "알 수 없음" }))));
+});
+
+test("인쇄 안내는 장수를 알 때만 장수를 말한다", () => {
+  const content = { projects: [{}, {}, {}], skills: [{}] };
+  assert.equal(documentSummary(content, 4), "A4 4장 · 프로필, 프로젝트 3건, 역량 포함");
+  // 읽기 보기에서는 나눠보지 않았으므로 장수를 지어내지 않는다.
+  assert.equal(
+    documentSummary(content, null),
+    "인쇄하면 A4 세로로 나와요 · 프로필, 프로젝트 3건, 역량 포함",
+  );
+});
+
+test("인쇄 안내는 없는 항목을 포함이라고 말하지 않는다", () => {
+  // 근거가 없으면 빈 배열이 오고, 그 섹션은 렌더링되지 않는다.
+  assert.equal(documentSummary({ projects: [], skills: [] }, 1), "A4 1장 · 프로필 포함");
 });

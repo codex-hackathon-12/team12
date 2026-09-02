@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type {
   BillingProductDto,
+  GitHubUserDto,
   MockPaymentDto,
 } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
@@ -18,6 +19,7 @@ export default function BillingPage() {
   const router = useRouter();
   const [products, setProducts] = useState<BillingProductDto[] | null>(null);
   const [payments, setPayments] = useState<MockPaymentDto[]>([]);
+  const [user, setUser] = useState<GitHubUserDto | null>(null);
   const [selected, setSelected] = useState("credit_300");
   const [submitting, setSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -26,11 +28,16 @@ export default function BillingPage() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([apiClient.getBillingProducts(), apiClient.getPayments()])
-      .then(([productData, paymentData]) => {
+    Promise.all([
+      apiClient.getBillingProducts(),
+      apiClient.getPayments(),
+      apiClient.getSession(),
+    ])
+      .then(([productData, paymentData, session]) => {
         if (!active) return;
         setProducts(productData.products);
         setPayments(paymentData.payments);
+        setUser(session.user);
         setLoadError(null);
       })
       .catch(() => {
@@ -83,6 +90,16 @@ export default function BillingPage() {
             <h2>크레딧 상품</h2>
           </div>
         </div>
+        {/* 잔액은 헤더 칩에만 있었고 그 칩은 780px 아래에서 숨는다. 모바일에서는
+            얼마나 남았는지 모르는 채로 구매 화면에 서게 된다. 사야 하는지 판단할
+            근거를 결정하는 자리에 둔다. */}
+        {user ? (
+          <div className="credit-balance-card">
+            <span>남은 크레딧</span>
+            <strong>{user.creditBalance}<small> credits</small></strong>
+            <p>포트폴리오 한 번 만들 때 1 크레딧을 써요.</p>
+          </div>
+        ) : null}
         {/* 하나만 고르는 묶음인데 선택 여부가 클래스에만 있었다. 화면 낭독기로는
             어떤 상품이 결제되는지 알 수 없었고, 결제 직전 화면이다.
             진짜 라디오로 만들면 화살표 이동과 상태 전달이 공짜로 따라온다. */}

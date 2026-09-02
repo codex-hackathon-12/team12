@@ -1924,6 +1924,50 @@ a {
 .delete-confirm .button { min-height: 38px; padding: 0 var(--space-3); font-size: var(--text-xs); }
 .delete-confirm .text-link { border: 0; background: none; cursor: pointer; font: inherit; }
 
+
+/* ── 문서 도구 모음 ─────────────────────────────────────────────
+   보기 방식 전환과 인쇄가 문서 바로 위에 함께 있다. 결과 화면·공개 링크·
+   갤러리가 모두 이 한 벌을 쓴다. */
+.portfolio-document { display: grid; }
+
+.document-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  /* 위의 결과 툴바와 같은 컨테이너 폭에 맞춘다. 어긋나면 두 줄이 다른 화면처럼 보인다. */
+  width: min(1240px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: var(--space-4) 0;
+}
+
+.view-switch { display: flex; gap: 0; margin: 0; padding: 0; border: 1px solid var(--line-control); }
+.view-switch-option {
+  display: grid;
+  gap: 2px;
+  padding: 9px 16px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.view-switch-option + .view-switch-option { border-left: 1px solid var(--line-control); }
+.view-switch-option strong { font-size: var(--text-sm); }
+.view-switch-option span { color: var(--ink-muted); font-size: var(--text-xs); }
+.view-switch-option:has(:checked) { background: var(--ink); color: var(--paper); }
+.view-switch-option:has(:checked) span { color: #c9d2c8; }
+/* 라디오가 시각적으로 숨겨져 있어 표시를 라벨이 대신 그린다. 상품 카드와 같다. */
+.view-switch-option:has(:focus-visible) { outline: 3px solid var(--blue); outline-offset: -3px; }
+
+.document-print { display: grid; justify-items: end; gap: 5px; }
+.document-summary { margin: 0; color: var(--ink-muted); font-size: var(--text-xs); }
+.document-note { max-width: 44ch; margin: 0; color: var(--ink-muted); font-size: var(--text-sm); }
+
+@media (max-width: 640px) {
+  .document-toolbar { flex-direction: column; align-items: stretch; }
+  .document-print { justify-items: stretch; text-align: center; }
+}
+
 .portfolio-canvas-wrap {
   padding: 42px max(24px, calc((100vw - 1360px) / 2));
   background: #d9d8cf;
@@ -2421,7 +2465,9 @@ a {
 
 .billing-page { padding-bottom: 110px; }
 .billing-heading { align-items: center; }
-.credit-balance-card { min-width: 370px; padding: 25px; border: 1px solid var(--ink); background: var(--lime); box-shadow: 7px 8px 0 var(--ink); }
+/* 잔액은 참고 값이지 이 화면의 주인공이 아니다. 상품 카드보다 커지면
+   무엇을 고르는 화면인지 흐려진다. */
+.credit-balance-card { width: fit-content; min-width: 300px; max-width: 370px; margin-bottom: var(--space-5); padding: 25px; border: 1px solid var(--ink); background: var(--lime); box-shadow: 7px 8px 0 var(--ink); }
 .credit-balance-card > span { font-size: 13px; font-weight: 650; }
 .credit-balance-card > strong { display: block; margin: 12px 0 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 45px; }
 .credit-balance-card small { font-size: 12px; }
@@ -2499,7 +2545,6 @@ a {
 .gallery-detail-header { display: grid; grid-template-columns: 180px 1fr auto; gap: 40px; align-items: end; padding-top: 48px; padding-bottom: 34px; }
 .gallery-detail-header > div h1 { max-width: 760px; margin: 15px 0 8px; font-size: clamp(33px, 4vw, 52px); letter-spacing: -0.055em; line-height: 1.16; }
 .gallery-detail-header > div > p:last-child { margin: 0; color: var(--ink-soft); font-size: 15px; line-height: 1.65; }
-.gallery-canvas { background: #d8ddd4; }
 
 /* Announcement */
 
@@ -2601,7 +2646,7 @@ a {
   .gallery-heading h1 { font-size: 45px; }
   .page-heading > p,
   .gallery-heading > p { margin-top: 24px; }
-  .credit-balance-card { min-width: 0; margin-top: 30px; }
+  .credit-balance-card { min-width: 0; max-width: none; }
   .repository-topbar { padding-top: 34px; }
   .repository-toolbar { grid-template-columns: 1fr 1fr; }
   .repository-toolbar .search-field,
@@ -3051,6 +3096,7 @@ a {
   .result-footer-actions,
   /* 공유 페이지의 안내와 인쇄 버튼은 종이에 남을 이유가 없다. */
   .public-portfolio-toolbar,
+  .document-toolbar,
   .public-portfolio-footer { display: none !important; }
 
   body { padding: 0; background: white; }
