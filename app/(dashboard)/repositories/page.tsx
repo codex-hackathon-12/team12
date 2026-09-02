@@ -21,6 +21,7 @@ import {
 import { LoadingState } from "@/components/ui/LoadingState";
 import { MOCK_CHIP } from "@/lib/copy";
 import { LABEL } from "@/lib/copy";
+import { SteadyLabel } from "@/components/ui/SteadyLabel";
 
 const visibilityOptions: Array<RepositoryVisibility | "all"> = [
   "all",
@@ -208,7 +209,10 @@ export default function RepositoriesPage() {
         </label>
 
         <button className="button subtle" type="button" onClick={sync} disabled={syncing}>
-          {syncing ? "동기화 중…" : "↻ 새로고침"}
+          <SteadyLabel
+            states={["↻ 새로고침", "동기화 중…"]}
+            value={syncing ? "동기화 중…" : "↻ 새로고침"}
+          />
         </button>
       </section>
 
@@ -245,7 +249,10 @@ export default function RepositoriesPage() {
           <h2>GitHub에 아직 저장소가 없어요.</h2>
           <p>저장소를 만든 뒤 새로고침하면 여기에 나타나요.</p>
           <button className="button secondary" type="button" onClick={sync} aria-disabled={syncing}>
-            {syncing ? "동기화 중…" : "다시 불러오기"}
+            <SteadyLabel
+              states={["다시 불러오기", "동기화 중…"]}
+              value={syncing ? "동기화 중…" : "다시 불러오기"}
+            />
           </button>
         </div>
       ) : visible.length === 0 ? (

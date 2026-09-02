@@ -10,6 +10,7 @@ import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { LABEL } from "@/lib/copy";
+import { SteadyLabel } from "@/components/ui/SteadyLabel";
 
 export default function PortfolioResultPage() {
   const params = useParams<{ portfolioId: string }>();
@@ -130,7 +131,10 @@ export default function PortfolioResultPage() {
                   aria-disabled={sharing}
                   onClick={() => togglePublish(false)}
                 >
-                  {sharing ? "처리 중…" : "비공개로 바꿀게요"}
+                  <SteadyLabel
+                    states={["비공개로 바꿀게요", "처리 중…"]}
+                    value={sharing ? "처리 중…" : "비공개로 바꿀게요"}
+                  />
                 </button>
                 <button
                   className="text-link"
@@ -146,7 +150,10 @@ export default function PortfolioResultPage() {
                 <em className="share-badge">공개 중</em>
                 <span className="share-url" title={share.url ?? ""}>{share.url}</span>
                 <button className="button secondary" type="button" onClick={copyLink}>
-                  {copied ? "복사됨" : "링크 복사"}
+                  <SteadyLabel
+                    states={["링크 복사", "복사됨"]}
+                    value={copied ? "복사됨" : "링크 복사"}
+                  />
                 </button>
                 <button
                   className="text-link"
@@ -165,7 +172,10 @@ export default function PortfolioResultPage() {
               disabled={sharing}
               onClick={() => togglePublish(true)}
             >
-              {sharing ? "공개하는 중…" : "공개 링크 만들기"}
+              <SteadyLabel
+                states={["공개 링크 만들기", "공개하는 중…"]}
+                value={sharing ? "공개하는 중…" : "공개 링크 만들기"}
+              />
             </button>
           )}
 
@@ -179,7 +189,10 @@ export default function PortfolioResultPage() {
                 aria-disabled={deleting}
                 onClick={remove}
               >
-                {deleting ? "삭제 중…" : "삭제할게요"}
+                <SteadyLabel
+                  states={["삭제할게요", "삭제 중…"]}
+                  value={deleting ? "삭제 중…" : "삭제할게요"}
+                />
               </button>
               <button
                 className="text-link"

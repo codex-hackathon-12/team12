@@ -622,6 +622,13 @@ a {
     background 160ms ease;
 }
 
+/* 라벨이 바뀌어도 폭이 그대로여야 한다. 가능한 라벨을 같은 칸에 겹쳐 두면
+   칸 폭이 가장 넓은 것을 따르므로, 상태가 바뀌어도 버튼이 커지지 않는다.
+   폭을 px로 적어두는 방식과 달리 글자를 고쳐도 알아서 따라온다. */
+.steady-label { display: inline-grid; place-items: center; }
+.steady-label > * { grid-area: 1 / 1; }
+.steady-label-ghost { visibility: hidden; }
+
 .button:hover:not(:disabled) {
   transform: translateY(-2px);
 }
