@@ -7,6 +7,7 @@ import type { GenerationJobDto } from "@/contracts/api-contract";
 import { ApiClientError, apiClient } from "@/lib/api-client";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { LABEL } from "@/lib/copy";
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_CONSECUTIVE_POLL_FAILURES = 3;
@@ -21,6 +22,9 @@ export default function ProcessingPage() {
   const [pollError, setPollError] = useState<string | null>(null);
   const [retryError, setRetryError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  /* 폴링을 다시 시작하는 데 화면을 통째로 새로 열 이유가 없다. 다른 화면의
+     복구 방식과도 어긋났다. 감시만 다시 건다. */
+  const [pollToken, setPollToken] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -69,7 +73,7 @@ export default function ProcessingPage() {
       active = false;
       if (timer) clearTimeout(timer);
     };
-  }, [jobId, router]);
+  }, [jobId, router, pollToken]);
 
   const retry = async () => {
     if (isRetrying) return;
@@ -88,7 +92,7 @@ export default function ProcessingPage() {
     }
   };
 
-  if (!job && !pollError) return <LoadingState label="생성 작업을 확인하고 있어요" />;
+  if (!job && !pollError) return <LoadingState label="생성 작업을 불러오고 있어요" />;
 
   if (pollError) {
     return (
@@ -96,10 +100,17 @@ export default function ProcessingPage() {
         <p className="eyebrow">CONNECTION PAUSED</p>
         <h1>{pollError}</h1>
         <div className="page-state-actions">
-          <button className="button primary" type="button" onClick={() => window.location.reload()}>
+          <button
+            className="button primary"
+            type="button"
+            onClick={() => {
+              setPollError(null);
+              setPollToken((value) => value + 1);
+            }}
+          >
             다시 확인하기
           </button>
-          <Link className="button secondary" href="/dashboard">대시보드로 이동</Link>
+          <Link className="button secondary" href="/dashboard">{LABEL.dashboard}로 이동</Link>
         </div>
       </section>
     );
@@ -118,7 +129,7 @@ export default function ProcessingPage() {
             <button className="button primary" type="button" onClick={retry} disabled={isRetrying}>
               {isRetrying ? "다시 시도하는 중…" : "다시 시도하기"}
             </button>
-            <Link className="button secondary" href="/repositories">다른 저장소 선택</Link>
+            <Link className="button secondary" href="/repositories">저장소 다시 고르기</Link>
           </div>
           {retryError ? <p className="inline-error" role="alert">{retryError}</p> : null}
         </section>

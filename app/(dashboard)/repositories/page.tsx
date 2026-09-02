@@ -19,6 +19,7 @@ import {
   type RepositorySort,
 } from "@/lib/repository-list";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { MOCK_CHIP } from "@/lib/copy";
 
 const visibilityOptions: Array<RepositoryVisibility | "all"> = [
   "all",
@@ -335,7 +336,7 @@ export default function RepositoriesPage() {
             <strong>
               {selectedRepositoryIds.length}/{MAX_GENERATION_REPOSITORIES}
             </strong>
-            <span className="mock-chip">차감 없음 · 체험</span>
+            <span className="mock-chip">{MOCK_CHIP}</span>
           </div>
 
           <ul className="selection-chips">

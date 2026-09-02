@@ -30,7 +30,7 @@ const billingProducts = [
   {
     id: "credit_700",
     name: "Pro 700",
-    description: "다양한 프로젝트를 꾸준히 정리하는 사용자를 위한 구성입니다.",
+    description: "다양한 프로젝트를 꾸준히 정리하고 싶다면 넉넉해요.",
     credits: 700,
     priceKrw: 49900,
     isFeatured: false,

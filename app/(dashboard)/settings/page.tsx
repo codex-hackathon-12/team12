@@ -138,7 +138,7 @@ export default function SettingsPage() {
           <div className="settings-action">
             <strong>조직 저장소 접근 관리</strong>
             <p>
-              조직 저장소는 조직의 승인이 있어야 보입니다. 승인 요청과 권한 취소는 GitHub
+              조직 저장소는 조직의 승인이 있어야 보여요. 승인 요청과 권한 취소는 GitHub
               설정에서만 할 수 있어요. 승인받은 뒤 여기로 돌아와 다시 연동해주세요.
             </p>
             <Link

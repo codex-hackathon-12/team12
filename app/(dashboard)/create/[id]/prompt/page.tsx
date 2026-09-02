@@ -6,6 +6,12 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { GitRepositoryDto, PortfolioTone } from "@/contracts/api-contract";
 import { ApiClientError, apiClient } from "@/lib/api-client";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { MOCK_CHIP, MOCK_NOTE } from "@/lib/copy";
+
+/** 프롬프트 상한. 서버 계약과 같은 값이어야 한다. */
+const PROMPT_MAX = 2000;
+/** 이만큼 남았을 때부터 남은 글자 수를 알린다. */
+const COUNTER_THRESHOLD = 200;
 
 export default function PromptPage() {
   const params = useParams<{ id: string }>();
@@ -25,12 +31,14 @@ export default function PromptPage() {
     [repositoryId, repositoryQuery],
   );
   const [repositories, setRepositories] = useState<GitRepositoryDto[] | null>(null);
-  const [targetRole, setTargetRole] = useState("Frontend Engineer");
+  /* 세 칸이 모두 채워진 채로 열렸다. 프론트엔드 지원자가 아니어도 "Frontend
+     Engineer"가, 아무 말도 하지 않은 사람의 프롬프트에 프론트엔드 문장이 들어
+     있었다. 그대로 제출하면 남이 쓴 답으로 만든 포트폴리오가 나온다.
+     비워두고, 무엇을 쓰면 되는지는 예시로 보여준다. */
+  const [targetRole, setTargetRole] = useState("");
   const [tone, setTone] = useState<PortfolioTone>("professional");
-  const [highlights, setHighlights] = useState("사용자 경험, 협업 방식");
-  const [prompt, setPrompt] = useState(
-    "프론트엔드 직무에 맞춰 문제를 정의하고 해결한 과정, 사용자 경험을 개선한 선택을 강조해줘.",
-  );
+  const [highlights, setHighlights] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -51,16 +59,19 @@ export default function PromptPage() {
     };
   }, [repositoryIds]);
 
+  const remaining = PROMPT_MAX - prompt.length;
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || remaining < 0) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
       const job = await apiClient.createGeneration({
         repositoryIds,
         prompt: prompt.trim(),
-        targetRole,
+        // 비워둔 칸은 보내지 않는다. 빈 문자열을 답으로 넘기면 서버가 그것을 답으로 다룬다.
+        targetRole: targetRole.trim() || undefined,
         tone,
         highlights: highlights
           .split(",")
@@ -92,7 +103,7 @@ export default function PromptPage() {
     );
   }
 
-  if (!repositories) return <LoadingState label="선택한 저장소를 확인하고 있어요" />;
+  if (!repositories) return <LoadingState label="선택한 저장소를 불러오고 있어요" />;
 
   const estimatedCost = repositories.length * 30;
 
@@ -141,15 +152,18 @@ export default function PromptPage() {
         <form className="prompt-form" onSubmit={submit}>
           <div className="form-row two-columns">
             <label>
-              <span>지원 직무</span>
+              {/* 필수는 하나뿐이라 선택 쪽을 표기한다(GOV.UK). NN/g는 반대로
+                  필수를 표기하라고 해 출처가 갈리므로, 제품 전체에 한 쪽만 쓴다. */}
+              <span>지원 직무 <em>(선택)</em></span>
               <input
                 value={targetRole}
                 onChange={(event) => setTargetRole(event.target.value)}
+                placeholder="예: Frontend Engineer"
                 maxLength={100}
               />
             </label>
             <label>
-              <span>문체</span>
+              <span>문체 <em>(선택)</em></span>
               <select
                 value={tone}
                 onChange={(event) => setTone(event.target.value as PortfolioTone)}
@@ -162,25 +176,36 @@ export default function PromptPage() {
           </div>
 
           <label>
-            <span>강조하고 싶은 경험</span>
+            <span>강조하고 싶은 경험 <em>(선택)</em></span>
             <input
               value={highlights}
               onChange={(event) => setHighlights(event.target.value)}
-              placeholder="쉼표로 구분해 입력하세요"
+              placeholder="예: 사용자 경험, 성능 개선, 팀 협업"
             />
-            <small>예: 사용자 경험, 성능 개선, 팀 협업</small>
+            <small>쉼표로 구분해 적어주세요.</small>
           </label>
 
           <div className="prompt-textarea-label">
             <div>
               <label htmlFor="portfolio-prompt">AI에게 전달할 프롬프트</label>
-              <small>{prompt.length} / 2,000</small>
+              {/* maxLength는 상한에 닿는 순간 아무 말 없이 입력을 삼킨다. 붙여넣기로
+                  넘긴 사람은 뒷부분이 사라진 것을 모른 채 제출한다. 막지 않고
+                  가까워졌을 때부터 알린다(GOV.UK 글자 수 세기). */}
+              {remaining <= COUNTER_THRESHOLD ? (
+                <small className={remaining < 0 ? "counter-over" : "counter-near"} role="status">
+                  {remaining < 0
+                    ? `${(-remaining).toLocaleString("ko-KR")}자 줄여주세요`
+                    : `${remaining.toLocaleString("ko-KR")}자 쓸 수 있어요`}
+                </small>
+              ) : (
+                <small>{prompt.length.toLocaleString("ko-KR")} / {PROMPT_MAX.toLocaleString("ko-KR")}</small>
+              )}
             </div>
             <textarea
               id="portfolio-prompt"
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              maxLength={2000}
+              placeholder="예: 문제를 정의하고 해결한 과정, 그 선택을 한 이유가 드러나게 써줘."
               rows={8}
               required
             />
@@ -191,17 +216,18 @@ export default function PromptPage() {
               <span className="signal-dot" />
               <div>
                 <strong>예상 비용 {estimatedCost} 크레딧</strong>
-                <p>MVP에서는 실제로 차감되지 않아요.</p>
+                <p>{MOCK_NOTE}</p>
               </div>
             </div>
             {/* 잔액이 줄지 않는데 화살표로 이어 보이면 차감된다는 뜻이 된다. */}
-            <span className="mock-chip">차감 없음 · 체험</span>
+            <span className="mock-chip">{MOCK_CHIP}</span>
           </div>
 
+          {/* 잠긴 이유를 말하지 않고 잠그면 버튼이 고장 난 것으로 보인다. */}
           <button
             className="button primary submit-button"
             type="submit"
-            disabled={submitting}
+            aria-disabled={submitting || remaining < 0}
           >
             {submitting ? "생성 준비 중…" : "이 내용으로 포트폴리오 만들기"}
             {!submitting && <span aria-hidden="true">→</span>}

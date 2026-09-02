@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { LABEL } from "@/lib/copy";
 
 /**
  * 렌더 중 예외가 났을 때의 마지막 안전망.
@@ -34,7 +35,7 @@ export default function GlobalError({
           다시 시도하기
         </button>
         <Link className="button secondary" href="/dashboard">
-          대시보드로 이동
+          {LABEL.dashboard}로 이동
         </Link>
       </div>
     </section>

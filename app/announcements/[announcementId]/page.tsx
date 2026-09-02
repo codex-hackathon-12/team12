@@ -6,6 +6,7 @@ import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { formatLongDay } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { LABEL } from "@/lib/copy";
 
 export default function AnnouncementPage() {
   const params = useParams<{ announcementId: string }>();
@@ -24,7 +25,7 @@ export default function AnnouncementPage() {
             {loadError}
             <button type="button" onClick={reload}>다시 불러오기</button>
           </p>
-          <Link className="text-link" href="/dashboard">← 대시보드로 돌아가기</Link>
+          <Link className="text-link" href="/dashboard">← {LABEL.dashboard}로 돌아가기</Link>
         </article>
       </main>
     );
@@ -35,7 +36,7 @@ export default function AnnouncementPage() {
   return (
     <main className="announcement-page">
       <article>
-        <Link className="text-link" href="/dashboard">← 대시보드로 돌아가기</Link>
+        <Link className="text-link" href="/dashboard">← {LABEL.dashboard}로 돌아가기</Link>
         <div className="announcement-meta">
           <span>{announcement.type === "event" ? "EVENT" : "NOTICE"}</span>
           <time>{formatLongDay(announcement.publishedAt)}</time>
@@ -43,7 +44,7 @@ export default function AnnouncementPage() {
         <h1>{announcement.title}</h1>
         <p className="announcement-summary">{announcement.summary}</p>
         <div className="announcement-content"><p>{announcement.content}</p></div>
-        <Link className="button primary" href="/repositories">포트폴리오 만들기</Link>
+        <Link className="button primary" href="/repositories">{LABEL.create}</Link>
       </article>
     </main>
   );

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { LABEL } from "@/lib/copy";
+import { MOCK_NOTE } from "@/lib/copy";
 
 export default function BillingSuccessPage() {
   return (
@@ -6,10 +8,10 @@ export default function BillingSuccessPage() {
       <div className="result-symbol" aria-hidden="true">✓</div>
       <p className="eyebrow">MOCK CHECKOUT COMPLETE</p>
       <h1>결제 흐름을<br />끝까지 확인했어요.</h1>
-      <p>실제 승인이나 크레딧 지급은 발생하지 않았습니다. 잔액은 그대로 유지돼요.</p>
+      <p>{MOCK_NOTE}</p>
       <div className="page-state-actions">
-        <Link className="button primary" href="/repositories">포트폴리오 만들기</Link>
-        <Link className="button secondary" href="/billing">상품으로 돌아가기</Link>
+        <Link className="button primary" href="/repositories">{LABEL.create}</Link>
+        <Link className="button secondary" href="/billing">{LABEL.billing}으로 돌아가기</Link>
       </div>
     </section>
   );
