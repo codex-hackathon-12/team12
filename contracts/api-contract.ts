@@ -331,10 +331,10 @@ export interface PortfolioGitAnalysisDto {
  * 결과 화면은 단일 컬럼으로 훑어 읽는 문서라 분량 상한이 있다.
  * 상한은 `architecture.md` §6.6을 기준으로 하며 서버가 보장한다.
  *
- * - `profile.headline` 60자, `introduction` 150자
- * - `PortfolioProjectDto.description` 120자
- * - `highlights` 3개(항목 60자), `challenges`·`solutions`·`impact` 각 2개(항목 80자)
- * - `techStack` 8개, `skills` 4개 그룹(그룹당 6개), `notablePatterns` 4개
+ * - `profile.headline` 80자, `introduction` 220자
+ * - `PortfolioProjectDto.description` 160자
+ * - `highlights` 4개(항목 70자), `challenges`·`solutions`·`impact` 각 3개(항목 90자)
+ * - `techStack` 10개, `skills` 5개 그룹(그룹당 8개), `notablePatterns` 4개
  *
  * 상한은 채워야 할 목표가 아니다. 근거가 없으면 빈 배열이 온다.
  * 프론트엔드는 배열이 비면 라벨과 컨테이너까지 렌더링하지 않으며,
