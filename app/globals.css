@@ -2467,9 +2467,20 @@ a {
 .result-skill-group h3 { margin: 0 0 var(--space-1); font-size: var(--text-base); font-weight: 680; }
 .result-skill-group p { margin: 0; color: #bec9c1; font-size: var(--text-sm); line-height: 1.6; }
 
+/* 예전에는 클래스 없이 `> div > div:first-child` 같은 구조 선택자로만 걸려
+   있어, 마크업을 한 줄만 바꿔도 스타일이 통째로 떨어졌다. */
 .result-language-list { display: grid; gap: var(--space-2); margin-top: var(--space-6); max-width: 520px; }
 
-.result-language-list > div > div:first-child {
+.result-language-caption,
+.result-pattern-caption {
+  margin: 0 0 var(--space-2);
+  color: #a9b5ad;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.result-language-label {
   display: flex;
   justify-content: space-between;
   margin-bottom: var(--space-1);
@@ -2477,10 +2488,37 @@ a {
   font-size: var(--text-2xs);
 }
 
-.result-language-list > div > div:last-child { height: 4px; background: #47544d; }
-.result-language-list > div > div:last-child span { display: block; height: 100%; background: var(--lime); }
+.result-language-track { height: 4px; background: #47544d; }
+
+/* 팔레트에 없는 언어의 채움색. languageColor의 폴백(#afb8ae)은 저장소 목록의
+   점에는 맞지만 흰 종이 위에서 2.02:1이라 여기서는 안 보인다. */
+.result-expertise-section { --doc-language-fallback: #c1cbc3; }
+
+/*
+  채움. 언어별 색은 --language-color로 들어오고, 팔레트에 없는 언어면 안 온다.
+
+  브라우저는 인쇄할 때 배경을 기본으로 버린다 — 크롬 인쇄 대화상자의 "배경
+  그래픽"이 꺼져 있기 때문이다. 그래서 이 막대가 통째로 빈 칸으로 나가고
+  있었다. 트랙의 테두리만 인쇄돼 선 하나만 남았다.
+
+  세 겹으로 만든다. 색이 빠져도 정보가 남아야 한다.
+   1. 퍼센트 숫자 — 이미 옆에 글자로 있다
+   2. 오른쪽 끝의 눈금 — border는 배경 설정과 무관하게 인쇄된다.
+      Firefox는 print-color-adjust를 아예 지원하지 않으므로 이게 유일한 채널이다
+   3. 색 — 크롬·Safari에서만
+*/
+.result-language-fill {
+  display: block;
+  box-sizing: border-box;
+  height: 100%;
+  /* 비율이 0에 가까워도 눈금이 뭉개지지 않게. */
+  min-width: 3px;
+  border-right: 2px solid currentColor;
+  background: var(--language-color, var(--doc-language-fallback));
+}
 
 .result-pattern-list { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-6); }
+.result-pattern-caption { flex: 1 0 100%; }
 
 .result-pattern-list span {
   padding: var(--space-1) var(--space-2);
@@ -3203,18 +3241,55 @@ a {
   .result-expertise-section .result-section-label,
   .result-expertise-summary,
   .result-skill-group p,
-  .result-language-list > div > div:first-child { color: #46544c; }
+  .result-language-caption,
+  .result-pattern-caption,
+  .result-language-label { color: #46544c; }
 
   .result-expertise-section { border-top: 1px solid var(--result-ink); }
   .result-portfolio-footer { border-top: 1px solid var(--result-border); }
 
-  /* 언어 비율 막대도 배경으로 그려져 있어 인쇄에서 사라진다.
-     테두리와 진한 채움으로 바꿔 형태가 남게 한다. */
-  .result-language-list > div > div:last-child {
+  /*
+    종이 조판을 인쇄에도 그대로 적용한다.
+
+    `.result-paper`는 A4 낱장을 그리는 경로에만 붙는데, 인쇄할 때 브라우저는
+    종이 폭(A4 = 794px)으로 다시 레이아웃한다. 그 값이 A4_MIN_WIDTH(900)보다
+    작아서 문서가 읽기 보기로 뒤집히고, 그 경로에는 `.result-paper`가 없다.
+    그래서 미리보기로 A4를 보고 있어도 실제로 찍히는 건 다른 조판이었고,
+    화면 전용인 "Back to top ↑"까지 종이에 남았다.
+
+    :3076-3079 주석이 "미리보기와 인쇄가 어긋나던 문제를 고쳤다"고 적어둔
+    바로 그 부류가 이 경로에 남아 있었다. 클래스가 아니라 미디어로 건다.
+  */
+  .result-portfolio-preview { --doc-gutter: var(--space-6); }
+  .result-portfolio-hero { padding-top: var(--space-4); padding-bottom: var(--space-4); }
+  .result-portfolio-nav,
+  .result-portfolio-footer { display: none !important; }
+  .result-metric-strip > div { padding: var(--space-2) var(--space-3); }
+  .result-block .result-section-label { margin-top: var(--space-3); }
+  .result-project-card { padding: var(--space-3) 0; }
+  .result-expertise-section { padding-top: var(--space-4); padding-bottom: var(--space-6); }
+  .result-story-list { margin-top: var(--space-2); padding-top: var(--space-2); }
+  .result-highlight-list { margin-top: var(--space-2); }
+  .result-tech-list { margin-top: var(--space-2); }
+
+  /* 채움은 색을 지키므로 흑백으로 되돌리지 않는다.
+     트랙만 밝은 바탕에 맞게 바꾼다 — 트랙은 배경이 빠져도 테두리로 남는다. */
+  .result-expertise-section { --doc-language-fallback: #46544c; }
+
+  .result-language-track {
     border: 1px solid var(--result-border);
     background: white;
   }
-  .result-language-list > div > div:last-child span { background: var(--result-ink); }
+
+  /*
+    이 문서에서 배경이 곧 데이터인 유일한 자리다. 여기 말고는 걸지 않는다 —
+    전역이나 조상에 걸면 상속되어 히어로 그라데이션 같은 장식까지 살아나고,
+    앞으로 누가 장식 배경을 추가할 때마다 조용히 종이에 찍힌다.
+  */
+  .result-language-fill {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 
   .result-pattern-list span,
   .result-tech-list span { border-color: var(--result-border); color: var(--result-ink); }
@@ -3229,7 +3304,7 @@ a {
   .result-skill-groups,
   .result-skill-group,
   .result-language-list,
-  .result-language-list > div,
+  .result-language-row,
   .result-highlight-list,
   .result-story-list > div { break-inside: avoid; }
 
