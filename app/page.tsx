@@ -90,9 +90,9 @@ function LandingPage() {
         </Link>
         <nav aria-label="랜딩 메뉴">
           <Link className="text-link" href="/gallery">{LABEL.gallery}</Link>
-          <Link className="button secondary" href={loginHref}>
+          <a className="button secondary" href={loginHref}>
             GitHub 로그인
-          </Link>
+          </a>
         </nav>
       </header>
 
@@ -115,10 +115,19 @@ function LandingPage() {
           ) : null}
 
           <div className="hero-actions">
-            <Link className="button primary large" href={loginHref}>
+            {/*
+              GitHub 로그인은 앱 안의 화면 이동이 아니라 서버 라우트로 나가는
+              이동이다. <Link>로 두면 Next가 이 주소를 프리페치하는데, 그 라우트는
+              OAuth state 쿠키를 새로 굽고 GitHub으로 302한다. 결과적으로 화면을
+              열기만 해도 state가 여러 번 덮어써지고, 사용자가 버튼을 누른 뒤
+              늦게 도착한 프리페치가 쿠키를 갈아치우면 GitHub이 돌려준 state와
+              어긋나 "로그인 창을 너무 오래 열어뒀어요"가 뜬다. 운영 콘솔에
+              GitHub으로 나가는 CORS 실패가 찍혀 있던 것이 이 프리페치다.
+            */}
+            <a className="button primary large" href={loginHref}>
               <span className="github-glyph" aria-hidden="true">GH</span>
               GitHub로 시작하기
-            </Link>
+            </a>
             <Link className="text-link" href="/gallery">
               결과물 먼저 보기 <span aria-hidden="true">→</span>
             </Link>
@@ -213,7 +222,7 @@ function LandingPage() {
 
       <footer className="landing-footer page-container">
         <span>folio.ai · GitHub to career story</span>
-        <Link className="text-link" href={loginHref}>지금 시작하기 →</Link>
+        <a className="text-link" href={loginHref}>지금 시작하기 →</a>
       </footer>
     </main>
   );

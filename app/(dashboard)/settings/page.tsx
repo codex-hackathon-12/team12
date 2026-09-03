@@ -12,6 +12,8 @@ import { LABEL } from "@/lib/copy";
 export default function SettingsPage() {
   const [connection, setConnection] = useState<GitHubConnectionDto | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  /* 로드 실패의 복구는 실패한 요청만 다시 보내는 것으로 통일한다. */
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -26,15 +28,30 @@ export default function SettingsPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadToken]);
 
   if (loadFailed) {
+    /* 예전에는 문구 한 줄이 전부였다. "잠시 후 다시 열어주세요"라고 하면서
+       다시 열 링크도, 다시 시도할 버튼도 주지 않아 이 화면에 갇혔다.
+       다른 화면의 로드 실패와 같은 모양을 쓴다. */
     return (
-      <div className="page-container settings-page">
-        <p className="settings-empty" role="alert">
-          GitHub 연동 정보를 불러오지 못했어요. 잠시 후 다시 열어주세요.
-        </p>
-      </div>
+      <section className="page-container page-state">
+        <p className="eyebrow">LOAD FAILED</p>
+        <h1>GitHub 연동 정보를 불러오지 못했어요.</h1>
+        <div className="page-state-actions">
+          <button
+            className="button primary"
+            type="button"
+            onClick={() => {
+              setLoadFailed(false);
+              setReloadToken((value) => value + 1);
+            }}
+          >
+            다시 불러오기
+          </button>
+          <Link className="button secondary" href="/dashboard">{LABEL.dashboard}로 이동</Link>
+        </div>
+      </section>
     );
   }
 
@@ -135,10 +152,10 @@ export default function SettingsPage() {
               권한을 새로 받거나 토큰을 갱신해요. 이미 승인한 권한만 필요하면 GitHub이
               동의 화면 없이 바로 돌아와요.
             </p>
-            <Link className="button primary" href={reauthorizeHref}>
+            <a className="button primary" href={reauthorizeHref}>
               <span className="github-glyph" aria-hidden="true">GH</span>
               다시 연동하기
-            </Link>
+            </a>
           </div>
 
           <div className="settings-action">
