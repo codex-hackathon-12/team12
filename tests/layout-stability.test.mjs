@@ -140,3 +140,15 @@ test("유령 라벨은 자바스크립트로 폭을 재지 않는다", () => {
     assert.ok(!source.includes(hook), `SteadyLabel이 ${hook}을 쓰고 있어요`);
   }
 });
+
+test("저장소 목록이 비었을 때 확인하지 않은 사실을 말하지 않는다", () => {
+  /* 로그인은 저장소를 가져오지 않는다. 가져오는 건 새로고침을 누를 때뿐이라
+     처음 온 사람에게는 이 화면이 늘 비어 있었는데, 화면은 "GitHub에 아직
+     저장소가 없어요"라고 사실이 아닌 말을 하며 저장소를 만들라고 했다.
+     비면 한 번 직접 가져와 보고, 그러고도 없을 때만 없다고 말해야 한다. */
+  const page = readFileSync(join(root, "app/(dashboard)/repositories/page.tsx"), "utf8");
+  assert.match(page, /stored\.length > 0/u, "저장된 목록이 비었을 때를 가르지 않고 있어요");
+  assert.match(page, /syncRepositories\(\)/u, "비었을 때 GitHub에서 직접 가져오지 않고 있어요");
+  // 못 가져온 것과 없는 것이 같은 문구를 쓰면 안 된다.
+  assert.match(page, /syncError \?/u, "동기화 실패와 진짜 빈 상태를 가르지 않고 있어요");
+});

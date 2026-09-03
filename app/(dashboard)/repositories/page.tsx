@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -55,10 +57,34 @@ export default function RepositoriesPage() {
   useEffect(() => {
     let active = true;
     loadAllRepositories((page) => apiClient.getRepositories(page))
-      .then((result) => {
+      .then(async (stored) => {
         if (!active) return;
-        setRepositories(result);
-        setLoadError(null);
+        if (stored.length > 0) {
+          setRepositories(stored);
+          setLoadError(null);
+          return;
+        }
+
+        /* 저장된 목록이 비어 있다고 GitHub에 저장소가 없다는 뜻은 아니다.
+           로그인은 저장소를 가져오지 않고, 가져오는 건 새로고침을 누를 때뿐이라
+           처음 온 사람에게는 이 화면이 늘 비어 있었다. 그런데 화면은 "GitHub에
+           아직 저장소가 없어요"라고 사실이 아닌 말을 하며 저장소를 만들라고
+           했다. 비어 있으면 한 번 직접 가져와 보고, 그러고도 없을 때만 없다고
+           말한다. */
+        try {
+          const synced = await apiClient.syncRepositories();
+          if (!active) return;
+          setRepositories(synced.repositories);
+          setLoadError(null);
+          setSyncError(null);
+        } catch {
+          if (!active) return;
+          /* 여기서 실패하면 목록이 빈 이유가 "없어서"가 아니라 "못 가져와서"다.
+             빈 상태 문구가 거짓이 되지 않게 구분해 둔다. */
+          setRepositories([]);
+          setLoadError(null);
+          setSyncError("GitHub에서 저장소를 가져오지 못했어요. 연동을 다시 확인해주세요.");
+        }
       })
       .catch(() => {
         if (active) setLoadError("저장소 목록을 불러오지 못했어요.");
@@ -245,15 +271,30 @@ export default function RepositoriesPage() {
         /* 저장소가 아예 없는 사람에게 "필터를 바꿔보세요"라고 하면 할 수 없는 일을
            시키는 셈이다. 필터로 걸러진 경우와 갈라놓는다. */
         <div className="empty-state">
-          <span>NO REPOSITORY</span>
-          <h2>GitHub에 아직 저장소가 없어요.</h2>
-          <p>저장소를 만든 뒤 새로고침하면 여기에 나타나요.</p>
-          <button className="button secondary" type="button" onClick={sync} aria-disabled={syncing}>
-            <SteadyLabel
-              states={["다시 불러오기", "동기화 중…"]}
-              value={syncing ? "동기화 중…" : "다시 불러오기"}
-            />
-          </button>
+          {/* 못 가져온 것과 없는 것은 다른 상태다. 같은 문구를 쓰면 멀쩡한
+              저장소를 가진 사람에게 저장소를 만들라고 하게 된다. */}
+          <span>{syncError ? "SYNC FAILED" : "NO REPOSITORY"}</span>
+          <h2>
+            {syncError
+              ? "저장소를 가져오지 못했어요."
+              : "GitHub에 아직 저장소가 없어요."}
+          </h2>
+          <p>
+            {syncError
+              ? "GitHub 연동이 끊겼거나 저장소 권한이 없을 수 있어요."
+              : "저장소를 만든 뒤 다시 불러오면 여기에 나타나요."}
+          </p>
+          <div className="page-state-actions">
+            <button className="button secondary" type="button" onClick={sync} aria-disabled={syncing}>
+              <SteadyLabel
+                states={["다시 불러오기", "동기화 중…"]}
+                value={syncing ? "동기화 중…" : "다시 불러오기"}
+              />
+            </button>
+            {syncError ? (
+              <Link className="button secondary" href="/settings">{LABEL.settings}</Link>
+            ) : null}
+          </div>
         </div>
       ) : visible.length === 0 ? (
         <div className="empty-state">
