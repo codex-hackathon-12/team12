@@ -23,7 +23,8 @@ function buildHaystack(evidence: PortfolioEvidence): string {
     parts.push(repository.name, repository.description ?? "", repository.readme);
     parts.push(repository.primaryLanguage ?? "");
     parts.push(...repository.languages.map((language) => language.name));
-    parts.push(...repository.ownCommitTitles, ...repository.teamCommitTitles);
+    parts.push(...repository.ownCommits.flatMap((commit) => [commit.title, commit.body]));
+    parts.push(...repository.teamCommitTitles);
     parts.push(...repository.ownPullRequests.flatMap((pull) => [pull.title, pull.body]));
     parts.push(...repository.teamPullRequestTitles);
     parts.push(...repository.topLevelPaths);

@@ -12,8 +12,20 @@ export type PortfolioEvidenceRepository = {
   pushedAt: string;
   languages: Array<{ name: string; percentage: number }>;
   readme: string;
-  /** 지원자 본인이 작성한 커밋 제목. */
-  ownCommitTitles: string[];
+  /**
+   * 지원자 본인이 작성한 커밋. 제목만 남기면 "무엇을"만 알고 "왜"를 잃는다.
+   * 커밋 본문은 결정의 이유가 적히는 자리라, 최근 몇 건은 본문도 함께 싣는다.
+   */
+  ownCommits: Array<{ title: string; body: string }>;
+  /**
+   * 저장소에 커밋은 있는데 본인 것으로 확인된 게 하나도 없는 상태.
+   *
+   * git이 쓴 이메일이 GitHub 계정에 등록돼 있지 않으면 커밋의 author가 비어
+   * 오고, 그러면 본인 기여를 하나도 못 찾는다. 이걸 "기여가 없다"로 읽으면
+   * 실제로는 혼자 만든 저장소가 남의 프로젝트처럼 서술된다. 모델이 그 차이를
+   * 알아야 한다.
+   */
+  ownContributionUnverifiable: boolean;
   /** 같은 저장소의 다른 사람 커밋 제목. 프로젝트 맥락을 읽는 용도다. */
   teamCommitTitles: string[];
   /** 본인 PR. 제목만으로는 무엇을 왜 했는지 알 수 없어 본문과 머지 여부를 함께 본다. */
@@ -21,6 +33,11 @@ export type PortfolioEvidenceRepository = {
   teamPullRequestTitles: string[];
   /** 저장소 최상위 구성. 구조와 사용 도구를 읽는 근거다. */
   topLevelPaths: string[];
+  /**
+   * 의존성 목록. 언어 통계는 "TypeScript 78%"까지만 말하고 React인지 Vue인지는
+   * 말하지 않는데, 채용 담당자가 보는 건 후자다.
+   */
+  dependencies: string[];
   /** GitHub Actions 워크플로가 있는지. 자동화 경험의 근거가 된다. */
   hasContinuousIntegration: boolean;
   /** 기여자 수. 혼자 한 일인지 팀 작업인지 구분해 역할 서술을 정확하게 만든다. */
@@ -63,7 +80,10 @@ const instructions = [
   "프로젝트 role은 확인된 책임이 없으면 '프로젝트 개발'처럼 중립적인 표현을 사용하세요.",
   "highlights, challenges, solutions, impact는 각각 직접 근거가 있을 때만 채우고, 충분한 근거가 없으면 빈 배열을 반환하세요.",
   "impact는 수치가 없어도 됩니다. README나 커밋·PR 제목에서 확인되는 변화, 예를 들어 기능이 동작하게 된 상태, 구조가 바뀐 결과, 사용자가 할 수 있게 된 일을 사실 그대로 씁니다. 다만 제공되지 않은 수치나 비율은 절대 만들지 마세요.",
-  "ownCommitTitles와 ownPullRequests는 지원자 본인이 작성한 것이고, teamCommitTitles와 teamPullRequestTitles는 같은 저장소의 다른 사람이 작성한 것입니다. 지원자의 기여, 역할, 성과는 own 항목과 README에서만 끌어오세요.",
+  "ownCommits와 ownPullRequests는 지원자 본인이 작성한 것이고, teamCommitTitles와 teamPullRequestTitles는 같은 저장소의 다른 사람이 작성한 것입니다. 지원자의 기여, 역할, 성과는 own 항목과 README에서만 끌어오세요.",
+  "ownCommits의 body는 제목이 말하지 않는 '왜'가 적히는 자리입니다. 어떤 문제 때문에 그 변경을 했는지, 무엇을 고려해 그 방법을 골랐는지가 여기 있으면 challenges와 solutions의 근거로 쓰세요. body가 비어 있으면 제목만으로 이유를 추측하지 마세요.",
+  "ownContributionUnverifiable이 true이면 저장소에 커밋은 있는데 그중 지원자 본인의 것으로 확인된 것이 하나도 없다는 뜻입니다. 기여가 없다는 뜻이 아니라 확인할 수 없다는 뜻이므로, 지원자가 아무것도 하지 않았다고 서술하지 말고 README와 다른 근거로 프로젝트를 설명하세요. 동시에 확인되지 않은 기여를 지원자의 것으로 쓰지도 마세요.",
+  "dependencies는 저장소가 실제로 의존하는 라이브러리 목록입니다. 언어 통계는 언어까지만 말하므로, 프레임워크와 도구 수준의 techStack은 여기서 확인하세요. 다만 의존성에 있다는 것이 지원자가 그것을 다뤘다는 근거는 아니므로, own 항목이나 README에 관련 작업이 없으면 skills로 올리지 마세요.",
   "ownPullRequests의 body는 무엇을 왜 바꿨는지 설명하는 가장 좋은 근거입니다. challenges와 solutions는 여기와 README에서 우선 찾고, merged가 true인 작업은 실제로 반영된 변경으로 볼 수 있습니다.",
   "topLevelPaths는 저장소 최상위 구성입니다. 구조나 사용 도구를 말할 때 근거로 쓰되, 파일 이름만 보고 기능이나 성과를 지어내지 마세요.",
   "hasContinuousIntegration이 true이면 자동화된 검증 흐름이 있다는 뜻입니다. 다만 그 설정을 지원자가 했다는 근거는 아니므로, own 항목에 관련 작업이 없으면 지원자의 기여로 쓰지 마세요.",
@@ -99,11 +119,13 @@ export function buildPortfolioPrompt(evidence: PortfolioEvidence): PortfolioProm
           forkCount: repository.forkCount,
           languages: repository.languages,
           readme: repository.readme,
-          ownCommitTitles: repository.ownCommitTitles,
+          ownCommits: repository.ownCommits,
+          ownContributionUnverifiable: repository.ownContributionUnverifiable,
           ownPullRequests: repository.ownPullRequests,
           teamCommitTitles: repository.teamCommitTitles,
           teamPullRequestTitles: repository.teamPullRequestTitles,
           topLevelPaths: repository.topLevelPaths,
+          dependencies: repository.dependencies,
           hasContinuousIntegration: repository.hasContinuousIntegration,
           contributorCount: repository.contributorCount,
         })),

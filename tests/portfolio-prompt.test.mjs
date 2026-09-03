@@ -13,7 +13,9 @@ const baseRepository = {
   forkCount: 2,
   languages: [{ name: "TypeScript", percentage: 91.2 }],
   readme: "# Portfolio API\n비동기 포트폴리오 생성 서비스",
-  ownCommitTitles: ["feat: 생성 작업 상태 조회 API 추가"],
+  ownCommits: [{ title: "feat: 생성 작업 상태 조회 API 추가", body: "" }],
+  ownContributionUnverifiable: false,
+  dependencies: [],
   teamCommitTitles: ["chore: 팀원이 올린 배포 설정"],
   ownPullRequests: [{ title: "Workflow 재시도 처리", merged: true, body: "재시도 시 중복 호출을 막았다." }],
   topLevelPaths: ["app/", "server/", "package.json"],
@@ -79,7 +81,9 @@ test("keeps conservative fallback rules when repository activity is empty", () =
       ...baseRepository,
       languages: [],
       readme: "",
-      ownCommitTitles: [],
+      ownCommits: [],
+      ownContributionUnverifiable: false,
+      dependencies: [],
       teamCommitTitles: [],
       ownPullRequests: [],
       topLevelPaths: [],
@@ -98,7 +102,9 @@ test("keeps conservative fallback rules when repository activity is empty", () =
       ...exposedRepository,
       languages: [],
       readme: "",
-      ownCommitTitles: [],
+      ownCommits: [],
+      ownContributionUnverifiable: false,
+      dependencies: [],
       teamCommitTitles: [],
       ownPullRequests: [],
       topLevelPaths: [],
@@ -114,7 +120,7 @@ test("본인 기여와 팀 기여를 구분해 전달하고, 팀 작업 귀속�
   const payload = JSON.parse(prompt.input);
   const [repository] = payload.repositoryEvidence.repositories;
 
-  assert.deepEqual(repository.ownCommitTitles, ["feat: 생성 작업 상태 조회 API 추가"]);
+  assert.deepEqual(repository.ownCommits, [{ title: "feat: 생성 작업 상태 조회 API 추가", body: "" }]);
   assert.deepEqual(repository.teamCommitTitles, ["chore: 팀원이 올린 배포 설정"]);
   assert.deepEqual(repository.ownPullRequests, [
     { title: "Workflow 재시도 처리", merged: true, body: "재시도 시 중복 호출을 막았다." },
