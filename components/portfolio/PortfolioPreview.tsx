@@ -219,11 +219,15 @@ export function PortfolioPreview({
         >
           <h2 className="result-section-label">SKILLS</h2>
 
-          <div className="result-expertise-content">
-            {content.gitAnalysis.summary && (
-              <p className="result-expertise-summary">{content.gitAnalysis.summary}</p>
-            )}
+          {/*
+            예전에는 저장소 설명문(summary)이 SKILLS 맨 위에 라벨 없이 놓여
+            있었다. 역량을 말하는 절에서 저장소를 서술하니 무엇을 읽고 있는지
+            알 수 없었다. 아래 패턴 칩과 한 묶음으로 내린다 — 둘 다 저장소에서
+            읽은 것이고, 묶으면 이 문장이 칩을 소개하는 역할을 얻는다.
 
+            순서도 바꾼다. 본인이 밝힌 역량이 먼저, 측정값이 다음, 서술이 끝.
+          */}
+          <div className="result-expertise-content">
             {content.skills.length > 0 && (
               <div className="result-skill-groups">
                 {content.skills.map((group) => (
@@ -271,10 +275,12 @@ export function PortfolioPreview({
               </div>
             )}
 
-            {content.gitAnalysis.notablePatterns.length > 0 && (
-              /* 라벨 없이 떠 있어 무엇을 나열한 것인지 알 수 없었다. */
+            {(content.gitAnalysis.summary || content.gitAnalysis.notablePatterns.length > 0) && (
               <div className="result-pattern-list">
-                <p className="result-pattern-caption">저장소에서 반복해서 보인 것</p>
+                <p className="result-pattern-caption">저장소에서 읽은 것</p>
+                {content.gitAnalysis.summary && (
+                  <p className="result-expertise-summary">{content.gitAnalysis.summary}</p>
+                )}
                 {content.gitAnalysis.notablePatterns.map((pattern) => (
                   <span key={pattern}>{pattern}</span>
                 ))}

@@ -2538,6 +2538,13 @@ a {
 
 .result-pattern-list { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-6); }
 .result-pattern-caption { flex: 1 0 100%; }
+/* 서술 문장은 칩과 같은 줄에 서면 안 된다. 칩을 소개하는 글이다. */
+.result-pattern-list .result-expertise-summary {
+  /* flex 묶음 안이라 max-width가 남아 있으면 폭이 줄고 그 옆에 칩이 끼어든다. */
+  flex: 1 0 100%;
+  max-width: none;
+  margin: 0 0 var(--space-3);
+}
 
 .result-pattern-list span {
   padding: var(--space-1) var(--space-2);
