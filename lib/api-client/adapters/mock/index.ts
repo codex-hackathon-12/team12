@@ -121,6 +121,8 @@ export class MockApiClient implements ApiClient {
     if (process.env.NEXT_PUBLIC_MOCK_EMPTY_REPOSITORIES) {
       return { repositories: [], nextCursor: null, hasNextPage: false };
     }
+    /* =all이면 GitHub에서 가져와도 0건이다. 조직이 앱을 승인하지 않아 조직
+       저장소가 통째로 안 보이는 사람이 이 상태다. */
     const keyword = query.q?.trim().toLowerCase();
     const repositories = mockRepositories.filter((repository) => {
       const matchesKeyword =
@@ -152,6 +154,9 @@ export class MockApiClient implements ApiClient {
   async syncRepositories() {
     await maybeFail("syncRepositories");
     await wait(520);
+    if (process.env.NEXT_PUBLIC_MOCK_EMPTY_REPOSITORIES === "all") {
+      return { repositories: [], syncedAt: new Date().toISOString() };
+    }
     return {
       repositories: mockRepositories,
       syncedAt: new Date().toISOString(),
