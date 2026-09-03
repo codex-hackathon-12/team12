@@ -115,6 +115,12 @@ export class MockApiClient implements ApiClient {
   async getRepositories(query: RepositoryListQuery = {}) {
     await maybeFail("getRepositories");
     await wait();
+    /* 처음 로그인한 사람의 상태 — 저장된 목록은 비었지만 GitHub에는 저장소가
+       있다. 로그인이 저장소를 가져오지 않으므로 실제로 흔한 상태인데, 목이
+       이걸 만들 수 없어서 화면이 늘 차 있는 것처럼 보였다. */
+    if (process.env.NEXT_PUBLIC_MOCK_EMPTY_REPOSITORIES) {
+      return { repositories: [], nextCursor: null, hasNextPage: false };
+    }
     const keyword = query.q?.trim().toLowerCase();
     const repositories = mockRepositories.filter((repository) => {
       const matchesKeyword =
