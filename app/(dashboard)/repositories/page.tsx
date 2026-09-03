@@ -9,7 +9,7 @@ import {
   type GitRepositoryDto,
   type RepositoryVisibility,
 } from "@/contracts/api-contract";
-import { apiClient } from "@/lib/api-client";
+import { ApiClientError, apiClient } from "@/lib/api-client";
 import { loadAllRepositories } from "@/lib/api-client/load-all-repositories";
 import { formatListDay } from "@/lib/format";
 import {
@@ -36,6 +36,20 @@ const sortOptions: Array<{ value: RepositorySort; label: string }> = [
   { value: "name", label: "이름 순" },
   { value: "stars", label: "스타 많은 순" },
 ];
+
+/**
+ * 동기화가 왜 실패했는지에 따라 할 일이 다르다.
+ *
+ * 서버는 GITHUB_RATE_LIMITED와 GITHUB_CONNECTION_ERROR를 나눠 보내는데
+ * 화면이 그 구분을 버리고 한 문장으로 뭉갰다. 호출 한도에 걸린 사람에게
+ * "연동을 다시 확인해주세요"라고 하면 고칠 수 없는 일을 시키는 셈이다.
+ */
+function syncFailureMessage(error: unknown): string {
+  if (error instanceof ApiClientError && error.code === "GITHUB_RATE_LIMITED") {
+    return "GitHub 호출 한도에 걸렸어요. 잠시 뒤에 다시 시도해주세요.";
+  }
+  return "GitHub에서 저장소를 가져오지 못했어요. 연동이 끊겼거나 저장소 권한이 없을 수 있어요.";
+}
 
 export default function RepositoriesPage() {
   const router = useRouter();
@@ -77,13 +91,13 @@ export default function RepositoriesPage() {
           setRepositories(synced.repositories);
           setLoadError(null);
           setSyncError(null);
-        } catch {
+        } catch (error) {
           if (!active) return;
           /* 여기서 실패하면 목록이 빈 이유가 "없어서"가 아니라 "못 가져와서"다.
              빈 상태 문구가 거짓이 되지 않게 구분해 둔다. */
           setRepositories([]);
           setLoadError(null);
-          setSyncError("GitHub에서 저장소를 가져오지 못했어요. 연동을 다시 확인해주세요.");
+          setSyncError(syncFailureMessage(error));
         }
       })
       .catch(() => {
@@ -127,8 +141,8 @@ export default function RepositoriesPage() {
       setSelectedRepositoryIds((current) =>
         current.filter((id) => response.repositories.some((repository) => repository.id === id)),
       );
-    } catch {
-      setSyncError("GitHub에서 저장소를 가져오지 못했어요. 잠시 후 다시 시도해주세요.");
+    } catch (error) {
+      setSyncError(syncFailureMessage(error));
     } finally {
       setSyncing(false);
     }
@@ -277,12 +291,15 @@ export default function RepositoriesPage() {
           <h2>
             {syncError
               ? "저장소를 가져오지 못했어요."
-              : "GitHub에 아직 저장소가 없어요."}
+              : "가져올 수 있는 저장소가 없어요."}
           </h2>
           <p>
             {syncError
-              ? "GitHub 연동이 끊겼거나 저장소 권한이 없을 수 있어요."
-              : "저장소를 만든 뒤 다시 불러오면 여기에 나타나요."}
+              ? "연동을 다시 확인하거나 잠시 뒤에 다시 시도해주세요."
+              : /* 가져오기는 성공했는데 0건인 경우다. "저장소가 없다"만 말하면
+                   조직 저장소가 승인 대기라 안 보이는 사람이 자기 저장소를
+                   못 찾는 이유를 영영 알 수 없다. */
+                "조직 저장소는 조직이 이 앱을 승인해야 보여요. 계정 설정에서 확인할 수 있어요."}
           </p>
           <div className="page-state-actions">
             <button className="button secondary" type="button" onClick={sync} aria-disabled={syncing}>
@@ -291,9 +308,7 @@ export default function RepositoriesPage() {
                 value={syncing ? "동기화 중…" : "다시 불러오기"}
               />
             </button>
-            {syncError ? (
-              <Link className="button secondary" href="/settings">{LABEL.settings}</Link>
-            ) : null}
+            <Link className="button secondary" href="/settings">{LABEL.settings}</Link>
           </div>
         </div>
       ) : visible.length === 0 ? (
