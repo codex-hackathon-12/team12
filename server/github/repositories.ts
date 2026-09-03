@@ -1,5 +1,6 @@
 import { getUsableAccessToken } from "@/server/auth/github-token";
 import { TIMEOUTS, fetchWithTimeout } from "@/server/net/fetch";
+import { logOperationFailure } from "@/server/observability/api-logging";
 import { getSupabaseClient } from "@/server/supabase/client";
 
 type GitHubRepository = {
@@ -115,9 +116,35 @@ async function getAccessToken(userId: string): Promise<string> {
   }
 }
 
+/**
+ * 저장소를 가져오는 데 쓸 수 있는 전체 시간.
+ *
+ * GitHub을 최대 10번 순차로 부르는데 호출당 상한만 있고 전체 상한이 없었다.
+ * 최악이면 150초를 한 함수 안에서 쓰겠다는 뜻인데, 서버리스 함수는 그 전에
+ * 플랫폼이 끊는다. 그러면 504가 나가고 사용자에게는 "가져오지 못했어요"만
+ * 남는다 — 저장소가 많을수록 더 자주 그렇게 된다.
+ *
+ * 전체 예산을 두고, 다 못 가져왔으면 거기까지라도 돌려준다. 동기화는 upsert만
+ * 하고 지우지 않으므로 부분 결과도 안전하고, 아무것도 없는 것보다 낫다.
+ */
+const SYNC_BUDGET_MS = 40_000;
+const MAX_REPOSITORY_PAGES = 10;
+
 async function requestGitHubRepositories(accessToken: string): Promise<GitHubRepository[]> {
+  const deadline = Date.now() + SYNC_BUDGET_MS;
   const repositories: GitHubRepository[] = [];
-  for (let page = 1; page <= 10; page += 1) {
+  for (let page = 1; page <= MAX_REPOSITORY_PAGES; page += 1) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      logOperationFailure({
+        domain: "repositories",
+        operation: "repository.sync.budget",
+        error: new Error(
+          `Stopped after ${repositories.length} repositories on page ${page}: time budget spent.`,
+        ),
+      });
+      break;
+    }
     const url = new URL("https://api.github.com/user/repos");
     url.searchParams.set("affiliation", "owner,collaborator,organization_member");
     url.searchParams.set("sort", "updated");
@@ -134,7 +161,8 @@ async function requestGitHubRepositories(accessToken: string): Promise<GitHubRep
           "User-Agent": "job-portfolio-ai",
         },
       },
-      TIMEOUTS.githubSync,
+      /* 남은 예산보다 오래 기다리지 않는다. 기다려봐야 플랫폼이 먼저 끊는다. */
+      Math.min(TIMEOUTS.githubSync, remaining),
     );
 
     if (!response.ok) {
