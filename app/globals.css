@@ -592,15 +592,8 @@ a {
   display: none;
 }
 
-.page-container {
-  width: min(1240px, calc(100% - 48px));
-  margin: 0 auto;
-}
-
 .eyebrow,
-.mono-label,
-.portfolio-kicker,
-.section-index {
+.mono-label {
   margin: 0;
   color: var(--ink-soft);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
@@ -609,6 +602,11 @@ a {
   letter-spacing: 0.13em;
   line-height: 1.3;
   text-transform: uppercase;
+}
+
+.page-container {
+  width: min(1240px, calc(100% - 48px));
+  margin: 0 auto;
 }
 
 .button {
@@ -889,7 +887,6 @@ a {
   align-items: center;
   margin-top: 34px;
 }
-
 
 /* 동의 전에 읽을 수 있는 권한 설명. 기본은 접혀 있어 첫 화면을 밀지 않는다. */
 .scope-disclosure { max-width: 46ch; margin-top: var(--space-4); border: 1px solid var(--line-control); background: var(--surface); font-size: var(--text-sm); }
@@ -1571,7 +1568,6 @@ a {
   box-shadow: 7px 8px 0 var(--lime);
 }
 
-
 .selection-summary { display: flex; gap: var(--space-2); align-items: center; }
 .selection-summary strong { font-size: var(--text-lg); }
 
@@ -1968,7 +1964,6 @@ a {
 .delete-confirm .button { min-height: var(--control-height-sm); padding: 0 var(--space-3); font-size: var(--text-xs); }
 .delete-confirm .text-link { border: 0; background: none; cursor: pointer; font: inherit; }
 
-
 /* ── 문서 도구 모음 ─────────────────────────────────────────────
    보기 방식 전환과 인쇄가 문서 바로 위에 함께 있다. 결과 화면·공개 링크·
    갤러리가 모두 이 한 벌을 쓴다. */
@@ -2026,73 +2021,8 @@ a {
   box-shadow: 0 28px 80px rgb(23 35 29 / 15%);
 }
 
-.portfolio-hero {
-  display: grid;
-  /* 1fr만 쓰면 트랙이 내용의 최대 폭까지 늘어난다. 긴 이름 하나에
-     문서 전체가 가로로 밀려 페이지에 스크롤이 생겼다. */
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 40px;
-  padding: 75px 70px 65px;
-  border-bottom: 1px solid #b9bbb2;
-}
-
-.portfolio-hero h1 { margin: 24px 0 12px; overflow-wrap: anywhere; font-size: clamp(52px, 7vw, 88px); letter-spacing: -0.055em; line-height: 1.02; }
-.portfolio-headline { max-width: 690px; margin: 0; color: #465049; font-size: clamp(19px, 2.4vw, 29px); font-weight: 650; letter-spacing: -0.045em; line-height: 1.38; }
-.portfolio-role-block { align-self: start; min-width: 180px; padding: 17px; border: 1px solid #151a17; background: var(--lime); box-shadow: 5px 5px 0 #151a17; }
-.portfolio-role-block span { display: block; margin-bottom: 7px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; text-transform: uppercase; }
-.portfolio-role-block strong { font-size: 14px; }
-
-.portfolio-intro {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 30px;
-  padding: 65px 70px;
-  border-bottom: 1px solid #b9bbb2;
-}
-
-.portfolio-intro > p:last-child { max-width: 790px; margin: 0; font-size: clamp(22px, 3vw, 35px); font-weight: 650; letter-spacing: -0.05em; line-height: 1.5; }
-
-.portfolio-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  padding: 65px 70px;
-  border-bottom: 1px solid #b9bbb2;
-}
-
-.portfolio-section-heading h2,
-.git-analysis-section h2 { margin: 14px 0 0; font-size: clamp(28px, 4vw, 47px); letter-spacing: -0.045em; line-height: 1.25; }
-.skill-groups { border-top: 1px solid #151a17; }
-.skill-group { display: grid; grid-template-columns: 130px 1fr; gap: 20px; padding: 20px 0; border-bottom: 1px solid #b9bbb2; }
-.skill-group span { color: #59645d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
-.skill-group p { margin: 0; font-size: 15px; font-weight: 500; line-height: 1.7; }
-
 .project-section { display: block; }
 .project-section .portfolio-section-heading { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-bottom: 55px; }
-.portfolio-project { padding: 34px; border: 1px solid #151a17; background: #f3f2e9; }
-.project-title-row { display: flex; align-items: flex-start; justify-content: space-between; }
-.project-title-row p { margin: 0 0 7px; color: #59645d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
-.project-title-row h3 { margin: 0; font-size: 28px; letter-spacing: -0.04em; }
-.project-title-row a { padding-bottom: 4px; border-bottom: 1px solid #151a17; font-size: 13px; font-weight: 650; }
-.project-description { max-width: 780px; margin: 26px 0 35px; color: #465049; font-size: 16px; line-height: 1.8; }
-.project-story-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; border: 1px solid #b9bbb2; background: #b9bbb2; }
-.project-story-grid > div { padding: 22px; background: #fffefa; }
-.project-story-grid span { color: #59645d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; text-transform: uppercase; }
-.project-story-grid p { margin: 10px 0 0; font-size: 14px; font-weight: 500; line-height: 1.7; }
-.portfolio-project .tag-row { margin-top: 25px; }
-
-.git-analysis-section { background: #202a24; color: white; }
-.git-analysis-section .section-index { color: #aeb9b0; }
-.pattern-list { display: grid; gap: 11px; margin-top: 30px; color: #d2dbd4; font-size: 14px; line-height: 1.6; }
-.language-chart { display: grid; gap: 22px; align-self: center; }
-.language-row > div:first-child { display: flex; justify-content: space-between; margin-bottom: 9px; font-size: 13px; }
-.language-row strong { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.language-track { height: 7px; background: #58635b; }
-.language-track span { display: block; height: 100%; background: var(--lime); }
-.portfolio-footer { display: flex; align-items: end; justify-content: space-between; padding: 55px 70px; }
-.portfolio-footer > div { display: grid; gap: 10px; }
-.portfolio-footer span { color: #59645d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; letter-spacing: 0.1em; }
-.portfolio-footer a { font-size: 14px; font-weight: 750; border-bottom: 1px solid currentColor; }
 
 .result-footer-actions { display: flex; align-items: center; justify-content: space-between; padding-top: 30px; }
 .result-footer-actions p { margin: 0; color: var(--ink-soft); font-size: 13px; }
@@ -2297,12 +2227,6 @@ a {
   font-size: var(--doc-sub);
   font-weight: 680;
   letter-spacing: -0.02em;
-}
-
-.result-portfolio-section {
-  display: block;
-  padding: var(--space-6) var(--doc-gutter) var(--space-8);
-  border-bottom: 1px solid var(--result-border);
 }
 
 .result-section-label {
@@ -2676,9 +2600,6 @@ a {
   .dashboard-strip p { grid-column: 1 / -1; margin-top: 18px; text-align: left; }
   .split-section { gap: 35px; }
   .prompt-layout { grid-template-columns: 280px 1fr; }
-  .portfolio-hero,
-  .portfolio-intro,
-  .portfolio-section { padding-right: 45px; padding-left: 45px; }
   .gallery-detail-header { grid-template-columns: 1fr auto; }
   .gallery-detail-header > .text-link { grid-column: 1 / -1; justify-self: start; }
 }
@@ -2802,14 +2723,7 @@ a {
   .result-actions > * { width: 100%; }
   .share-row { justify-content: flex-start; }
   .portfolio-canvas-wrap { padding: 20px 10px; }
-  .portfolio-hero { grid-template-columns: 1fr; padding: 45px 28px; }
-  .portfolio-role-block { justify-self: start; }
-  .portfolio-intro { grid-template-columns: 1fr; padding: 42px 28px; }
-  .portfolio-section { grid-template-columns: 1fr; padding: 42px 28px; }
   .project-section .portfolio-section-heading { grid-template-columns: 1fr; gap: 10px; }
-  .portfolio-project { padding: 22px; }
-  .project-story-grid { grid-template-columns: 1fr; }
-  .portfolio-footer { flex-direction: column; gap: 24px; align-items: flex-start; padding: 42px 28px; }
   .result-footer-actions { flex-direction: column; gap: 18px; align-items: flex-start; }
   .product-grid { grid-template-columns: 1fr; }
   .product-card { min-height: 310px; }
@@ -2874,7 +2788,6 @@ a {
   .result-portfolio-footer a { justify-self: start; }
   .result-portfolio-footer span { display: none; }
 }
-
 
 /* 내 포트폴리오 목록 */
 
@@ -3348,7 +3261,6 @@ a {
   li { orphans: 2; widows: 2; }
 
   /* 프로젝트는 여러 개일 때 자연스럽게 페이지를 넘어간다. */
-  .result-portfolio-section { break-inside: auto; }
 
   .result-section-label { break-after: avoid; }
   .result-project-title-row { break-after: avoid; }

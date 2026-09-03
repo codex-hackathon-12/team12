@@ -97,7 +97,6 @@ export function PortfolioDocument({
       <div className="portfolio-canvas-wrap">
         <PortfolioPreview
           content={content}
-          variant="result"
           paginated={paginated}
           onPageCount={handlePageCount}
         />
