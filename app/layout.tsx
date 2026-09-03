@@ -51,7 +51,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ko">
+    /*
+      html에 scroll-behavior: smooth가 걸려 있어(globals.css), 화면을 옮길
+      때마다 맨 위로 스크롤되는 것까지 애니메이션이 됐다. 화면 전환이 느려
+      보이고, 전환 직후 본문에 포커스를 옮기는 처리와도 맞물려 어긋난다.
+      이 표시를 달면 Next가 화면 전환 동안에만 부드러움을 끄고, 문서 안의
+      목차 링크(#portfolio-work 등)에는 그대로 남긴다.
+    */
+    <html lang="ko" data-scroll-behavior="smooth">
       <body>{children}</body>
     </html>
   );
