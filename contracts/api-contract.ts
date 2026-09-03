@@ -34,6 +34,8 @@ export const API_ROUTES = {
     `${API_PREFIX}/portfolios/${portfolioId}`,
   portfolioShare: (portfolioId: string) =>
     `${API_PREFIX}/portfolios/${portfolioId}/share`,
+  portfolioStatements: (portfolioId: string) =>
+    `${API_PREFIX}/portfolios/${portfolioId}/statements`,
   publicPortfolio: (slug: string) =>
     `${API_PREFIX}/public/portfolios/${slug}`,
   credits: `${API_PREFIX}/credits`,
@@ -346,6 +348,68 @@ export interface PortfolioContentDto {
 }
 
 /**
+ * 지원자에게 되묻는 자리.
+ *
+ * 저장소에는 코드와 기록만 있고 "왜 그렇게 했는지"와 "그래서 무엇이 달라졌는지"는
+ * 없다. 그건 만든 사람만 안다. 이력서에서 가장 값진 것이 정확히 그 둘이라,
+ * 초안이 그 자리를 비워두면 비워둔 채로 두지 않고 지원자에게 묻는다.
+ *
+ * 답은 지어낸 것이 아니라 본인이 쓴 것이므로 면접에서 그대로 설명할 수 있다.
+ * 그래서 저장소 근거와 나란한 사실로 취급된다.
+ */
+export type PortfolioStatementField =
+  | "impact"
+  | "challenges"
+  | "solutions"
+  | "role"
+  | "highlights";
+
+export interface PortfolioQuestionDto {
+  id: EntityId;
+  /** 어느 프로젝트에 대한 질문인지. 저장소 전체에 대한 질문이면 null. */
+  repositoryName: string | null;
+  field: PortfolioStatementField;
+  question: string;
+  /** 아직 답하지 않았으면 null. 답한 그대로 돌려준다. */
+  answer: string | null;
+}
+
+/**
+ * 답변 상한. 화면에 그대로 표시해야 조용한 절단이 생기지 않는다.
+ *
+ * 두세 문장이면 충분한 분량이다. 더 길어지면 모델이 요약하며 지원자가 말한
+ * 것을 잃고, 프롬프트도 저장소 근거를 밀어낼 만큼 커진다.
+ */
+export const PORTFOLIO_ANSWER_MAX_LENGTH = 600;
+
+export interface PortfolioAnswerInput {
+  questionId: EntityId;
+  answer: string;
+}
+
+export interface AnswerPortfolioQuestionsRequest {
+  answers: PortfolioAnswerInput[];
+}
+
+/**
+ * 답변 반영 결과.
+ *
+ * 전체 재생성이 아니다. 마음에 들던 문장까지 바뀌면 답할 이유가 없어지므로,
+ * 답한 자리만 다시 쓰고 나머지는 글자 하나 건드리지 않는다. 무엇이 실제로
+ * 바뀌었는지는 `updatedFields`로 돌려주므로 화면이 그것만 짚어 보여줄 수 있다.
+ */
+export interface PortfolioRewrittenFieldDto {
+  repositoryName: string | null;
+  field: PortfolioStatementField;
+}
+
+export interface PortfolioStatementResultDto {
+  content: PortfolioContentDto;
+  questions: PortfolioQuestionDto[];
+  updatedFields: PortfolioRewrittenFieldDto[];
+}
+
+/**
  * 공개 링크 상태. `published`가 false여도 슬러그는 유지된다.
  * 공개를 껐다 켜도 이미 보낸 링크가 그대로 살아 있어야 하기 때문이다.
  */
@@ -381,6 +445,11 @@ export interface PortfolioDto extends PortfolioSummaryDto {
   repositories: GitRepositoryDto[];
   style: "default";
   content: PortfolioContentDto;
+  /**
+   * 초안이 채우지 못한 자리에 대한 질문. 답한 것은 `answer`가 채워져 온다.
+   * 규격 이전에 만들어진 포트폴리오에는 질문이 없어 빈 배열이 온다.
+   */
+  questions: PortfolioQuestionDto[];
   updatedAt: IsoDateTime;
 }
 

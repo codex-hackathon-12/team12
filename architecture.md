@@ -287,6 +287,37 @@ MVP에서는 하나의 고정 스타일을 제공한다. 결과는 이름과 핵
 단일 컬럼 중심 레이아웃을 사용한다. 스타일 선택과 세부 편집은 이후 확장
 범위로 둔다.
 
+#### 지원자에게 되묻기
+
+초안이 근거를 못 찾아 비운 자리는 비운 채로 두지 않고 지원자에게 묻는다.
+
+저장소에는 코드와 기록만 있고 "왜 그렇게 했는지"와 "그래서 무엇이 달라졌는지"는
+없다. 그건 만든 사람만 안다. 이력서에서 가장 값진 것이 정확히 그 둘이라, 물을
+자리가 없으면 아무리 좋은 지시문을 써도 결과가 얇아진다.
+
+빈칸을 모델이 그럴듯하게 메우게 하지 않는다. 지어낸 수치는 면접의 후속 질문
+하나에 무너지고, 그 손해는 문장이 비어 있는 것보다 크다. 답은 지원자가 직접
+쓴 것이라 그대로 설명할 수 있다.
+
+- 질문은 초안을 만드는 **같은 모델 호출**에서 함께 받는다. 별도 호출을 두면
+  비용이 두 배가 되고, 무엇을 비웠는지 가장 잘 아는 것도 그 호출이다.
+- 받은 질문은 서버가 거른다. 근거로 쓴 저장소를 가리키는지, 그 자리가 실제로
+  비어 있는지, 같은 자리를 두 번 묻지 않는지를 코드가 확인한다. 모델이
+  "채워진 자리"를 물어 사용자가 답해도 아무것도 안 바뀌는 일을 막는다.
+- 질문과 답은 `PortfolioStatement`에 남는다. 근거 테이블은 생성 작업에 묶여
+  있어 수명이 다르고, 답변은 포트폴리오가 사는 동안 살아야 한다.
+- 답변은 `POST /api/v1/portfolios/{portfolioId}/statements`로 보낸다. 새 생성
+  작업이 아니므로 사용자당 활성 작업 1개 제한과 무관하고 크레딧도 쓰지 않는다.
+- 반영은 **부분 재작성**이다. 답한 자리만 다시 쓰고 제목, 헤드라인, 소개,
+  역량, 기술 스택, Git 분석은 건드리지 않는다. 전체를 다시 만들면 마음에 들던
+  문장까지 바뀌어 답할 이유가 없어진다.
+- 이 보장은 프롬프트가 아니라 **서버 병합 단계**가 지킨다. 모델이 요청하지
+  않은 자리를 돌려줘도 병합이 버린다.
+- 반영 화면은 결과 화면 안에 둔다. 별도 단계로 빼면 결과를 보기 전에 답해야
+  해서 무엇을 답할지 감이 오지 않는다.
+- 답변은 다음 재생성에서도 근거로 쓰인다. 근거 payload의 `applicantStatements`가
+  저장소 근거와 나란한 사실 층이다.
+
 #### 공개 공유
 
 소유자가 공개를 켜면 `/p/[slug]`로 누구나 볼 수 있다. 취업용 포트폴리오는
@@ -382,16 +413,23 @@ MVP에서는 하나의 고정 스타일을 제공한다. 결과는 이름과 핵
 #### 타이포그래피와 밀도
 
 결과 화면은 채용 담당자가 훑어 읽는 문서이므로 밀도를 우선한다. 크기는
-`app/globals.css`의 `:root` 토큰(`--text-*`, `--space-*`)만 사용하고 파일 안에
-숫자를 직접 쓰지 않는다.
+`app/globals.css`의 토큰만 사용하고 파일 안에 숫자를 직접 쓰지 않는다.
+
+문서 활자는 화면 UI와 별도의 `--doc-*` 토큰을 쓴다. 전역 `--text-*`를 그대로
+쓰면 화면을 손볼 때 종이가 같이 움직이는데, 두 매체의 기준이 다르다. 종이에서
+본문은 10pt 아래로 내려가면 읽기 어려워 그 하한이 값을 정한다.
 
 | 대상 | 토큰 | 값 |
 | --- | --- | --- |
-| 이름 | `--text-2xl` | 30px |
-| 프로젝트 제목 | `--text-lg` | 20px |
-| 본문·소개 | `--text-md` / `--text-base` | 16px / 15px |
-| 보조 설명 | `--text-sm` | 13px |
-| 섹션 라벨·태그 | `--text-2xs` | 11px |
+| 이름 | `--doc-name` | 30px (22.5pt) |
+| 프로젝트 제목 | `--doc-title` | 20px |
+| 섹션 제목 | `--doc-sub` | 16px |
+| 소개 | `--doc-lead` | 15px |
+| 본문 | `--doc-body` | 14px (10.5pt) |
+| 섹션 라벨·태그 | `--doc-label` | 12px (9pt) |
+
+라벨만 9pt로 하한을 벗어난다. 대문자 모노 표지판이라 읽는 대상이 아니라 찾는
+대상이고, 본문과 섞이지 않는다.
 
 - 한국어 본문 행간은 1.6~1.7을 사용한다.
 - 제목은 30px을 넘지 않는다. 장식용 대형 문구와 맺음말 섹션은 두지 않는다.
@@ -408,13 +446,13 @@ MVP에서는 하나의 고정 스타일을 제공한다. 결과는 이름과 핵
 
 | 필드 | 상한 |
 | --- | --- |
-| `profile.headline` | 60자 |
-| `introduction` | 150자 |
-| `project.description` | 120자 |
-| `project.highlights` | 3개 / 항목 60자 |
-| `project.challenges`·`solutions`·`impact` | 각 2개 / 항목 80자 |
-| `project.techStack` | 8개 |
-| `skills` | 4개 그룹 / 그룹당 6개 |
+| `profile.headline` | 80자 |
+| `introduction` | 220자 |
+| `project.description` | 160자 |
+| `project.highlights` | 4개 / 항목 70자 |
+| `project.challenges`·`solutions`·`impact` | 각 3개 / 항목 90자 |
+| `project.techStack` | 10개 |
+| `skills` | 5개 그룹 / 그룹당 8개 |
 | `gitAnalysis.notablePatterns` | 4개 |
 
 상한은 채용 담당자가 읽을 수 있는 한계이지 목표가 아니다. 다만 확인된 사실이
@@ -641,6 +679,7 @@ mocks/api/
 | `POST` | `/api/v1/generations/{jobId}/retry` | 실패한 생성 재시도 |
 | `GET` | `/api/v1/portfolios` | 사용자의 포트폴리오 목록 |
 | `GET` | `/api/v1/portfolios/{portfolioId}` | 포트폴리오 결과 조회 |
+| `POST` | `/api/v1/portfolios/{portfolioId}/statements` | 되묻기 답변 반영. 답한 자리만 다시 쓴다 |
 
 생성 요청 예시:
 
@@ -710,6 +749,7 @@ mocks/api/
 | `GenerationJob` | `id`, `userId`, `repositoryId`, `workflowInstanceId`, `prompt`, `status`, `stage`, `errorCode`, `portfolioId`, `createdAt` | 비동기 생성 작업 |
 | `GenerationEvidence` | `generationJobId`, `evidence`, `draft`, `createdAt` | 생성 단계 사이의 중간 산출물. 재시도가 GitHub 수집과 모델 호출을 되풀이하지 않게 한다 |
 | `Portfolio` | `id`, `userId`, `repositoryId`, `title`, `content`, `style`, `createdAt` | 생성 결과 |
+| `PortfolioStatement` | `id`, `portfolioId`, `userId`, `repositoryName`, `field`, `question`, `answer`, `createdAt` | 초안이 비운 자리에 대한 질문과 지원자의 답. 저장소 근거와 나란한 사실 층이며 포트폴리오와 수명을 같이한다 |
 | `AccountDeletionJob` | `id`, `userId`, `workflowInstanceId`, `status`, `errorCode` | 계정과 Storage 파일의 비동기 삭제 작업 |
 | `GalleryExample` | `id`, `title`, `role`, `techStack`, `thumbnailUrl`, `portfolioContent`, `isPublished` | 공개 예시 |
 | `CreditLedger` | `id`, `userId`, `amount`, `reason`, `referenceId`, `createdAt` | 실제 크레딧 도입 시 사용할 증감 원장. MVP에서는 저장하지 않음 |

@@ -597,6 +597,15 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
     "repositories": [{}, {}],
     "style": "default",
     "content": {},
+    "questions": [
+      {
+        "id": "question_1",
+        "repositoryName": "portfolio-api",
+        "field": "impact",
+        "question": "생성 작업을 단계로 나눈 뒤 무엇이 달라졌나요?",
+        "answer": null
+      }
+    ],
     "updatedAt": "2026-08-16T04:01:20.000Z"
   }
 }
@@ -608,7 +617,64 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 선택 순서대로 담는다. 단일 저장소로 만든 결과에서는 항목이 하나다.
 `repositoryCount`는 목록 응답에서도 함께 내려간다.
 
-### 8.3 포트폴리오 삭제
+### 8.3 지원자 답변 반영
+
+`POST /api/v1/portfolios/{portfolioId}/statements`
+
+초안이 채우지 못한 자리에 대한 답을 받아 **그 자리만** 다시 쓴다. 새 생성
+작업을 만들지 않으므로 사용자당 활성 작업 1개 제한과 무관하고, 크레딧도
+쓰지 않는다.
+
+요청:
+
+```json
+{
+  "answers": [
+    {
+      "questionId": "question_1",
+      "answer": "배포할 때마다 손으로 확인하던 절차가 없어졌어요."
+    }
+  ]
+}
+```
+
+응답:
+
+```json
+{
+  "data": {
+    "content": {},
+    "questions": [
+      {
+        "id": "question_1",
+        "repositoryName": "portfolio-api",
+        "field": "impact",
+        "question": "생성 작업을 단계로 나눈 뒤 무엇이 달라졌나요?",
+        "answer": "배포할 때마다 손으로 확인하던 절차가 없어졌어요."
+      }
+    ],
+    "updatedFields": [
+      { "repositoryName": "portfolio-api", "field": "impact" }
+    ]
+  }
+}
+```
+
+`content`는 8.1의 전체 구조이며, `updatedFields`에 없는 자리는 요청 전과
+글자 하나까지 같다. 이 보장은 프롬프트가 아니라 서버 병합 단계가 지킨다.
+
+답변은 `PORTFOLIO_ANSWER_MAX_LENGTH`(600자) 이내여야 한다. 넘으면 `400`과
+`VALIDATION_ERROR`를 반환하며 조용히 자르지 않는다. 빈 답변은 그 질문을
+건너뛴 것으로 보고 반영하지 않는다.
+
+| 상태 | 코드 | 상황 |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | 답변이 없거나 상한을 넘음 |
+| 404 | `NOT_FOUND` | 다른 사용자의 포트폴리오이거나 없는 질문 id |
+| 409 | `EVIDENCE_UNAVAILABLE` | 생성 근거가 남아 있지 않아 다시 쓸 수 없음 |
+| 502 | `GENERATION_FAILED` | 모델 호출 실패 |
+
+### 8.4 포트폴리오 삭제
 
 `DELETE /api/v1/portfolios/{portfolioId}`
 
@@ -623,7 +689,7 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 소유자만 호출할 수 있고 다른 사용자의 결과에는 `404`를 반환한다. 삭제는
 되돌릴 수 없다. 생성 작업 기록은 남으며 해당 작업의 `portfolioId`만 `null`이 된다.
 
-### 8.4 포트폴리오 목록
+### 8.5 포트폴리오 목록
 
 `GET /api/v1/portfolios?cursor=...&limit=20`
 

@@ -215,6 +215,7 @@ export const mockPortfolio = {
   repositories: [mockRepositories[0], mockRepositories[1]],
   style: "default",
   content: mockPortfolioContent,
+  questions: [],
   updatedAt: "2026-08-16T04:03:00.000Z",
 } satisfies PortfolioDto;
 
