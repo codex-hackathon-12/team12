@@ -592,15 +592,8 @@ a {
   display: none;
 }
 
-.page-container {
-  width: min(1240px, calc(100% - 48px));
-  margin: 0 auto;
-}
-
 .eyebrow,
-.mono-label,
-.portfolio-kicker,
-.section-index {
+.mono-label {
   margin: 0;
   color: var(--ink-soft);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
@@ -609,6 +602,11 @@ a {
   letter-spacing: 0.13em;
   line-height: 1.3;
   text-transform: uppercase;
+}
+
+.page-container {
+  width: min(1240px, calc(100% - 48px));
+  margin: 0 auto;
 }
 
 .button {
@@ -889,7 +887,6 @@ a {
   align-items: center;
   margin-top: 34px;
 }
-
 
 /* 동의 전에 읽을 수 있는 권한 설명. 기본은 접혀 있어 첫 화면을 밀지 않는다. */
 .scope-disclosure { max-width: 46ch; margin-top: var(--space-4); border: 1px solid var(--line-control); background: var(--surface); font-size: var(--text-sm); }
@@ -1571,7 +1568,6 @@ a {
   box-shadow: 7px 8px 0 var(--lime);
 }
 
-
 .selection-summary { display: flex; gap: var(--space-2); align-items: center; }
 .selection-summary strong { font-size: var(--text-lg); }
 
@@ -1968,7 +1964,6 @@ a {
 .delete-confirm .button { min-height: var(--control-height-sm); padding: 0 var(--space-3); font-size: var(--text-xs); }
 .delete-confirm .text-link { border: 0; background: none; cursor: pointer; font: inherit; }
 
-
 /* ── 문서 도구 모음 ─────────────────────────────────────────────
    보기 방식 전환과 인쇄가 문서 바로 위에 함께 있다. 결과 화면·공개 링크·
    갤러리가 모두 이 한 벌을 쓴다. */
@@ -2026,73 +2021,8 @@ a {
   box-shadow: 0 28px 80px rgb(23 35 29 / 15%);
 }
 
-.portfolio-hero {
-  display: grid;
-  /* 1fr만 쓰면 트랙이 내용의 최대 폭까지 늘어난다. 긴 이름 하나에
-     문서 전체가 가로로 밀려 페이지에 스크롤이 생겼다. */
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 40px;
-  padding: 75px 70px 65px;
-  border-bottom: 1px solid #b9bbb2;
-}
-
-.portfolio-hero h1 { margin: 24px 0 12px; overflow-wrap: anywhere; font-size: clamp(52px, 7vw, 88px); letter-spacing: -0.055em; line-height: 1.02; }
-.portfolio-headline { max-width: 690px; margin: 0; color: #465049; font-size: clamp(19px, 2.4vw, 29px); font-weight: 650; letter-spacing: -0.045em; line-height: 1.38; }
-.portfolio-role-block { align-self: start; min-width: 180px; padding: 17px; border: 1px solid #151a17; background: var(--lime); box-shadow: 5px 5px 0 #151a17; }
-.portfolio-role-block span { display: block; margin-bottom: 7px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; text-transform: uppercase; }
-.portfolio-role-block strong { font-size: 14px; }
-
-.portfolio-intro {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 30px;
-  padding: 65px 70px;
-  border-bottom: 1px solid #b9bbb2;
-}
-
-.portfolio-intro > p:last-child { max-width: 790px; margin: 0; font-size: clamp(22px, 3vw, 35px); font-weight: 650; letter-spacing: -0.05em; line-height: 1.5; }
-
-.portfolio-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  padding: 65px 70px;
-  border-bottom: 1px solid #b9bbb2;
-}
-
-.portfolio-section-heading h2,
-.git-analysis-section h2 { margin: 14px 0 0; font-size: clamp(28px, 4vw, 47px); letter-spacing: -0.045em; line-height: 1.25; }
-.skill-groups { border-top: 1px solid #151a17; }
-.skill-group { display: grid; grid-template-columns: 130px 1fr; gap: 20px; padding: 20px 0; border-bottom: 1px solid #b9bbb2; }
-.skill-group span { color: #59645d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
-.skill-group p { margin: 0; font-size: 15px; font-weight: 500; line-height: 1.7; }
-
 .project-section { display: block; }
 .project-section .portfolio-section-heading { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-bottom: 55px; }
-.portfolio-project { padding: 34px; border: 1px solid #151a17; background: #f3f2e9; }
-.project-title-row { display: flex; align-items: flex-start; justify-content: space-between; }
-.project-title-row p { margin: 0 0 7px; color: #59645d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
-.project-title-row h3 { margin: 0; font-size: 28px; letter-spacing: -0.04em; }
-.project-title-row a { padding-bottom: 4px; border-bottom: 1px solid #151a17; font-size: 13px; font-weight: 650; }
-.project-description { max-width: 780px; margin: 26px 0 35px; color: #465049; font-size: 16px; line-height: 1.8; }
-.project-story-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; border: 1px solid #b9bbb2; background: #b9bbb2; }
-.project-story-grid > div { padding: 22px; background: #fffefa; }
-.project-story-grid span { color: #59645d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; text-transform: uppercase; }
-.project-story-grid p { margin: 10px 0 0; font-size: 14px; font-weight: 500; line-height: 1.7; }
-.portfolio-project .tag-row { margin-top: 25px; }
-
-.git-analysis-section { background: #202a24; color: white; }
-.git-analysis-section .section-index { color: #aeb9b0; }
-.pattern-list { display: grid; gap: 11px; margin-top: 30px; color: #d2dbd4; font-size: 14px; line-height: 1.6; }
-.language-chart { display: grid; gap: 22px; align-self: center; }
-.language-row > div:first-child { display: flex; justify-content: space-between; margin-bottom: 9px; font-size: 13px; }
-.language-row strong { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.language-track { height: 7px; background: #58635b; }
-.language-track span { display: block; height: 100%; background: var(--lime); }
-.portfolio-footer { display: flex; align-items: end; justify-content: space-between; padding: 55px 70px; }
-.portfolio-footer > div { display: grid; gap: 10px; }
-.portfolio-footer span { color: #59645d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; letter-spacing: 0.1em; }
-.portfolio-footer a { font-size: 14px; font-weight: 750; border-bottom: 1px solid currentColor; }
 
 .result-footer-actions { display: flex; align-items: center; justify-content: space-between; padding-top: 30px; }
 .result-footer-actions p { margin: 0; color: var(--ink-soft); font-size: 13px; }
@@ -2100,6 +2030,22 @@ a {
 /* Result portfolio v2: a complete personal portfolio website. */
 
 .result-portfolio-preview {
+  /*
+    문서 전용 활자 크기. 전역 --text-* 는 화면 UI가 쓰는 값이라, 종이에 맞는
+    하한을 여기에 따로 둔다. 인쇄물에서 10pt(13.33px) 미만은 읽기 어렵다는
+    것이 이 값들의 기준이다.
+
+    라벨 티어(--doc-label)만 9pt로 예외를 둔다. 대문자 모노에 자간을 벌린
+    한두 단어짜리 표지판이라 같은 크기의 소문자 본문보다 크게 읽히고, 여기를
+    본문과 같게 만들면 라벨이 자기가 소개하는 내용과 경쟁한다.
+  */
+  --doc-name: var(--text-2xl);  /* 30px = 22.5pt */
+  --doc-title: 20px;            /* 15pt */
+  --doc-sub: var(--text-md);    /* 16px = 12pt — 헤드라인·지표 값 */
+  --doc-lead: var(--text-base); /* 15px = 11.25pt */
+  --doc-body: 14px;             /* 10.5pt */
+  --doc-label: var(--text-xs);  /* 12px = 9pt */
+
   --result-border: #cbd0c7;
   --result-ink: #121a16;
 
@@ -2188,7 +2134,7 @@ a {
   place-items: center;
   background: var(--lime);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--text-md);
+  font-size: var(--doc-sub);
   font-weight: 800;
 }
 
@@ -2206,15 +2152,18 @@ a {
   margin: 0 0 var(--space-1);
   color: #5b6961;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--text-2xs);
+  font-size: var(--doc-label);
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.result-hero-copy h1 {
+/* 예전에는 `.result-hero-copy h1`이었는데 h1은 .result-hero-identity 안에
+   있어 한 번도 매칭되지 않았다. 30px를 의도해 놓고 브라우저 기본값으로
+   렌더돼, 본인 이름이 프로젝트 제목보다 작았다. 클래스로 묶는다. */
+.result-hero-name {
   margin: 0;
-  font-size: var(--text-2xl);
+  font-size: var(--doc-name);
   font-weight: 680;
   letter-spacing: -0.035em;
   line-height: 1.25;
@@ -2223,7 +2172,7 @@ a {
 .result-hero-headline {
   margin: 0;
   color: #35453c;
-  font-size: var(--text-md);
+  font-size: var(--doc-sub);
   font-weight: 600;
   line-height: 1.55;
 }
@@ -2232,7 +2181,7 @@ a {
   max-width: 62ch;
   margin: var(--space-3) 0 0;
   color: #46544c;
-  font-size: var(--text-base);
+  font-size: var(--doc-lead);
   line-height: 1.7;
 }
 
@@ -2243,7 +2192,7 @@ a {
   align-items: center;
   margin-top: var(--space-4);
   color: #526057;
-  font-size: var(--text-xs);
+  font-size: var(--doc-body);
   font-weight: 650;
 }
 
@@ -2267,7 +2216,7 @@ a {
 .result-metric-strip dt {
   color: #66736b;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--text-2xs);
+  font-size: var(--doc-label);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2275,15 +2224,9 @@ a {
 
 .result-metric-strip dd {
   margin: var(--space-1) 0 0;
-  font-size: var(--text-md);
+  font-size: var(--doc-sub);
   font-weight: 680;
   letter-spacing: -0.02em;
-}
-
-.result-portfolio-section {
-  display: block;
-  padding: var(--space-6) var(--doc-gutter) var(--space-8);
-  border-bottom: 1px solid var(--result-border);
 }
 
 .result-section-label {
@@ -2291,7 +2234,7 @@ a {
   margin: 0 0 var(--space-4);
   color: #66736b;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--text-2xs);
+  font-size: var(--doc-label);
   font-weight: 750;
   letter-spacing: 0.11em;
 }
@@ -2318,7 +2261,7 @@ a {
   margin: 0 0 var(--space-1);
   color: #647168;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--text-2xs);
+  font-size: var(--doc-label);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2326,7 +2269,7 @@ a {
 
 .result-project-title-row h3 {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: var(--doc-title);
   font-weight: 680;
   letter-spacing: -0.03em;
   line-height: 1.3;
@@ -2334,7 +2277,7 @@ a {
 
 .result-project-title-row > a {
   border-bottom: 1px solid currentColor;
-  font-size: var(--text-xs);
+  font-size: var(--doc-body);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -2343,7 +2286,7 @@ a {
   max-width: 74ch;
   margin: var(--space-2) 0 0;
   color: #47554d;
-  font-size: var(--text-base);
+  font-size: var(--doc-lead);
   line-height: 1.7;
 }
 
@@ -2356,7 +2299,7 @@ a {
   background: #f6f6f0;
   color: #35453c;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--text-2xs);
+  font-size: var(--doc-label);
   font-weight: 650;
 }
 
@@ -2372,7 +2315,7 @@ a {
   position: relative;
   padding-left: var(--space-4);
   color: #35453c;
-  font-size: var(--text-sm);
+  font-size: var(--doc-body);
   line-height: 1.6;
 }
 
@@ -2400,7 +2343,7 @@ a {
 .result-story-list span {
   color: #66736b;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--text-2xs);
+  font-size: var(--doc-label);
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2417,7 +2360,7 @@ a {
 .result-story-list li {
   position: relative;
   padding-left: var(--space-3);
-  font-size: var(--text-sm);
+  font-size: var(--doc-body);
   line-height: 1.55;
 }
 
@@ -2443,7 +2386,7 @@ a {
   max-width: 74ch;
   margin: 0 0 var(--space-6);
   color: #c1cbc3;
-  font-size: var(--text-base);
+  font-size: var(--doc-lead);
   line-height: 1.7;
 }
 
@@ -2464,8 +2407,8 @@ a {
 /* 구버전 규칙이 :last-child 특이도로 밑줄을 걸어두어 같은 특이도로 되돌린다. */
 .result-skill-group:last-child { border-bottom: 0; }
 
-.result-skill-group h3 { margin: 0 0 var(--space-1); font-size: var(--text-base); font-weight: 680; }
-.result-skill-group p { margin: 0; color: #bec9c1; font-size: var(--text-sm); line-height: 1.6; }
+.result-skill-group h3 { margin: 0 0 var(--space-1); font-size: var(--doc-lead); font-weight: 680; }
+.result-skill-group p { margin: 0; color: #bec9c1; font-size: var(--doc-body); line-height: 1.6; }
 
 /* 예전에는 클래스 없이 `> div > div:first-child` 같은 구조 선택자로만 걸려
    있어, 마크업을 한 줄만 바꿔도 스타일이 통째로 떨어졌다. */
@@ -2475,7 +2418,7 @@ a {
 .result-pattern-caption {
   margin: 0 0 var(--space-2);
   color: #a9b5ad;
-  font-size: var(--text-2xs);
+  font-size: var(--doc-label);
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -2485,7 +2428,7 @@ a {
   justify-content: space-between;
   margin-bottom: var(--space-1);
   color: #d4ddd6;
-  font-size: var(--text-2xs);
+  font-size: var(--doc-label);
 }
 
 .result-language-track { height: 4px; background: #47544d; }
@@ -2519,13 +2462,20 @@ a {
 
 .result-pattern-list { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-6); }
 .result-pattern-caption { flex: 1 0 100%; }
+/* 서술 문장은 칩과 같은 줄에 서면 안 된다. 칩을 소개하는 글이다. */
+.result-pattern-list .result-expertise-summary {
+  /* flex 묶음 안이라 max-width가 남아 있으면 폭이 줄고 그 옆에 칩이 끼어든다. */
+  flex: 1 0 100%;
+  max-width: none;
+  margin: 0 0 var(--space-3);
+}
 
 .result-pattern-list span {
   padding: var(--space-1) var(--space-2);
   border: 1px solid #536159;
   background: transparent;
   color: #dce4de;
-  font-size: var(--text-2xs);
+  font-size: var(--doc-label);
 }
 
 .result-portfolio-footer {
@@ -2650,9 +2600,6 @@ a {
   .dashboard-strip p { grid-column: 1 / -1; margin-top: 18px; text-align: left; }
   .split-section { gap: 35px; }
   .prompt-layout { grid-template-columns: 280px 1fr; }
-  .portfolio-hero,
-  .portfolio-intro,
-  .portfolio-section { padding-right: 45px; padding-left: 45px; }
   .gallery-detail-header { grid-template-columns: 1fr auto; }
   .gallery-detail-header > .text-link { grid-column: 1 / -1; justify-self: start; }
 }
@@ -2776,14 +2723,7 @@ a {
   .result-actions > * { width: 100%; }
   .share-row { justify-content: flex-start; }
   .portfolio-canvas-wrap { padding: 20px 10px; }
-  .portfolio-hero { grid-template-columns: 1fr; padding: 45px 28px; }
-  .portfolio-role-block { justify-self: start; }
-  .portfolio-intro { grid-template-columns: 1fr; padding: 42px 28px; }
-  .portfolio-section { grid-template-columns: 1fr; padding: 42px 28px; }
   .project-section .portfolio-section-heading { grid-template-columns: 1fr; gap: 10px; }
-  .portfolio-project { padding: 22px; }
-  .project-story-grid { grid-template-columns: 1fr; }
-  .portfolio-footer { flex-direction: column; gap: 24px; align-items: flex-start; padding: 42px 28px; }
   .result-footer-actions { flex-direction: column; gap: 18px; align-items: flex-start; }
   .product-grid { grid-template-columns: 1fr; }
   .product-card { min-height: 310px; }
@@ -2848,7 +2788,6 @@ a {
   .result-portfolio-footer a { justify-self: start; }
   .result-portfolio-footer span { display: none; }
 }
-
 
 /* 내 포트폴리오 목록 */
 
@@ -3322,7 +3261,6 @@ a {
   li { orphans: 2; widows: 2; }
 
   /* 프로젝트는 여러 개일 때 자연스럽게 페이지를 넘어간다. */
-  .result-portfolio-section { break-inside: auto; }
 
   .result-section-label { break-after: avoid; }
   .result-project-title-row { break-after: avoid; }

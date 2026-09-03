@@ -249,7 +249,7 @@ export default function PortfolioResultPage() {
       ) : null}
       <div className="page-container result-footer-actions">
         <Link className="text-link" href="/dashboard">← {LABEL.dashboard}로 돌아가기</Link>
-        <p>인쇄 화면에서 “PDF로 저장”을 고르면 A4 이력서로 남길 수 있어요.</p>
+        <p>인쇄 화면에서 “PDF로 저장”을 고르면 A4 포트폴리오로 남길 수 있어요.</p>
       </div>
     </div>
   );
