@@ -69,3 +69,31 @@ test("항목이 모두 빠진 그룹은 제목만 남지 않게 지운다", () =
   assert.deepEqual(result.value, [{ category: "언어", skills: ["TypeScript"] }]);
   assert.deepEqual(result.removed, ["Kubernetes", "Terraform"]);
 });
+
+test("의존성에서 확인되는 프레임워크를 걷어내지 않는다", () => {
+  /* 지시문은 dependencies를 techStack의 근거로 쓰라고 안내한다. 검증이 그걸
+     모르면 "React를 쓰라"고 말해놓고 모델이 쓴 React를 도로 걷어낸다. */
+  const withDependencies = {
+    ...evidence,
+    repositories: [{ ...evidence.repositories[0], readme: "", dependencies: ["react", "vitest"] }],
+  };
+  const result = verifyTechStack(["React", "Vitest"], withDependencies);
+  assert.deepEqual(result.value, ["React", "Vitest"]);
+  assert.deepEqual(result.removed, []);
+});
+
+test("지원자가 직접 답한 것도 근거로 인정한다", () => {
+  /* 저장소 근거와 나란한 사실 층으로 쓰기로 해놓고 검증에서 빼면, 답변에만
+     나오는 기술이 조용히 사라진다. */
+  const withStatements = {
+    ...evidence,
+    repositories: [{ ...evidence.repositories[0], readme: "" }],
+    applicantStatements: [{
+      repositoryName: "folio-maker",
+      field: "solutions",
+      question: "그 문제를 어떻게 푸셨나요?",
+      answer: "Redis에 결과를 캐시해서 같은 요청이 반복되지 않게 했어요.",
+    }],
+  };
+  assert.deepEqual(verifyTechStack(["Redis"], withStatements).value, ["Redis"]);
+});

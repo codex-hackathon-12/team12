@@ -28,9 +28,17 @@ function buildHaystack(evidence: PortfolioEvidence): string {
     parts.push(...repository.ownPullRequests.flatMap((pull) => [pull.title, pull.body]));
     parts.push(...repository.teamPullRequestTitles);
     parts.push(...repository.topLevelPaths);
+    /* 의존성은 지시문이 techStack의 근거로 쓰라고 안내하는 자리다. 여기 없으면
+       "React를 쓰라"고 말해놓고 모델이 쓴 React를 검증이 도로 걷어낸다. */
+    parts.push(...repository.dependencies);
   }
   // 사용자가 직접 적어 넣은 강조점도 근거로 인정한다. 본인이 주장하는 범위다.
   parts.push(...evidence.highlights);
+  /* 되묻기에 지원자가 직접 답한 내용도 근거다. 저장소 근거와 나란한 사실 층으로
+     쓰기로 해놓고 검증에서 빼면, 답변에만 나오는 기술이 조용히 사라진다. */
+  for (const statement of evidence.applicantStatements ?? []) {
+    parts.push(statement.answer);
+  }
   return normalize(parts.join(" "));
 }
 

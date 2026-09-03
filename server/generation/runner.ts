@@ -3,6 +3,8 @@ import { collectPortfolioEvidence } from "@/server/github/evidence";
 import { generatePortfolioDraft, type GeneratedPortfolioDraft } from "@/server/openai/portfolio-generator";
 import type { PortfolioEvidence, PortfolioTone } from "@/server/openai/portfolio-prompt";
 import { TEXT_LIMITS, clampText, clampTextArray } from "@/server/portfolio/content-limits";
+import { selectFollowUpQuestions } from "@/server/portfolio/questions";
+import { insertPortfolioQuestions } from "@/server/portfolio/statements";
 import { buildHaystack, verifySkillGroups, verifyTechStack } from "@/server/portfolio/verification";
 import { logOperationFailure } from "@/server/observability/api-logging";
 import { getSupabaseClient } from "@/server/supabase/client";
@@ -256,7 +258,61 @@ export async function persistGenerationPortfolio(jobId: string): Promise<void> {
   );
   if (linkError) throw new Error("Unable to link portfolio repositories.");
 
+  await persistFollowUpQuestions(job.user_id, portfolio.id, evidence, draft, verifiedProjects);
   await markCompleted(jobId, portfolio.id);
+}
+
+/**
+ * 초안이 비워둔 자리를 지원자에게 되물을 질문으로 남긴다.
+ *
+ * 질문을 만드는 것은 모델이지만 물어도 되는 질문인지는 코드가 정한다. 모델이
+ * 이미 채워진 자리를 물으면 사용자가 성심껏 답해도 아무것도 바뀌지 않는데,
+ * 그 실패는 답을 다 쓴 뒤에야 드러난다.
+ *
+ * 저장 실패로 생성을 실패시키지 않는다. 되묻기는 결과를 더 좋게 만드는 보조
+ * 기능이고, 여기서 던지면 완성된 포트폴리오를 저장하고도 작업이 실패로 남는다.
+ */
+async function persistFollowUpQuestions(
+  userId: string,
+  portfolioId: string,
+  evidence: PortfolioEvidence,
+  draft: GeneratedPortfolioDraft,
+  projects: GeneratedPortfolioDraft["projects"],
+): Promise<void> {
+  try {
+    const byName = new Map(evidence.repositories.map((repository) => [repository.name, repository]));
+    const targets = projects.flatMap((project) => {
+      const repository = byName.get(project.repositoryName);
+      if (!repository) return [];
+      return [{
+        repositoryName: repository.name,
+        highlights: project.highlights,
+        challenges: project.challenges,
+        solutions: project.solutions,
+        impact: project.impact,
+        contributorCount: repository.contributorCount,
+        ownContributionUnverifiable: repository.ownContributionUnverifiable,
+      }];
+    });
+
+    const questions = selectFollowUpQuestions(draft.followUpQuestions ?? [], targets);
+    await insertPortfolioQuestions(
+      userId,
+      portfolioId,
+      questions.map((question) => ({
+        repositoryName: question.repositoryName,
+        field: question.field,
+        question: question.question,
+      })),
+    );
+  } catch (error) {
+    logOperationFailure({
+      domain: "portfolios",
+      operation: "questions.persist",
+      jobId: portfolioId,
+      error: error instanceof Error ? error : new Error("Unable to persist follow-up questions."),
+    });
+  }
 }
 
 async function markCompleted(jobId: string, portfolioId: string): Promise<void> {

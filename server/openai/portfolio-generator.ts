@@ -23,12 +23,24 @@ export type GeneratedPortfolioDraft = {
     solutions: string[];
     impact: string[];
   }>;
+  /**
+   * 근거가 없어 비운 자리에 대해 지원자에게 되묻는 질문.
+   *
+   * 빈칸을 그럴듯하게 메우는 대신 만든 사람에게 묻는다. 무엇을 왜 비웠는지
+   * 가장 잘 아는 것이 방금 그것을 비운 이 호출이라, 별도 호출로 나누지 않고
+   * 같은 응답에서 받는다.
+   */
+  followUpQuestions: Array<{
+    repositoryName: string;
+    field: "impact" | "challenges" | "solutions" | "role" | "highlights";
+    question: string;
+  }>;
 };
 
 const schema = {
   type: "object",
   additionalProperties: false,
-  required: ["title", "headline", "introduction", "skills", "projects", "notablePatterns"],
+  required: ["title", "headline", "introduction", "skills", "projects", "notablePatterns", "followUpQuestions"],
   properties: {
     title: { type: "string" },
     headline: { type: "string" },
@@ -67,6 +79,20 @@ const schema = {
       },
     },
     notablePatterns: { type: "array", maxItems: 4, items: { type: "string" } },
+    followUpQuestions: {
+      type: "array",
+      maxItems: 8,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["repositoryName", "field", "question"],
+        properties: {
+          repositoryName: { type: "string" },
+          field: { type: "string", enum: ["impact", "challenges", "solutions", "role", "highlights"] },
+          question: { type: "string" },
+        },
+      },
+    },
   },
 } as const;
 
@@ -91,6 +117,18 @@ function isDraft(value: unknown): value is GeneratedPortfolioDraft {
     && Array.isArray(draft.projects)
     && draft.projects.length > 0
     && Array.isArray(draft.notablePatterns);
+}
+
+/**
+ * 질문이 없다고 생성을 실패시키지 않는다.
+ *
+ * 되묻기는 결과를 더 좋게 만드는 보조 기능이고, 포트폴리오 본문은 질문 없이도
+ * 온전하다. 여기서 던지면 질문 하나 때문에 완성된 초안을 통째로 버리게 된다.
+ */
+function readQuestions(value: unknown): GeneratedPortfolioDraft["followUpQuestions"] {
+  return Array.isArray(value)
+    ? (value as GeneratedPortfolioDraft["followUpQuestions"])
+    : [];
 }
 
 export async function generatePortfolioDraft(evidence: PortfolioEvidence): Promise<GeneratedPortfolioDraft> {
@@ -121,5 +159,5 @@ export async function generatePortfolioDraft(evidence: PortfolioEvidence): Promi
     failure.name = "OpenAISchemaError";
     throw failure;
   }
-  return draft;
+  return { ...draft, followUpQuestions: readQuestions(draft.followUpQuestions) };
 }

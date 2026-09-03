@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const { buildPortfolioPrompt } = await import(new URL("../server/openai/portfolio-prompt.ts", import.meta.url));
+const { buildPortfolioPrompt, EVIDENCE_RULES } = await import(
+  new URL("../server/openai/portfolio-prompt.ts", import.meta.url),
+);
 
 const baseRepository = {
   id: "repo_1",
@@ -202,4 +204,32 @@ test("아직 묻지 않았으면 빈 진술로 나간다", () => {
   void applicantStatements;
   const input = JSON.parse(buildPortfolioPrompt(withoutStatements).input);
   assert.deepEqual(input.applicantStatement.answers, []);
+});
+
+test("빈칸을 메우는 대신 되물으라고 지시한다", () => {
+  /* 초안이 근거를 못 찾아 비운 자리를 그럴듯하게 메우면 면접의 후속 질문
+     하나에 무너진다. 물을 자리를 같은 응답에서 받는 이유는 무엇을 왜 비웠는지
+     가장 잘 아는 것이 방금 그것을 비운 호출이기 때문이다. */
+  const { instructions } = buildPortfolioPrompt(baseEvidence);
+  assert.match(instructions, /followUpQuestions에는 근거가 없어 비워둔 자리에 대해/);
+  assert.match(instructions, /질문은 이미 비어 있는 자리에 대해서만 만드세요/);
+});
+
+test("답할 수 없는 질문을 막는다", () => {
+  /* "어려웠던 점은 무엇인가요"는 어느 프로젝트에나 붙는다. 무엇을 묻는지
+     모르면 사람은 답하지 못하거나 아무 말이나 적고, 그러면 되묻는 의미가 없다. */
+  const { instructions } = buildPortfolioPrompt(baseEvidence);
+  assert.match(instructions, /어느 프로젝트에나 붙는 질문은 쓰지 마세요/);
+  // 질문이 답을 미리 정하면 지원자가 없던 성과를 만들어 답하게 된다.
+  assert.match(instructions, /질문에서 답을 미리 정해주지 마세요/);
+  assert.match(instructions, /수치를 요구하지도 마세요/);
+});
+
+test("근거 규칙은 한 곳에서만 정의된다", () => {
+  /* 되묻기 반영은 다른 호출이지만 근거를 다루는 기준은 같아야 한다. 두 곳이
+     각자 들고 있으면 갈라지고, 갈라지는 순간 한쪽이 뒷문이 된다. */
+  const { instructions } = buildPortfolioPrompt(baseEvidence);
+  for (const rule of EVIDENCE_RULES) {
+    assert.ok(instructions.includes(rule), `근거 규칙이 빠졌어요: ${rule.slice(0, 30)}…`);
+  }
 });

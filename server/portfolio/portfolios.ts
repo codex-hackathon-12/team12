@@ -11,6 +11,7 @@ import {
   type PortfolioRecord,
 } from "@/server/portfolio/mapper";
 import { buildPortfolioSlug, toShareDto } from "@/server/portfolio/sharing";
+import { listPortfolioQuestions } from "@/server/portfolio/statements";
 import { getSupabaseClient } from "@/server/supabase/client";
 
 const PORTFOLIO_SELECT = "id, generation_job_id, title, target_role, content, style, public_slug, published_at, created_at, updated_at, repositories!portfolios_repository_id_fkey(id, github_repository_id, owner_username, owner_avatar_url, name, full_name, description, html_url, default_branch, primary_language, visibility, star_count, fork_count, pushed_at, synced_at), portfolio_repositories(position, repositories(id, github_repository_id, owner_username, owner_avatar_url, name, full_name, description, html_url, default_branch, primary_language, visibility, star_count, fork_count, pushed_at, synced_at))";
@@ -83,7 +84,14 @@ export async function getPortfolio(
     throw new Error("Unable to load portfolio.");
   }
 
-  return data ? mapPortfolio(data as PortfolioRecord) : null;
+  const portfolio = data ? mapPortfolio(data as PortfolioRecord) : null;
+  if (!portfolio) {
+    return null;
+  }
+
+  /* 질문은 별도 테이블에 있어 조인으로 오지 않는다. 상세 조회에서만 읽는다 —
+     목록에는 쓰이지 않아 매번 붙이면 값을 쓰지 않는 질의가 늘어난다. */
+  return { ...portfolio, questions: await listPortfolioQuestions(portfolio.id) };
 }
 
 /**
