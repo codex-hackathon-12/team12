@@ -281,7 +281,7 @@ async function insertRepositoryAnalyses(
       repository_id: repository.id,
       source_pushed_at: new Date().toISOString(),
       language_breakdown: repository.languages,
-      commit_count: repository.ownCommitTitles.length,
+      commit_count: repository.ownCommits.length,
       pull_request_count: repository.ownPullRequests.length,
       summary: repository.description || repository.name,
     })),
