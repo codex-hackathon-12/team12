@@ -72,6 +72,8 @@ export type ApiErrorCode =
   | "GENERATION_IN_PROGRESS"
   | "GENERATION_FAILED"
   | "JOB_NOT_RETRYABLE"
+  /** 생성 근거가 남아 있지 않아 되묻기 답변을 반영할 수 없다. 재시도해도 같다. */
+  | "EVIDENCE_UNAVAILABLE"
   | "ACCOUNT_DELETION_IN_PROGRESS"
   | "MOCK_PAYMENT_FAILED"
   | "TOO_MANY_REPOSITORIES"

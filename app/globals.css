@@ -3132,6 +3132,77 @@ a {
   margin: 8mm;
 }
 
+/* 되묻기 — 초안이 비운 자리를 지원자에게 묻는 칸.
+
+   문서 위에 둔다. 아래에 두면 답할 것이 있다는 사실 자체를 못 보고 나간다.
+   다만 문서가 이 화면의 본체라 카드 하나에 담아 밀어내는 높이를 줄인다. */
+.follow-up { padding-bottom: var(--space-4); }
+
+.follow-up-card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: 1px solid var(--ink);
+  /* 결과 문서(흰 종이)와 구분되는 바탕. 문서가 아니라 물어보는 칸이라는
+     신호가 있어야 인쇄물의 일부로 오해하지 않는다. */
+  background: var(--lime-soft);
+}
+
+.follow-up-heading { display: grid; gap: var(--space-2); }
+.follow-up-heading h2 { margin: 0; font-size: var(--text-lg); line-height: 1.35; }
+.follow-up-heading p { margin: 0; max-width: 62ch; color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.7; }
+
+.follow-up-question { display: grid; gap: var(--space-2); }
+.follow-up-question > div { display: flex; justify-content: space-between; gap: var(--space-3); align-items: baseline; }
+.follow-up-question label { font-size: var(--text-base); font-weight: 650; line-height: 1.6; }
+
+/* 어느 프로젝트의 무엇을 묻는지. 답을 어디에 쓸지 알아야 답의 범위가 정해진다. */
+.follow-up-target {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-2xs);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.follow-up-question textarea {
+  width: 100%;
+  /* 답 하나가 두세 문장이면 충분하다. 더 크게 잡으면 카드가 문서를 화면 밖으로
+     밀어내고, 빈 칸이 클수록 길게 써야 할 것처럼 보인다. */
+  min-height: 84px;
+  padding: var(--space-3);
+  border: 1px solid var(--line-control);
+  border-radius: 0;
+  outline: 0;
+  background: var(--paper);
+  font-size: var(--text-base);
+  line-height: 1.75;
+  resize: vertical;
+  transition: border 140ms ease, box-shadow 140ms ease;
+}
+
+.follow-up-question textarea:focus { border-color: var(--ink); box-shadow: 4px 4px 0 var(--lime); }
+.follow-up-question small { flex: none; font-size: var(--text-xs); }
+
+.follow-up-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.follow-up-actions p { margin: 0; max-width: 46ch; color: var(--ink-soft); font-size: var(--text-xs); line-height: 1.6; }
+
+.follow-up-answered summary { cursor: pointer; font-size: var(--text-sm); font-weight: 650; }
+.follow-up-answered dl { display: grid; gap: var(--space-3); margin: var(--space-3) 0 0; }
+.follow-up-answered dt { color: var(--ink-soft); font-size: var(--text-xs); }
+.follow-up-answered dd { margin: 4px 0 0; font-size: var(--text-sm); line-height: 1.7; }
+
+.follow-up-result { margin: 0; font-size: var(--text-sm); font-weight: 650; }
+
+@media (max-width: 720px) {
+  .follow-up-card { padding: var(--space-4); }
+  .follow-up-question > div { flex-direction: column; gap: 4px; }
+}
+
 @media print {
   /* 화면용 A4 낱장 시뮬레이션은 인쇄에 쓰지 않는다.
      인쇄 엔진이 스스로 나누게 두어야 여백이 겹치지 않고 빈 페이지도 생기지 않는다. */
@@ -3154,6 +3225,9 @@ a {
   .site-header,
   .mobile-nav,
   .result-toolbar,
+  /* 물어보는 칸은 화면에서만 의미가 있다. 종이에 찍히면 채용 담당자가
+     지원자에게 던지는 질문 목록이 된다. */
+  .follow-up,
   .result-portfolio-nav,
   .result-footer-actions,
   /* 공유 페이지의 안내와 인쇄 버튼은 종이에 남을 이유가 없다. */
