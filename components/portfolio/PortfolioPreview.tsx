@@ -105,7 +105,7 @@ export function PortfolioPreview({
             )}
             <div>
               <p className="result-hero-role">{content.profile.targetRole}</p>
-              <h1>{content.profile.displayName}</h1>
+              <h1 className="result-hero-name">{content.profile.displayName}</h1>
             </div>
           </div>
 

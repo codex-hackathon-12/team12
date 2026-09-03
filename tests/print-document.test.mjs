@@ -114,3 +114,53 @@ test("언어 막대가 무엇인지 밝힌다", () => {
      이건 자기평가가 아니라 저장소 코드 비율이므로, 그 사실이 보여야 한다. */
   assert.match(preview, /저장소 코드 비율/u, "막대의 출처를 밝히지 않았어요");
 });
+
+test("활자 위계가 뒤집히지 않는다", () => {
+  /* 이름 h1의 CSS 선택자가 `.result-hero-copy h1`이었는데 실제 h1은 다른
+     자리에 있어 한 번도 매칭되지 않았다. 30px를 의도해 놓고 브라우저
+     기본값으로 렌더돼, 본인 이름이 프로젝트 제목보다 작았다. */
+  assert.match(preview, /className="result-hero-name"/u, "이름에 클래스가 없어요");
+  assert.match(css, /^\.result-hero-name\s*\{/mu, "이름 규칙이 없어요");
+
+  const token = (name) => {
+    const match = css.match(new RegExp(`--doc-${name}:\\s*([^;]+);`, "u"));
+    assert.ok(match, `--doc-${name} 토큰이 없어요`);
+    const value = match[1].trim();
+    // var(--text-*)로 넘긴 것은 그 값을 다시 찾는다.
+    const ref = value.match(/var\((--text-[a-z0-9]+)\)/u);
+    const raw = ref ? css.match(new RegExp(`${ref[1]}:\\s*([0-9.]+)px`, "u"))[1] : value;
+    return parseFloat(raw);
+  };
+
+  const name = token("name");
+  const title = token("title");
+  const lead = token("lead");
+  const body = token("body");
+  const label = token("label");
+
+  assert.ok(name > title, `이름(${name}px)이 프로젝트 제목(${title}px)보다 커야 해요`);
+  assert.ok(title > lead, `제목(${title}px)이 본문(${lead}px)보다 커야 해요`);
+  assert.ok(lead >= body, `소개(${lead}px)가 본문(${body}px)보다 작으면 안 돼요`);
+  assert.ok(body > label, `본문(${body}px)이 라벨(${label}px)보다 커야 해요`);
+
+  /* 인쇄물에서 10pt 미만은 읽기 어렵다. 본문 티어는 이 하한을 지킨다.
+     라벨은 대문자 모노 표지판이라 9pt로 예외를 두고, 그 판단을 여기 남긴다. */
+  assert.ok(body >= 13.33, `본문이 10pt 미만이에요 (${body}px = ${body * 0.75}pt)`);
+  assert.ok(label >= 12, `라벨이 9pt 미만이에요 (${label}px)`);
+});
+
+test("문서 활자는 전역 토큰을 직접 쓰지 않는다", () => {
+  /* 전역 --text-*는 화면 UI의 값이라 종이 기준과 다르다. 문서 규칙이 직접
+     쓰면 화면을 손볼 때 종이가 같이 움직인다. --doc-*를 거쳐야 한다. */
+  const offenders = [];
+  for (const match of css.matchAll(/(\.result-[a-z-]+[^{}]*)\{([^}]*)\}/gu)) {
+    const [, selector, body] = match;
+    const size = body.match(/font-size:\s*var\((--text-[a-z0-9]+)\)/u);
+    if (size) offenders.push(`${selector.trim().split("\n").pop().trim()} → ${size[1]}`);
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `문서 규칙이 전역 타입 토큰을 직접 쓰고 있어요:\n${offenders.join("\n")}`,
+  );
+});
