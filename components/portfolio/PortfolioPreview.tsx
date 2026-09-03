@@ -2,6 +2,20 @@ import { Fragment, type ReactNode } from "react";
 import Image from "next/image";
 import { PaginatedPortfolio } from "@/components/portfolio/PaginatedPortfolio";
 import type { PortfolioContentDto, PortfolioProjectDto } from "@/contracts/api-contract";
+import { languageColor } from "@/lib/repository-list";
+
+/**
+ * 언어 막대의 색.
+ *
+ * `languageColor`는 모르는 언어에 `var(--line-dark)`를 준다. 저장소 목록의
+ * 점에는 맞는 값이지만 이 문서에서는 아니다 — 흰 종이 위에서 2.02:1이라
+ * 사실상 보이지 않는다. 팔레트에 없으면 변수를 아예 넘기지 않고, 배경에 맞는
+ * 폴백을 CSS가 고르게 둔다.
+ */
+function accent(language: string): { "--language-color"?: string } {
+  const color = languageColor(language);
+  return color.startsWith("#") ? { "--language-color": color } : {};
+}
 
 // 근거가 없으면 빈 배열이 오므로, 내용이 있는 항목만 열로 만든다.
 // 비어 있는 항목까지 라벨을 그리면 채용 담당자에게 빈칸만 보인다.
@@ -222,18 +236,45 @@ export function PortfolioPreview({
             )}
 
             {content.gitAnalysis.languages.length > 0 && (
-              <div className="result-language-list" aria-label="언어 사용 비율">
+              /*
+                이 막대가 무엇인지 밝힌다. 이력서의 스킬 막대가 비판받는 이유는
+                "70%"가 무엇을 기준으로 한 값인지 알 수 없기 때문인데, 이건
+                자기평가가 아니라 저장소 코드 비율이다. 그 사실이 보여야 같은
+                오해를 사지 않는다.
+              */
+              <div className="result-language-list">
+                <p className="result-language-caption">저장소 코드 비율</p>
                 {content.gitAnalysis.languages.map((language) => (
-                  <div key={language.name}>
-                    <div><span>{language.name}</span><strong>{language.percentage}%</strong></div>
-                    <div><span style={{ width: `${language.percentage}%` }} /></div>
+                  <div className="result-language-row" key={language.name}>
+                    <div className="result-language-label">
+                      <span>{language.name}</span>
+                      <strong>{language.percentage}%</strong>
+                    </div>
+                    {/* 색은 보조 수단이다 — 언어 이름과 퍼센트가 이미 글자로
+                        옆에 있으므로, 흑백으로 인쇄돼도 잃는 정보가 없다.
+
+                        색을 background로 직접 박지 않고 변수로 넘긴다. 인라인
+                        background는 !important 없이는 어떤 규칙도 못 이겨서,
+                        인쇄에서 조정할 길이 막힌다. 값은 데이터가 정하고
+                        쓰는 방법은 CSS가 정한다. */}
+                    <div className="result-language-track">
+                      <span
+                        className="result-language-fill"
+                        style={{
+                          width: `${language.percentage}%`,
+                          ...accent(language.name),
+                        }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
             )}
 
             {content.gitAnalysis.notablePatterns.length > 0 && (
+              /* 라벨 없이 떠 있어 무엇을 나열한 것인지 알 수 없었다. */
               <div className="result-pattern-list">
+                <p className="result-pattern-caption">저장소에서 반복해서 보인 것</p>
                 {content.gitAnalysis.notablePatterns.map((pattern) => (
                   <span key={pattern}>{pattern}</span>
                 ))}
