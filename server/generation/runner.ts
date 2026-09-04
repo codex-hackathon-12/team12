@@ -1,11 +1,17 @@
 import { mergeLanguages, resolveProjectRepositories } from "@/server/generation/repository-matching";
 import { collectPortfolioEvidence } from "@/server/github/evidence";
 import { generatePortfolioDraft, type GeneratedPortfolioDraft } from "@/server/openai/portfolio-generator";
-import type { PortfolioEvidence, PortfolioTone } from "@/server/openai/portfolio-prompt";
+import { buildPortfolioPrompt, type PortfolioEvidence, type PortfolioTone } from "@/server/openai/portfolio-prompt";
 import { TEXT_LIMITS, clampText, clampTextArray } from "@/server/portfolio/content-limits";
 import { selectFollowUpQuestions } from "@/server/portfolio/questions";
 import { insertPortfolioQuestions } from "@/server/portfolio/statements";
-import { buildHaystack, verifySkillGroups, verifyTechStack } from "@/server/portfolio/verification";
+import {
+  buildHaystack,
+  buildNumberSet,
+  verifyNarrative,
+  verifySkillGroups,
+  verifyTechStack,
+} from "@/server/portfolio/verification";
 import { logOperationFailure } from "@/server/observability/api-logging";
 import { getSupabaseClient } from "@/server/supabase/client";
 
@@ -182,13 +188,29 @@ export async function persistGenerationPortfolio(jobId: string): Promise<void> {
      덧붙이고, 면접에서 설명하지 못할 한 줄이 남는 쪽이 더 큰 손해다. */
   const haystack = buildHaystack(evidence);
   const verifiedSkills = verifySkillGroups(draft.skills, evidence, haystack);
+  /* 문장은 부분 문자열로 검증할 수 없어 지금까지 무검증이었다. 수치 하나만
+     본다 — 지어낸 숫자는 채용 담당자의 후속 질문 하나에 무너진다. */
+  const numbers = buildNumberSet(buildPortfolioPrompt(evidence).input);
   const removedTech: string[] = [];
+  const removedNarratives: string[] = [];
   const verifiedProjects = draft.projects.map((project) => {
     const techStack = verifyTechStack(project.techStack, evidence, haystack);
     removedTech.push(...techStack.removed);
-    return { ...project, techStack: techStack.value };
+    const narrative = (field: "highlights" | "challenges" | "solutions" | "impact") => {
+      const result = verifyNarrative(project[field], numbers);
+      removedNarratives.push(...result.removed);
+      return result.value;
+    };
+    return {
+      ...project,
+      techStack: techStack.value,
+      highlights: narrative("highlights"),
+      challenges: narrative("challenges"),
+      solutions: narrative("solutions"),
+      impact: narrative("impact"),
+    };
   });
-  const removed = [...verifiedSkills.removed, ...removedTech];
+  const removed = [...verifiedSkills.removed, ...removedTech, ...removedNarratives];
   if (removed.length > 0) {
     // 자주 일어나면 프롬프트를 고쳐야 한다는 신호다.
     logOperationFailure({

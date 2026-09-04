@@ -4,10 +4,11 @@ import type {
   PortfolioStatementResultDto,
 } from "@/contracts/api-contract";
 import { generatePortfolioRewrite } from "@/server/openai/portfolio-rewriter";
-import type { PortfolioEvidence } from "@/server/openai/portfolio-prompt";
+import { buildPortfolioPrompt, type PortfolioEvidence } from "@/server/openai/portfolio-prompt";
 import type { RewriteProjectSnapshot, RewriteStatement } from "@/server/openai/rewrite-prompt";
 import { mapPortfolioContent, mapRepository, type PortfolioRecord } from "@/server/portfolio/mapper";
-import { applyRewrite, type RewriteSlot } from "@/server/portfolio/rewrite";
+import { applyRewrite, type ProjectRewrite, type RewriteSlot } from "@/server/portfolio/rewrite";
+import { buildNumberSet, verifyNarrative } from "@/server/portfolio/verification";
 import { listPortfolioQuestions, saveAnswers } from "@/server/portfolio/statements";
 import { getSupabaseClient } from "@/server/supabase/client";
 
@@ -69,6 +70,19 @@ async function loadEvidence(generationJobId: string): Promise<PortfolioEvidence 
 
   if (error) throw new Error("Unable to load generation evidence.");
   return data ? ((data as { evidence: PortfolioEvidence }).evidence) : null;
+}
+
+/** 근거 어디에도 없는 숫자가 든 문장을 걷어낸다. role은 문장이 아니라 구절이라 그대로 둔다. */
+function sanitizeRewrite(rewrite: ProjectRewrite, numbers: Set<string>): ProjectRewrite {
+  const clean = (values: unknown) =>
+    verifyNarrative(Array.isArray(values) ? values.filter((v): v is string => typeof v === "string") : [], numbers).value;
+  return {
+    ...rewrite,
+    highlights: clean(rewrite.highlights),
+    challenges: clean(rewrite.challenges),
+    solutions: clean(rewrite.solutions),
+    impact: clean(rewrite.impact),
+  };
 }
 
 export async function applyPortfolioStatements(
@@ -133,9 +147,18 @@ export async function applyPortfolioStatements(
     statements,
   });
 
+  /* 되묻기도 생성과 같은 수치 검증을 받는다. 여기를 빼면 답변 한 줄을 근거로
+     모델이 없던 숫자를 붙일 수 있는 뒷문이 된다. 지원자가 답에 직접 쓴 숫자는
+     근거이므로 함께 넘긴다. */
+  const numbers = buildNumberSet(
+    buildPortfolioPrompt(evidence).input,
+    statements.map((statement) => statement.answer),
+  );
+  const checked = rewrites.map((rewrite) => sanitizeRewrite(rewrite, numbers));
+
   /* 여기가 "답한 부분만 바뀐다"는 약속을 지키는 자리다. 모델이 요청하지 않은
      자리를 돌려줘도 버린다. 지시는 강제가 아니므로 약속을 지시에 맡기지 않는다. */
-  const result = applyRewrite(loaded.content, rewrites, slots, urlByName);
+  const result = applyRewrite(loaded.content, checked, slots, urlByName);
 
   if (result.updatedFields.length > 0) {
     const { error } = await getSupabaseClient()

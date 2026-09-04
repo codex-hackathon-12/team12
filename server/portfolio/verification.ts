@@ -90,4 +90,91 @@ export function verifySkillGroups(
   return { value, removed };
 }
 
+/**
+ * 서술문에 지어낸 수치가 섞이는 것을 막는다.
+ *
+ * techStack과 skills는 이름 하나라 부분 문자열로 검증되지만, impact·challenges·
+ * solutions·highlights는 문장이라 같은 방법이 통하지 않는다. 그래서 지금까지
+ * 무검증이었다 — 환각 위험이 가장 큰 곳이 무방비였다.
+ *
+ * 문장 전체의 사실 여부는 코드가 판정할 수 없다. 대신 **수치 하나**만 본다.
+ * AI 이력서의 붉은 깃발 1순위가 "지나치게 둥근 숫자"이고, 채용 담당자가 가장
+ * 먼저 되묻는 것도 거기다. 지어낸 숫자는 후속 질문 하나에 무너지므로, 근거
+ * 어디에도 없는 숫자가 들어간 문장은 통째로 뺀다.
+ *
+ * 판정은 보수적이다. 근거 payload 어디에도 그 숫자가 없을 때만 뺀다. 언어
+ * 비율이든 의존성 버전이든 커밋 본문이든 한 번이라도 나오면 통과시킨다.
+ * 정당한 문장을 지우는 쪽이 더 큰 손해이기 때문이다.
+ */
+
+/** 쉼표 자릿수 구분과 끝에 붙은 마침표를 걷어낸다. "1,200."과 "1200"은 같다. */
+function normalizeNumber(value: string): string {
+  return value.replace(/,/gu, "").replace(/\.+$/u, "");
+}
+
+/** 근거 쪽. 숫자로 보이는 것은 전부 담는다 — 인정할 수 있는 값이 많을수록 좋다. */
+function extractNumbers(text: string): string[] {
+  return [...text.matchAll(/\d[\d,]*(?:\.\d+)?/gu)]
+    .map((match) => normalizeNumber(match[0]))
+    .filter(Boolean);
+}
+
+/**
+ * 문장 쪽. 수치 주장으로 읽히는 것만 담는다.
+ *
+ * 숫자가 있다고 다 주장이 아니다. 'N+1 질의', 'OAuth 2.0', 'S3', 'HTTP/2',
+ * 'Next.js 15'는 기술 이름이다. 이것들까지 검사하면 정당한 문장이 통째로
+ * 사라진다 — 실제로 'N+1 질의를 없앴다'가 먼저 걸렸다.
+ *
+ * 처음에는 글자에 붙었는지로 갈랐는데 'OAuth 2.0'처럼 띄어 쓰는 이름이 그대로
+ * 빠져나갔다. 이름과 주장을 가르는 것은 앞이 아니라 **뒤**다. 주장에는 단위가
+ * 붙는다 — 30%, 3배, 1,200명, 40분. 기술 이름에는 붙지 않는다.
+ *
+ * 그래서 단위가 따라오는 숫자만 검사한다. 지어낸 수치가 위험한 이유도 정확히
+ * 그 단위 때문이다. 단위 없는 숫자는 채용 담당자가 되물을 주장이 아니다.
+ */
+const CLAIM_UNITS = [
+  "%", "퍼센트", "배",
+  "개월", "개", "명", "건", "회", "번", "곳", "팀",
+  "밀리초", "초", "분", "시간", "일", "주", "달", "년",
+  "만", "억", "천", "원", "달러",
+  "ms", "MB", "GB", "KB", "TB",
+].join("|");
+
+function extractClaims(text: string): string[] {
+  return [...text.matchAll(new RegExp(String.raw`(\d[\d,]*(?:\.\d+)?)\s*(?:${CLAIM_UNITS})`, "gu"))]
+    .map((match) => normalizeNumber(match[1]))
+    .filter(Boolean);
+}
+
+/**
+ * 모델이 볼 수 있었던 숫자 전부.
+ *
+ * 근거 payload를 그대로 훑는다. "모델이 읽을 수 있었던 것"과 "검증이 인정하는
+ * 것"이 정확히 같아야, 지시문이 쓰라고 한 값을 검증이 도로 걷어내는 일이
+ * 생기지 않는다.
+ *
+ * `extraTexts`는 payload 밖에 있는 근거를 위한 자리다. 되묻기 답변이 그렇다 —
+ * 저장된 근거 행에는 없지만 지원자가 직접 말한 사실이라 인정해야 한다.
+ */
+export function buildNumberSet(payload: string, extraTexts: string[] = []): Set<string> {
+  return new Set(extractNumbers([payload, ...extraTexts].join(" ")));
+}
+
+export function verifyNarrative(
+  sentences: string[],
+  numbers: Set<string>,
+): VerificationResult<string[]> {
+  const value: string[] = [];
+  const removed: string[] = [];
+
+  for (const sentence of sentences) {
+    const unsupported = extractClaims(sentence).some((number) => !numbers.has(number));
+    if (unsupported) removed.push(sentence);
+    else value.push(sentence);
+  }
+
+  return { value, removed };
+}
+
 export { buildHaystack };
