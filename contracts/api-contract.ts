@@ -220,6 +220,23 @@ export type PortfolioTone = "professional" | "concise" | "storytelling";
 /** 한 번의 생성에 넣을 수 있는 저장소 수의 상한. */
 export const MAX_GENERATION_REPOSITORIES = 5;
 
+/**
+ * 생성 요청 입력의 상한.
+ *
+ * 서버가 이미 이 값들로 검증하고 있었는데 화면은 몰랐다. 그래서 강조점은
+ * 11개째부터 400으로 거절당했고, 지원 직무는 100자에서 조용히 잘렸다. 둘 다
+ * 사용자에게는 이유가 보이지 않는 실패다.
+ *
+ * 화면이 상한을 알아야 미리 알려줄 수 있다. 숫자를 화면에 따로 적으면 서버와
+ * 갈라지므로 여기 한 곳에서만 정한다.
+ */
+export const GENERATION_INPUT_LIMITS = {
+  prompt: 2000,
+  targetRole: 100,
+  highlights: 10,
+  highlightLength: 100,
+} as const;
+
 export interface CreateGenerationRequest {
   /** 1개 이상 `MAX_GENERATION_REPOSITORIES`개 이하. 순서가 프로젝트 순서가 된다. */
   repositoryIds: EntityId[];
