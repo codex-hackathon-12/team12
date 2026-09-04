@@ -20,7 +20,9 @@ import type {
   MockPaymentListDto,
   PortfolioDto,
   PortfolioListDto,
+  PortfolioAnswerInput,
   PortfolioShareDto,
+  PortfolioStatementResultDto,
   PublicPortfolioDto,
   RepositoryListDto,
   RepositoryListQuery,
@@ -54,6 +56,14 @@ export interface ApiClient {
   deletePortfolio(portfolioId: string): Promise<DeletePortfolioDto>;
   /** 공개 여부를 전환한다. 슬러그는 유지되므로 다시 공개하면 같은 링크가 살아난다. */
   updatePortfolioShare(portfolioId: string, published: boolean): Promise<PortfolioShareDto>;
+  /**
+   * 되묻기 답변을 반영한다. 답한 자리만 다시 쓰이며 나머지는 그대로다.
+   * 새 생성 작업이 아니라 크레딧을 쓰지 않고 폴링도 필요 없다.
+   */
+  applyPortfolioStatements(
+    portfolioId: string,
+    answers: PortfolioAnswerInput[],
+  ): Promise<PortfolioStatementResultDto>;
   /** 인증 없이 조회하는 공개 포트폴리오. */
   getPublicPortfolio(slug: string): Promise<PublicPortfolioDto>;
   getCredits(): Promise<CreditSummaryDto>;

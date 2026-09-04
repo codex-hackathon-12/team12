@@ -305,6 +305,8 @@ export function mapPortfolio(record: PortfolioRecord): PortfolioDto | null {
     repositories: linked.length > 0 ? linked : [repository],
     style: "default",
     content: mapPortfolioContent(record.content, repository, record.target_role),
+    // 되묻기 질문은 별도 테이블에 있어 조회 계층이 채운다.
+    questions: [],
     updatedAt: record.updated_at,
   };
 }

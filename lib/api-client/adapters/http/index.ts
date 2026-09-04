@@ -23,7 +23,9 @@ import {
   type MockPaymentListDto,
   type PortfolioDto,
   type PortfolioListDto,
+  type PortfolioAnswerInput,
   type PortfolioShareDto,
+  type PortfolioStatementResultDto,
   type PublicPortfolioDto,
   type RepositoryListDto,
   type RepositoryListQuery,
@@ -249,6 +251,15 @@ export class HttpApiClient implements ApiClient {
       await request<PortfolioShareDto>(API_ROUTES.portfolioShare(portfolioId), {
         method: "PUT",
         body: JSON.stringify({ published }),
+      })
+    ).data;
+  }
+
+  async applyPortfolioStatements(portfolioId: string, answers: PortfolioAnswerInput[]) {
+    return (
+      await request<PortfolioStatementResultDto>(API_ROUTES.portfolioStatements(portfolioId), {
+        method: "POST",
+        body: JSON.stringify({ answers }),
       })
     ).data;
   }

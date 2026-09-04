@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import type { PortfolioShareDto } from "@/contracts/api-contract";
+import type {
+  PortfolioContentDto,
+  PortfolioQuestionDto,
+  PortfolioShareDto,
+} from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { useReturnFocus } from "@/hooks/useReturnFocus";
+import { FollowUpPanel } from "@/components/portfolio/FollowUpPanel";
 import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { LABEL } from "@/lib/copy";
@@ -24,6 +29,12 @@ export default function PortfolioResultPage() {
     [portfolioId],
     "포트폴리오를 불러오지 못했어요.",
   );
+  /* 되묻기 반영은 서버 응답이 출발점이고, 성공했을 때만 덮어쓴다. 공개 상태와
+     같은 규칙이다 — 이펙트로 복사해두면 두 값이 어긋난다. */
+  const [rewritten, setRewritten] = useState<{
+    content: PortfolioContentDto;
+    questions: PortfolioQuestionDto[];
+  } | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   /* 공개 상태는 서버 응답이 출발점이고, 전환에 성공했을 때만 덮어쓴다.
@@ -241,7 +252,12 @@ export default function PortfolioResultPage() {
           )}
         </div>
       ) : null}
-      <PortfolioDocument content={portfolio.content} />
+      <FollowUpPanel
+        portfolioId={portfolio.id}
+        questions={rewritten?.questions ?? portfolio.questions}
+        onApplied={(result) => setRewritten({ content: result.content, questions: result.questions })}
+      />
+      <PortfolioDocument content={rewritten?.content ?? portfolio.content} />
       {actionError ? (
         <div className="page-container">
           <p className="inline-error" role="alert">{actionError}</p>

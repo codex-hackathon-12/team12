@@ -12,6 +12,7 @@ import type {
   MockPaymentDto,
   PortfolioContentDto,
   PortfolioDto,
+  PortfolioQuestionDto,
   PortfolioSummaryDto,
   TasteSampleDto,
 } from "@/contracts/api-contract";
@@ -175,6 +176,21 @@ export const mockPortfolioContent = {
       solutions: ["작업 단계를 명확한 상태와 메시지로 분리"],
       impact: ["백엔드 연결 전에도 전체 사용자 흐름 검증 가능"],
     },
+    /* 근거가 얇은 저장소. 실제로 가장 흔한 모양이고, 되묻기 화면이 나오는
+       조건이기도 하다. 목이 늘 꽉 찬 결과만 돌려주면 그 화면은 로컬에서
+       한 번도 실행되지 않는다 — 저장소 목록이 비는 경우가 그랬다. */
+    {
+      id: "project_signal",
+      title: "Signal Board",
+      description: "팀이 보는 지표를 한 화면에 모으는 대시보드입니다.",
+      repositoryUrl: "https://github.com/frontend-builder/signal-board",
+      role: "프로젝트 개발",
+      techStack: ["TypeScript", "React"],
+      highlights: [],
+      challenges: [],
+      solutions: [],
+      impact: [],
+    },
   ],
   gitAnalysis: {
     summary:
@@ -201,6 +217,27 @@ export const mockPortfolioContent = {
   },
 } satisfies PortfolioContentDto;
 
+/**
+ * 되묻기 질문. 하나는 답한 상태, 둘은 아직 답하지 않은 상태로 둔다.
+ * 두 모양이 한 화면에 같이 나와야 답한 뒤 무엇이 남는지 보인다.
+ */
+export const mockPortfolioQuestions = [
+  {
+    id: "question_signal_impact",
+    repositoryName: "signal-board",
+    field: "impact",
+    question: "이 대시보드를 만든 뒤 팀에서 무엇이 달라졌나요?",
+    answer: null,
+  },
+  {
+    id: "question_signal_challenges",
+    repositoryName: "signal-board",
+    field: "challenges",
+    question: "지표를 한 화면에 모을 때 가장 까다로웠던 것은 무엇인가요?",
+    answer: null,
+  },
+] satisfies PortfolioQuestionDto[];
+
 export const mockPortfolio = {
   id: "portfolio_demo",
   title: "문제를 제품으로 번역하는 개발자",
@@ -215,6 +252,7 @@ export const mockPortfolio = {
   repositories: [mockRepositories[0], mockRepositories[1]],
   style: "default",
   content: mockPortfolioContent,
+  questions: mockPortfolioQuestions,
   updatedAt: "2026-08-16T04:03:00.000Z",
 } satisfies PortfolioDto;
 

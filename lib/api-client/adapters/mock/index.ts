@@ -3,6 +3,9 @@ import type {
   CreateMockCheckoutRequest,
   GalleryListQuery,
   GenerationJobDto,
+  PortfolioAnswerInput,
+  PortfolioContentDto,
+  PortfolioQuestionDto,
   RepositoryListQuery,
 } from "@/contracts/api-contract";
 import type { ApiClient } from "@/lib/api-client/client";
@@ -17,6 +20,8 @@ import {
   mockGallerySummaries,
   mockPayments,
   mockPortfolio,
+  mockPortfolioContent,
+  mockPortfolioQuestions,
   mockPortfolioSummaries,
   mockRepositories,
   mockSession,
@@ -61,6 +66,9 @@ export class MockApiClient implements ApiClient {
   private generationRepositories = new Map<string, string[]>();
   private deletedPortfolioIds = new Set<string>();
   private publishedPortfolioIds = new Set<string>();
+  /* 답변은 목에서도 남아야 한다. 새로고침 없이 다시 열었을 때 답이 사라지면
+     "답한 부분만 바뀐다"를 화면에서 확인할 수 없다. */
+  private answers = new Map<string, string>();
 
   getGitHubLoginUrl(returnTo: string) {
     return returnTo;
@@ -223,6 +231,58 @@ export class MockApiClient implements ApiClient {
     return {
       ...mockPortfolio,
       id: portfolioId,
+      content: this.contentWithAnswers(),
+      questions: this.questions(),
+    };
+  }
+
+  /** 답한 것은 답한 채로 돌려준다. */
+  private questions(): PortfolioQuestionDto[] {
+    return mockPortfolioQuestions.map((question) => ({
+      ...question,
+      answer: this.answers.get(question.id) ?? null,
+    }));
+  }
+
+  /**
+   * 답변이 반영된 내용을 만든다.
+   *
+   * 답한 자리만 채우고 나머지는 원본 객체를 그대로 넘긴다. 목에서도 같은
+   * 규칙을 지켜야 화면이 "여기만 바뀌었다"를 실제로 보여줄 수 있다.
+   */
+  private contentWithAnswers(): PortfolioContentDto {
+    if (this.answers.size === 0) return mockPortfolioContent;
+
+    const projects = mockPortfolioContent.projects.map((project) => {
+      if (project.id !== "project_signal") return project;
+      const next = { ...project };
+      for (const question of mockPortfolioQuestions) {
+        const answer = this.answers.get(question.id);
+        if (!answer) continue;
+        if (question.field === "impact") next.impact = [answer];
+        if (question.field === "challenges") next.challenges = [answer];
+      }
+      return next;
+    });
+    return { ...mockPortfolioContent, projects };
+  }
+
+  async applyPortfolioStatements(portfolioId: string, answers: PortfolioAnswerInput[]) {
+    await maybeFail("applyPortfolioStatements");
+    // 모델 호출이 들어가는 경로라 다른 요청보다 오래 걸린다.
+    await wait(900);
+    const updatedFields = [];
+    for (const entry of answers) {
+      const question = mockPortfolioQuestions.find((item) => item.id === entry.questionId);
+      if (!question || !entry.answer.trim()) continue;
+      this.answers.set(question.id, entry.answer.trim());
+      updatedFields.push({ repositoryName: question.repositoryName, field: question.field });
+    }
+    void portfolioId;
+    return {
+      content: this.contentWithAnswers(),
+      questions: this.questions(),
+      updatedFields,
     };
   }
 

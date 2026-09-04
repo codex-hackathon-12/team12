@@ -34,6 +34,8 @@ export const API_ROUTES = {
     `${API_PREFIX}/portfolios/${portfolioId}`,
   portfolioShare: (portfolioId: string) =>
     `${API_PREFIX}/portfolios/${portfolioId}/share`,
+  portfolioStatements: (portfolioId: string) =>
+    `${API_PREFIX}/portfolios/${portfolioId}/statements`,
   publicPortfolio: (slug: string) =>
     `${API_PREFIX}/public/portfolios/${slug}`,
   credits: `${API_PREFIX}/credits`,
@@ -70,6 +72,8 @@ export type ApiErrorCode =
   | "GENERATION_IN_PROGRESS"
   | "GENERATION_FAILED"
   | "JOB_NOT_RETRYABLE"
+  /** 생성 근거가 남아 있지 않아 되묻기 답변을 반영할 수 없다. 재시도해도 같다. */
+  | "EVIDENCE_UNAVAILABLE"
   | "ACCOUNT_DELETION_IN_PROGRESS"
   | "MOCK_PAYMENT_FAILED"
   | "TOO_MANY_REPOSITORIES"
@@ -216,6 +220,23 @@ export type PortfolioTone = "professional" | "concise" | "storytelling";
 /** 한 번의 생성에 넣을 수 있는 저장소 수의 상한. */
 export const MAX_GENERATION_REPOSITORIES = 5;
 
+/**
+ * 생성 요청 입력의 상한.
+ *
+ * 서버가 이미 이 값들로 검증하고 있었는데 화면은 몰랐다. 그래서 강조점은
+ * 11개째부터 400으로 거절당했고, 지원 직무는 100자에서 조용히 잘렸다. 둘 다
+ * 사용자에게는 이유가 보이지 않는 실패다.
+ *
+ * 화면이 상한을 알아야 미리 알려줄 수 있다. 숫자를 화면에 따로 적으면 서버와
+ * 갈라지므로 여기 한 곳에서만 정한다.
+ */
+export const GENERATION_INPUT_LIMITS = {
+  prompt: 2000,
+  targetRole: 100,
+  highlights: 10,
+  highlightLength: 100,
+} as const;
+
 export interface CreateGenerationRequest {
   /** 1개 이상 `MAX_GENERATION_REPOSITORIES`개 이하. 순서가 프로젝트 순서가 된다. */
   repositoryIds: EntityId[];
@@ -327,10 +348,10 @@ export interface PortfolioGitAnalysisDto {
  * 결과 화면은 단일 컬럼으로 훑어 읽는 문서라 분량 상한이 있다.
  * 상한은 `architecture.md` §6.6을 기준으로 하며 서버가 보장한다.
  *
- * - `profile.headline` 60자, `introduction` 150자
- * - `PortfolioProjectDto.description` 120자
- * - `highlights` 3개(항목 60자), `challenges`·`solutions`·`impact` 각 2개(항목 80자)
- * - `techStack` 8개, `skills` 4개 그룹(그룹당 6개), `notablePatterns` 4개
+ * - `profile.headline` 80자, `introduction` 220자
+ * - `PortfolioProjectDto.description` 160자
+ * - `highlights` 4개(항목 70자), `challenges`·`solutions`·`impact` 각 3개(항목 90자)
+ * - `techStack` 10개, `skills` 5개 그룹(그룹당 8개), `notablePatterns` 4개
  *
  * 상한은 채워야 할 목표가 아니다. 근거가 없으면 빈 배열이 온다.
  * 프론트엔드는 배열이 비면 라벨과 컨테이너까지 렌더링하지 않으며,
@@ -343,6 +364,68 @@ export interface PortfolioContentDto {
   projects: PortfolioProjectDto[];
   gitAnalysis: PortfolioGitAnalysisDto;
   contact: PortfolioContactDto;
+}
+
+/**
+ * 지원자에게 되묻는 자리.
+ *
+ * 저장소에는 코드와 기록만 있고 "왜 그렇게 했는지"와 "그래서 무엇이 달라졌는지"는
+ * 없다. 그건 만든 사람만 안다. 이력서에서 가장 값진 것이 정확히 그 둘이라,
+ * 초안이 그 자리를 비워두면 비워둔 채로 두지 않고 지원자에게 묻는다.
+ *
+ * 답은 지어낸 것이 아니라 본인이 쓴 것이므로 면접에서 그대로 설명할 수 있다.
+ * 그래서 저장소 근거와 나란한 사실로 취급된다.
+ */
+export type PortfolioStatementField =
+  | "impact"
+  | "challenges"
+  | "solutions"
+  | "role"
+  | "highlights";
+
+export interface PortfolioQuestionDto {
+  id: EntityId;
+  /** 어느 프로젝트에 대한 질문인지. 저장소 전체에 대한 질문이면 null. */
+  repositoryName: string | null;
+  field: PortfolioStatementField;
+  question: string;
+  /** 아직 답하지 않았으면 null. 답한 그대로 돌려준다. */
+  answer: string | null;
+}
+
+/**
+ * 답변 상한. 화면에 그대로 표시해야 조용한 절단이 생기지 않는다.
+ *
+ * 두세 문장이면 충분한 분량이다. 더 길어지면 모델이 요약하며 지원자가 말한
+ * 것을 잃고, 프롬프트도 저장소 근거를 밀어낼 만큼 커진다.
+ */
+export const PORTFOLIO_ANSWER_MAX_LENGTH = 600;
+
+export interface PortfolioAnswerInput {
+  questionId: EntityId;
+  answer: string;
+}
+
+export interface AnswerPortfolioQuestionsRequest {
+  answers: PortfolioAnswerInput[];
+}
+
+/**
+ * 답변 반영 결과.
+ *
+ * 전체 재생성이 아니다. 마음에 들던 문장까지 바뀌면 답할 이유가 없어지므로,
+ * 답한 자리만 다시 쓰고 나머지는 글자 하나 건드리지 않는다. 무엇이 실제로
+ * 바뀌었는지는 `updatedFields`로 돌려주므로 화면이 그것만 짚어 보여줄 수 있다.
+ */
+export interface PortfolioRewrittenFieldDto {
+  repositoryName: string | null;
+  field: PortfolioStatementField;
+}
+
+export interface PortfolioStatementResultDto {
+  content: PortfolioContentDto;
+  questions: PortfolioQuestionDto[];
+  updatedFields: PortfolioRewrittenFieldDto[];
 }
 
 /**
@@ -381,6 +464,11 @@ export interface PortfolioDto extends PortfolioSummaryDto {
   repositories: GitRepositoryDto[];
   style: "default";
   content: PortfolioContentDto;
+  /**
+   * 초안이 채우지 못한 자리에 대한 질문. 답한 것은 `answer`가 채워져 온다.
+   * 규격 이전에 만들어진 포트폴리오에는 질문이 없어 빈 배열이 온다.
+   */
+  questions: PortfolioQuestionDto[];
   updatedAt: IsoDateTime;
 }
 

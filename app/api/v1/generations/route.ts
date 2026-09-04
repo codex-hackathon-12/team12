@@ -1,4 +1,4 @@
-import { MAX_GENERATION_REPOSITORIES } from "@/contracts/api-contract";
+import { GENERATION_INPUT_LIMITS, MAX_GENERATION_REPOSITORIES } from "@/contracts/api-contract";
 import { requireUser } from "@/server/auth/require-user";
 import { ActiveGenerationError, createJob } from "@/server/generation/jobs";
 import { RepositoryLookupError } from "@/server/github/repositories";
@@ -22,8 +22,25 @@ async function handlePOST(request: Request): Promise<Response> {
   const repositoryIds = Array.isArray(body.repositoryIds)
     ? Array.from(new Set(body.repositoryIds.filter((value): value is string => typeof value === "string" && value.length > 0)))
     : [];
-  if (repositoryIds.length === 0 || prompt.length < 1 || prompt.length > 2000 || highlights.length > 10 || highlights.some((value) => typeof value !== "string" || value.length > 100)) {
+  if (
+    repositoryIds.length === 0
+    || prompt.length < 1
+    || prompt.length > GENERATION_INPUT_LIMITS.prompt
+    || highlights.length > GENERATION_INPUT_LIMITS.highlights
+    || highlights.some((value) => typeof value !== "string" || value.length > GENERATION_INPUT_LIMITS.highlightLength)
+  ) {
     return failure("VALIDATION_ERROR", "생성 요청 값이 올바르지 않습니다.", 400);
+  }
+  /* 예전에는 여기서 slice로 잘랐다. 잘린 줄 모르고 보낸 사람은 자기 직무가 왜
+     중간에서 끊긴 채로 결과에 박혀 있는지 알 방법이 없다. 조용히 고치지 말고
+     거절한다 — 화면도 같은 상한을 알고 있어 여기까지 오지 않는다. */
+  const targetRole = typeof body.targetRole === "string" ? body.targetRole.trim() : "";
+  if (targetRole.length > GENERATION_INPUT_LIMITS.targetRole) {
+    return failure(
+      "VALIDATION_ERROR",
+      `지원 직무는 ${GENERATION_INPUT_LIMITS.targetRole}자 이내로 입력해주세요.`,
+      400,
+    );
   }
   if (repositoryIds.length > MAX_GENERATION_REPOSITORIES) {
     return failure("TOO_MANY_REPOSITORIES", `저장소는 한 번에 최대 ${MAX_GENERATION_REPOSITORIES}개까지 선택할 수 있습니다.`, 400);
@@ -35,7 +52,7 @@ async function handlePOST(request: Request): Promise<Response> {
     const job = await createJob(authentication.user.id, {
       repositoryIds,
       prompt,
-      targetRole: typeof body.targetRole === "string" ? body.targetRole.slice(0, 100) : undefined,
+      targetRole: targetRole || undefined,
       tone: body.tone as "professional" | "concise" | "storytelling" | undefined,
       highlights: highlights as string[],
     });
