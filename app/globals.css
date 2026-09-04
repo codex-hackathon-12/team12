@@ -1773,6 +1773,34 @@ a {
 .prompt-textarea-label .counter-near { color: var(--ink-muted); font-weight: 650; }
 .prompt-textarea-label .counter-over { color: var(--coral); font-weight: 700; }
 
+/* 이 칸이 무엇을 정하는지 밝히는 줄. 사실을 적는 자리가 아니라는 것을
+   모르면 반영이 안 된 이유를 알 수 없다. */
+.prompt-scope-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  line-height: 1.7;
+}
+
+.prompt-scope-note strong { color: var(--ink); font-weight: 700; }
+
+/* 예문. placeholder는 입력을 시작하면 사라지고 보조 기술이 건너뛰기도 해서
+   꼭 필요한 안내를 거기 두지 않는다(GOV.UK). 접어두되 화면에 남긴다. */
+.prompt-examples summary { cursor: pointer; font-size: var(--text-sm); font-weight: 650; }
+.prompt-examples dl { display: grid; gap: var(--space-3); margin: var(--space-3) 0 0; }
+.prompt-examples dt { color: var(--ink-muted); font-size: var(--text-xs); font-weight: 700; }
+.prompt-examples dd {
+  margin: 4px 0 0;
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--line-control);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.75;
+}
+
 .credit-quote {
   display: flex;
   align-items: center;

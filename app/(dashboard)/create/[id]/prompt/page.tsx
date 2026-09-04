@@ -3,15 +3,44 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { GitRepositoryDto, PortfolioTone } from "@/contracts/api-contract";
+import {
+  GENERATION_INPUT_LIMITS,
+  type GitRepositoryDto,
+  type PortfolioTone,
+} from "@/contracts/api-contract";
 import { ApiClientError, apiClient } from "@/lib/api-client";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { MOCK_CHIP, MOCK_NOTE } from "@/lib/copy";
 
-/** 프롬프트 상한. 서버 계약과 같은 값이어야 한다. */
-const PROMPT_MAX = 2000;
+/** 상한은 계약 한 곳에서만 정한다. 여기 숫자를 적으면 서버와 갈라진다. */
+const PROMPT_MAX = GENERATION_INPUT_LIMITS.prompt;
 /** 이만큼 남았을 때부터 남은 글자 수를 알린다. */
 const COUNTER_THRESHOLD = 200;
+
+/**
+ * 프롬프트 예문.
+ *
+ * 한 줄짜리 placeholder는 "무엇을 쓰면 되는지"를 알려주지 못했다. 게다가
+ * placeholder는 입력을 시작하면 사라지고 보조 기술이 건너뛰기도 해서, 꼭
+ * 필요한 안내를 거기 두면 안 된다(GOV.UK). 화면에 남는 예문으로 옮긴다.
+ *
+ * 세 예문이 서로 다른 상황을 보여준다. 공통점은 전부 **무엇을 앞에 둘지**를
+ * 말한다는 것이다 — 이 칸이 실제로 정하는 것이 그것이기 때문이다.
+ */
+const PROMPT_EXAMPLES = [
+  {
+    situation: "직무를 정해두고 지원할 때",
+    text: "백엔드 직무에 지원해요. 여러 개를 조금씩 만든 것보다 하나를 깊게 다룬 쪽을 앞에 놓고, 데이터 구조를 왜 그렇게 잡았는지가 드러나게 써주세요. 화면 작업은 짧게만 언급해주세요.",
+  },
+  {
+    situation: "프로젝트 규모가 작을 때",
+    text: "경력이 없어서 프로젝트가 작아요. 규모를 부풀리지 말고, 혼자서 어디까지 직접 결정하고 만들었는지가 보이게 써주세요. 배운 것보다 실제로 만든 것 위주로요.",
+  },
+  {
+    situation: "팀 프로젝트가 많을 때",
+    text: "팀 프로젝트가 대부분이에요. 팀이 한 일과 제가 한 일이 섞이지 않게 써주세요. 제가 맡은 범위가 먼저 보이면 좋겠어요.",
+  },
+];
 
 export default function PromptPage() {
   const params = useParams<{ id: string }>();
@@ -60,6 +89,17 @@ export default function PromptPage() {
   }, [repositoryIds]);
 
   const remaining = PROMPT_MAX - prompt.length;
+  /* 서버는 이 상한들로 이미 거절하고 있었는데 화면은 몰랐다. 11개째부터
+     "생성 요청 값이 올바르지 않습니다"만 돌아와, 무엇이 문제인지 알 수 없었다. */
+  const highlightList = highlights
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const highlightTooMany = highlightList.length > GENERATION_INPUT_LIMITS.highlights;
+  const highlightTooLong = highlightList.filter(
+    (item) => [...item].length > GENERATION_INPUT_LIMITS.highlightLength,
+  );
+  const roleOver = [...targetRole.trim()].length - GENERATION_INPUT_LIMITS.targetRole;
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -73,6 +113,18 @@ export default function PromptPage() {
       setSubmitError("AI에게 전달할 프롬프트를 적어주세요.");
       return;
     }
+    if (roleOver > 0) {
+      setSubmitError(`지원 직무가 ${roleOver.toLocaleString("ko-KR")}자 넘어요. 줄인 뒤 다시 눌러주세요.`);
+      return;
+    }
+    if (highlightTooMany) {
+      setSubmitError(`강조하고 싶은 경험은 ${GENERATION_INPUT_LIMITS.highlights}개까지 적을 수 있어요.`);
+      return;
+    }
+    if (highlightTooLong.length > 0) {
+      setSubmitError(`강조하고 싶은 경험은 항목당 ${GENERATION_INPUT_LIMITS.highlightLength}자 이내로 적어주세요.`);
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -82,10 +134,7 @@ export default function PromptPage() {
         // 비워둔 칸은 보내지 않는다. 빈 문자열을 답으로 넘기면 서버가 그것을 답으로 다룬다.
         targetRole: targetRole.trim() || undefined,
         tone,
-        highlights: highlights
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
+        highlights: highlightList,
       });
       router.push(`/create/${job.jobId}/processing`);
     } catch (error) {
@@ -164,12 +213,21 @@ export default function PromptPage() {
               {/* 필수는 하나뿐이라 선택 쪽을 표기한다(GOV.UK). NN/g는 반대로
                   필수를 표기하라고 해 출처가 갈리므로, 제품 전체에 한 쪽만 쓴다. */}
               <span>지원 직무 <em>(선택)</em></span>
+              {/* maxLength는 상한에 닿는 순간 아무 말 없이 입력을 삼킨다.
+                  막지 않고 넘겼을 때 알린다. 서버도 이제 자르지 않고 거절한다. */}
               <input
                 value={targetRole}
-                onChange={(event) => setTargetRole(event.target.value)}
-                placeholder="예: Frontend Engineer"
-                maxLength={100}
+                onChange={(event) => {
+                  setTargetRole(event.target.value);
+                  setSubmitError(null);
+                }}
+                placeholder="예: Backend Engineer"
               />
+              {roleOver > 0 ? (
+                <small className="counter-over" role="status">
+                  {roleOver.toLocaleString("ko-KR")}자 줄여주세요
+                </small>
+              ) : null}
             </label>
             <label>
               <span>문체 <em>(선택)</em></span>
@@ -186,12 +244,21 @@ export default function PromptPage() {
 
           <label>
             <span>강조하고 싶은 경험 <em>(선택)</em></span>
+            {/* "사용자 경험, 성능 개선"처럼 뭉뚱그린 말은 어느 저장소에도 걸리지
+                않아 결과에 반영되지 않는다. 무엇을 적어야 걸리는지 예시가 보여준다. */}
             <input
               value={highlights}
-              onChange={(event) => setHighlights(event.target.value)}
-              placeholder="예: 사용자 경험, 성능 개선, 팀 협업"
+              onChange={(event) => {
+                setHighlights(event.target.value);
+                setSubmitError(null);
+              }}
+              placeholder="예: 결제 재시도 설계, 목록 조회 N+1 제거, 배포 자동화"
             />
-            <small>쉼표로 구분해 적어주세요.</small>
+            <small>
+              쉼표로 구분해 {GENERATION_INPUT_LIMITS.highlights}개까지,
+              항목당 {GENERATION_INPUT_LIMITS.highlightLength}자 이내로 적어주세요.
+              {highlightList.length > 0 ? ` (${highlightList.length}개)` : ""}
+            </small>
           </label>
 
           <div className="prompt-textarea-label">
@@ -218,11 +285,32 @@ export default function PromptPage() {
                 setPrompt(event.target.value);
                 setSubmitError(null);
               }}
-              placeholder="예: 문제를 정의하고 해결한 과정, 그 선택을 한 이유가 드러나게 써줘."
+              placeholder="어떤 경험을 앞에 두고 싶은지 적어주세요."
               rows={8}
               /* required를 두면 브라우저 말풍선이 세 번째 오류 모양이 되고,
                  그 단계에서 막혀 아래 인라인 안내가 아예 나오지 않는다. */
             />
+            {/* 이 칸이 실제로 정하는 것은 강조 순서와 문체이지 사실이 아니다.
+                "응답 속도를 40% 줄였다"라고 적어도 저장소에 근거가 없으면 결과에
+                들어가지 않는다. 그걸 모르면 반영이 안 된 이유를 알 수 없고,
+                사실을 말할 자리가 따로 있다는 것도 모른 채 지나간다. */}
+            <p className="prompt-scope-note">
+              여기 적은 내용은 <strong>무엇을 앞에 둘지와 어떤 문체로 쓸지</strong>를 정해요.
+              성과나 수치는 저장소에서 확인되는 것만 들어가요. 저장소만 봐서는 알 수 없는
+              것은 결과가 나온 뒤에 따로 물어볼게요.
+            </p>
+
+            <details className="prompt-examples">
+              <summary>어떻게 적으면 좋을까요?</summary>
+              <dl>
+                {PROMPT_EXAMPLES.map((example) => (
+                  <div key={example.situation}>
+                    <dt>{example.situation}</dt>
+                    <dd>{example.text}</dd>
+                  </div>
+                ))}
+              </dl>
+            </details>
           </div>
 
           <div className="credit-quote">
