@@ -2527,7 +2527,9 @@ a {
 .billing-heading { align-items: center; }
 /* 잔액은 참고 값이지 이 화면의 주인공이 아니다. 상품 카드보다 커지면
    무엇을 고르는 화면인지 흐려진다. */
-.credit-balance-card { width: fit-content; min-width: 300px; max-width: 370px; margin-bottom: var(--space-5); padding: 25px; border: 1px solid var(--ink); background: var(--lime); box-shadow: 7px 8px 0 var(--ink); }
+/* --space-5는 정의된 적이 없어 이 여백이 통째로 무효였다. 잔액 카드가 상품
+   묶음에 붙어 있었고, 그림자가 8px 내려오는 탓에 겹쳐 보였다. */
+.credit-balance-card { width: fit-content; min-width: 300px; max-width: 370px; margin-bottom: var(--space-6); padding: 25px; border: 1px solid var(--ink); background: var(--lime); box-shadow: 7px 8px 0 var(--ink); }
 .credit-balance-card > span { font-size: 13px; font-weight: 650; }
 .credit-balance-card > strong { display: block; margin: 12px 0 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 45px; }
 .credit-balance-card small { font-size: 12px; }
