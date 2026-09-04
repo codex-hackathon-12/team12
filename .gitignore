@@ -15,6 +15,9 @@
 
 # next.js
 /.next/
+# Next가 자동 생성하며 dev와 build에서 참조 경로가 달라진다.
+# 추적하면 마지막에 무엇을 실행했느냐에 따라 커밋마다 값이 오간다.
+next-env.d.ts
 /.vinext/
 /out/
 
