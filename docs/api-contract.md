@@ -334,9 +334,11 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 
 - `repositoryIds`: 필수, 1~5개, 모두 로그인 사용자 소유 저장소. 중복은 서버가 제거하고 순서는 유지한다. 5개를 넘으면 `TOO_MANY_REPOSITORIES`로 400을 반환한다. 저장소 하나가 프로젝트 하나가 된다.
 - `prompt`: 필수, 공백 제거 후 1~2,000자
-- `targetRole`: 선택, 최대 100자
+- `targetRole`: 선택, 최대 100자. 넘으면 잘라내지 않고 `VALIDATION_ERROR`로 400을 반환한다
 - `tone`: `professional`, `concise`, `storytelling` 중 하나
 - `highlights`: 선택, 최대 10개, 각 항목 최대 100자
+
+상한 값은 `contracts/api-contract.ts`의 `GENERATION_INPUT_LIMITS`가 기준이다. 화면이 같은 값을 읽어 미리 알려주므로 숫자를 양쪽에 따로 적지 않는다.
 
 서버는 요청을 접수하고 `202 Accepted`를 반환한다.
 
