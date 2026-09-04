@@ -10,6 +10,40 @@
 - 백엔드: `docs/backend-work-log.md`
 - 역할 분리 이전 보관본: `docs/work-log-archive.md`
 
+## 2026-09-04-05 — 되묻기 계약과 분량 규격 정정
+
+- 상태: 완료
+- 정제된 요청: 지원자에게 되묻는 흐름을 계약과 아키텍처에 반영하고, 문서와
+  구현이 어긋난 분량 규격을 맞춘다.
+- 확인 결과:
+  - `architecture.md` §6.6과 `PortfolioContentDto` 주석이 구현보다 좁은
+    값을 말하고 있었다. headline 60자·highlights 3개로 적혀 있었지만
+    지시문·JSON schema·자르기 세 곳은 80자·4개로 서로 일치했다.
+  - 활자 표가 `--text-*`를 가리켰으나 문서 활자는 `--doc-*`로 분리됐다.
+  - 서버가 쓰는 입력 상한이 계약에 없어 화면이 알 수 없었다.
+- 결정사항:
+  - 구현 세 곳이 합의하고 문서만 낡은 것이므로 문서를 구현에 맞춘다.
+  - 되묻기 반영은 새 생성 작업이 아니라 별도 endpoint로 둔다. 활성 작업
+    1개 제한과 무관하고 크레딧도 쓰지 않는다.
+  - 응답이 `updatedFields`를 돌려줘, 답한 자리만 바뀐다는 약속을 계약이
+    명시한다. 이 약속은 프롬프트가 아니라 서버 병합 단계가 지킨다.
+  - 답변 상한을 `PORTFOLIO_ANSWER_MAX_LENGTH`로 내보낸다. 상한이 계약에
+    없으면 화면이 모르고 서버가 조용히 자르거나 거절한다.
+- 반영 내용:
+  - `architecture.md` §6.6에 되묻기 절과 `PortfolioStatement` 모델을 넣고,
+    분량·활자 표를 정정했다.
+  - 계약에 `PortfolioQuestionDto`, `PortfolioStatementResultDto`,
+    `GENERATION_INPUT_LIMITS`, `EVIDENCE_UNAVAILABLE`을 추가했다.
+  - `docs/api-contract.md` §8.3에 요청·응답과 오류 표를 추가하고 이후 절
+    번호를 밀었다.
+  - 마이그레이션 `202609030001`을 운영에 적용했다. dry-run으로 대상이 신규
+    1건뿐임을 확인한 뒤 push했고, 적용 후 원격 이력과 테이블 존재를 확인했다.
+- 수정 파일: `architecture.md`, `contracts/api-contract.ts`,
+  `docs/api-contract.md`, `docs/work-log.md`
+- 검증: 계약 변경 커밋 단독으로도 `tsc`가 통과하도록 필수 필드의 빈 배열
+  기본값을 같은 커밋에 포함했다. 이후 전체 테스트 200건과 build를 확인했다.
+- 남은 항목: 없음.
+
 ## 2026-08-16-04 — 원격 develop 재통합과 잠금 파일 복구
 
 - 상태: 완료

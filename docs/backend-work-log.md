@@ -5,6 +5,96 @@
 위에 추가한다. 아래 기존 기록의 `docs/work-log.md` 표기는 작업 당시 사용한
 통합 로그 경로를 의미한다.
 
+## 2026-09-04-31 — 되묻기와 서술문 수치 검증
+
+- 상태: 완료
+- 정제된 요청: 저장소만으로는 알 수 없는 경험을 결과에 담을 수 있게 하고,
+  서술 항목의 환각을 막는다.
+- 배경:
+  - 저장소에는 코드와 기록만 있고 "왜 그렇게 했는지"와 "그래서 무엇이
+    달라졌는지"는 없다. 이력서에서 가장 값진 것이 그 둘인데 담을 자리가
+    없었다.
+  - `impact`·`challenges`·`solutions`·`highlights`는 문장이라 부분 문자열
+    검증이 통하지 않아 무검증이었다. 환각 위험이 가장 큰 곳이 무방비였다.
+- 결정사항:
+  - 되묻기 질문은 초안과 같은 모델 호출에서 받는다. 별도 호출은 비용이 두
+    배이고, 무엇을 왜 비웠는지 가장 잘 아는 것도 그 호출이다.
+  - 물어도 되는 질문인지는 코드가 판정한다. 근거로 쓴 저장소인지, 그 자리가
+    실제로 비어 있는지, 같은 자리를 두 번 묻지 않는지를 확인한다.
+  - `role`은 예외다. 근거가 없어도 중립적 표현으로 항상 채워져 "비어 있음"
+    으로 판단할 수 없으므로, 기여자가 여럿이거나
+    `ownContributionUnverifiable`일 때만 묻는다.
+  - 반영은 새 생성 작업이 아니라 동기 연산이다. 사용자당 활성 작업 1개
+    제한과 애초에 충돌하지 않고 크레딧도 쓰지 않는다.
+  - "답한 자리만 바뀐다"는 프롬프트가 아니라 병합 단계가 보장한다. 모델
+    응답을 순회하지 않고 답이 있는 자리만 순회한다.
+  - 답변은 새 테이블에 둔다. `generation_evidence`는 생성 작업에 cascade로
+    묶인 중간 산출물이고, 답변은 포트폴리오와 수명을 같이해야 한다.
+  - 수치 검증은 단위가 따라오는 숫자만 검사한다. 모든 숫자를 검사하면
+    'N+1 질의', 'OAuth 2.0' 같은 기술 이름이 걸려 정당한 문장이 사라진다.
+- 반영 내용:
+  - 마이그레이션 `202609030001_portfolio_statements.sql`을 추가했다.
+    `repository_name`이 null인 행도 하나로 묶이도록 유니크 인덱스에
+    `nulls not distinct`를 썼다.
+  - 생성 schema에 `followUpQuestions`를 넣고, 질문이 없어도 생성을
+    실패시키지 않게 했다.
+  - `POST /api/v1/portfolios/{portfolioId}/statements`와
+    `EVIDENCE_UNAVAILABLE` 오류 코드를 추가했다.
+  - 근거 규칙을 `EVIDENCE_RULES`로 모아 초안 생성과 되묻기 반영이 함께
+    쓰게 했다. 갈라지면 되묻기가 환각 방어가 약한 뒷문이 된다.
+  - 검증 haystack에 `dependencies`와 지원자 진술을 넣었다. 지시문이 쓰라고
+    안내하는 근거를 검증이 도로 걷어내고 있었다.
+  - 지원 직무 100자 초과를 잘라내지 않고 거절하도록 바꾸고, 입력 상한을
+    `GENERATION_INPUT_LIMITS`로 계약에 내보냈다.
+- 수정 파일:
+  - `supabase/migrations/202609030001_portfolio_statements.sql`
+  - `contracts/api-contract.ts`, `server/http.ts`
+  - `server/openai/portfolio-prompt.ts`, `server/openai/portfolio-generator.ts`
+  - `server/openai/rewrite-prompt.ts`, `server/openai/portfolio-rewriter.ts`
+  - `server/portfolio/questions.ts`, `server/portfolio/rewrite.ts`
+  - `server/portfolio/statements.ts`, `server/portfolio/apply-statements.ts`
+  - `server/portfolio/verification.ts`, `server/portfolio/portfolios.ts`
+  - `server/portfolio/mapper.ts`, `server/generation/runner.ts`
+  - `app/api/v1/portfolios/[portfolioId]/statements/route.ts`
+  - `app/api/v1/generations/route.ts`
+  - `architecture.md`, `docs/api-contract.md`, `docs/backend-work-log.md`
+- 검증: `tsc`, ESLint, 테스트 200건, production build를 통과했다. 목 흐름과
+  전체 E2E 22단계에서 질문 표시·부분 반영·인쇄 숨김을 확인했다.
+  마이그레이션은 dry-run으로 대상이 신규 1건뿐임을 확인한 뒤 적용했다.
+- 남은 항목: 되묻기 실사용 결과를 보고 질문 상한(5개)과 답변 상한(600자)을
+  조정한다.
+
+## 2026-09-04-30 — 저장소 근거 수집의 구멍 세 개
+
+- 상태: 완료
+- 정제된 요청: 근거 수집이 놓치던 "왜"와 "누가"를 살린다.
+- 배경:
+  - 커밋 메시지의 첫 줄만 쓰고 본문을 버렸다. 결정의 이유가 적히는 자리다.
+  - `author`가 null인 커밋을 전부 타인 처리했다. git 이메일이 GitHub에
+    등록돼 있지 않으면 혼자 만든 저장소가 남의 프로젝트처럼 서술된다.
+  - 의존성 파일을 읽지 않아 techStack이 언어 통계와 README 언급에만
+    의존했다. 언어 통계는 React인지 Vue인지 말해주지 않는다.
+- 결정사항:
+  - 최근 6건은 커밋 본문도 싣되 300자로 자른다. 프롬프트 크기 예산이 있다.
+  - 대체 판정은 이메일만 쓴다. 이름 비교는 넣지 않았다 — 흔한 이름이 겹치면
+    남의 작업이 지원자 성과가 되는데, 그건 근거가 없는 것보다 나쁘다.
+  - 본인 것으로 확인된 커밋이 하나도 없는 상태를
+    `ownContributionUnverifiable`로 모델에게 알린다. "기여가 없다"와
+    "확인할 수 없다"는 다르다.
+  - 순수 함수는 `evidence-parsing.ts`로 분리했다. `evidence.ts`가
+    `repositories.ts`를 거쳐 TS 파라미터 프로퍼티를 끌어와 Node의
+    strip-only 모드에서 import되지 않았다.
+- 반영 내용:
+  - `getGitHubIdentity`가 대표 이메일을 함께 읽고, noreply 주소를 인식한다.
+  - `collectDependencies`가 이미 받아온 최상위 경로에서 매니페스트를 고른다.
+  - 지시문에 세 근거의 사용법과 한계를 명시했다.
+- 수정 파일:
+  - `server/github/evidence.ts`, `server/github/evidence-parsing.ts`
+  - `server/openai/portfolio-prompt.ts`, `server/generation/runner.ts`
+  - `server/portfolio/verification.ts`, `docs/backend-work-log.md`
+- 검증: 다른 사람의 noreply 주소가 통과하지 않는지를 테스트로 못박았다.
+- 남은 항목: 없음.
+
 ## 2026-08-29-29 — 다중 저장소 생성과 포트폴리오 삭제
 
 - 상태: 완료
