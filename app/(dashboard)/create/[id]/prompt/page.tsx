@@ -11,36 +11,13 @@ import {
 import { ApiClientError, apiClient } from "@/lib/api-client";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { MOCK_CHIP, MOCK_NOTE } from "@/lib/copy";
+import { PROMPT_DIRECTIONS, composePrompt } from "@/lib/prompt-presets";
 
 /** 상한은 계약 한 곳에서만 정한다. 여기 숫자를 적으면 서버와 갈라진다. */
 const PROMPT_MAX = GENERATION_INPUT_LIMITS.prompt;
 /** 이만큼 남았을 때부터 남은 글자 수를 알린다. */
 const COUNTER_THRESHOLD = 200;
 
-/**
- * 프롬프트 예문.
- *
- * 한 줄짜리 placeholder는 "무엇을 쓰면 되는지"를 알려주지 못했다. 게다가
- * placeholder는 입력을 시작하면 사라지고 보조 기술이 건너뛰기도 해서, 꼭
- * 필요한 안내를 거기 두면 안 된다(GOV.UK). 화면에 남는 예문으로 옮긴다.
- *
- * 세 예문이 서로 다른 상황을 보여준다. 공통점은 전부 **무엇을 앞에 둘지**를
- * 말한다는 것이다 — 이 칸이 실제로 정하는 것이 그것이기 때문이다.
- */
-const PROMPT_EXAMPLES = [
-  {
-    situation: "직무를 정해두고 지원할 때",
-    text: "백엔드 직무에 지원해요. 여러 개를 조금씩 만든 것보다 하나를 깊게 다룬 쪽을 앞에 놓고, 데이터 구조를 왜 그렇게 잡았는지가 드러나게 써주세요. 화면 작업은 짧게만 언급해주세요.",
-  },
-  {
-    situation: "프로젝트 규모가 작을 때",
-    text: "경력이 없어서 프로젝트가 작아요. 규모를 부풀리지 말고, 혼자서 어디까지 직접 결정하고 만들었는지가 보이게 써주세요. 배운 것보다 실제로 만든 것 위주로요.",
-  },
-  {
-    situation: "팀 프로젝트가 많을 때",
-    text: "팀 프로젝트가 대부분이에요. 팀이 한 일과 제가 한 일이 섞이지 않게 써주세요. 제가 맡은 범위가 먼저 보이면 좋겠어요.",
-  },
-];
 
 export default function PromptPage() {
   const params = useParams<{ id: string }>();
@@ -68,6 +45,11 @@ export default function PromptPage() {
   const [tone, setTone] = useState<PortfolioTone>("professional");
   const [highlights, setHighlights] = useState("");
   const [prompt, setPrompt] = useState("");
+  /* 고른 방향과, 사용자가 그 문장을 직접 손댔는지.
+     손댄 뒤에는 자동 조립을 멈춘다 — 애써 고쳐 쓴 글을 체크 한 번에 날려버리면
+     안 된다. 대신 되돌릴 길만 남긴다. */
+  const [directions, setDirections] = useState<string[]>([]);
+  const [edited, setEdited] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -89,6 +71,16 @@ export default function PromptPage() {
   }, [repositoryIds]);
 
   const remaining = PROMPT_MAX - prompt.length;
+
+  const toggleDirection = (id: string) => {
+    const next = directions.includes(id)
+      ? directions.filter((item) => item !== id)
+      : [...directions, id];
+    setDirections(next);
+    setSubmitError(null);
+    if (!edited) setPrompt(composePrompt(next));
+  };
+
   /* 서버는 이 상한들로 이미 거절하고 있었는데 화면은 몰랐다. 11개째부터
      "생성 요청 값이 올바르지 않습니다"만 돌아와, 무엇이 문제인지 알 수 없었다. */
   const highlightList = highlights
@@ -261,6 +253,32 @@ export default function PromptPage() {
             </small>
           </label>
 
+          {/*
+            백지에 "무엇을 강조할지 적어주세요"라고 두면 대부분 아무것도 못
+            적거나 "잘 써주세요"라고 적는다. 예문을 보여주는 것으로도 부족했다 —
+            읽고 나서 여전히 자기 손으로 옮겨 적어야 하기 때문이다.
+            고르면 아래 문장이 만들어지고, 그 문장은 그대로 고칠 수 있다.
+          */}
+          <fieldset className="prompt-directions">
+            <legend>어떤 방향으로 쓸까요? <em>(여러 개 고를 수 있어요)</em></legend>
+            <div>
+              {PROMPT_DIRECTIONS.map((direction) => (
+                <label className="prompt-direction" key={direction.id}>
+                  <input
+                    type="checkbox"
+                    checked={directions.includes(direction.id)}
+                    onChange={() => toggleDirection(direction.id)}
+                  />
+                  {/* 이름과 설명을 label 바로 아래에 둔다. span으로 한 번 더
+                      감싸면 접근 가능한 이름이 한 단계 깊어져 보조 기술이
+                      라벨 없는 체크박스로 읽는다. 배치는 CSS가 맡는다. */}
+                  <strong>{direction.label}</strong>
+                  <small>{direction.hint}</small>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
           <div className="prompt-textarea-label">
             <div>
               <label htmlFor="portfolio-prompt">AI에게 전달할 프롬프트</label>
@@ -283,13 +301,29 @@ export default function PromptPage() {
               /* 고친 뒤에도 옛 오류가 남아 있으면 문구가 거짓말이 된다. */
               onChange={(event) => {
                 setPrompt(event.target.value);
+                /* 조립된 문장과 달라진 순간부터 사용자의 글이다. 그 뒤로는
+                   체크를 바꿔도 덮어쓰지 않는다. */
+                setEdited(event.target.value !== composePrompt(directions));
                 setSubmitError(null);
               }}
-              placeholder="어떤 경험을 앞에 두고 싶은지 적어주세요."
+              placeholder="위에서 방향을 고르거나, 여기에 직접 적어주세요."
               rows={8}
               /* required를 두면 브라우저 말풍선이 세 번째 오류 모양이 되고,
                  그 단계에서 막혀 아래 인라인 안내가 아예 나오지 않는다. */
             />
+            {/* 고쳐 쓴 글을 체크 한 번에 날려버리지 않는 대신, 되돌릴 길은 남긴다. */}
+            {edited && directions.length > 0 ? (
+              <button
+                className="text-link prompt-recompose"
+                type="button"
+                onClick={() => {
+                  setPrompt(composePrompt(directions));
+                  setEdited(false);
+                }}
+              >
+                고른 방향대로 다시 만들기
+              </button>
+            ) : null}
             {/* 이 칸이 실제로 정하는 것은 강조 순서와 문체이지 사실이 아니다.
                 "응답 속도를 40% 줄였다"라고 적어도 저장소에 근거가 없으면 결과에
                 들어가지 않는다. 그걸 모르면 반영이 안 된 이유를 알 수 없고,
@@ -299,18 +333,6 @@ export default function PromptPage() {
               성과나 수치는 저장소에서 확인되는 것만 들어가요. 저장소만 봐서는 알 수 없는
               것은 결과가 나온 뒤에 따로 물어볼게요.
             </p>
-
-            <details className="prompt-examples">
-              <summary>어떻게 적으면 좋을까요?</summary>
-              <dl>
-                {PROMPT_EXAMPLES.map((example) => (
-                  <div key={example.situation}>
-                    <dt>{example.situation}</dt>
-                    <dd>{example.text}</dd>
-                  </div>
-                ))}
-              </dl>
-            </details>
           </div>
 
           <div className="credit-quote">
