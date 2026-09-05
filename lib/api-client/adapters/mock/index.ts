@@ -253,17 +253,26 @@ export class MockApiClient implements ApiClient {
   private contentWithAnswers(): PortfolioContentDto {
     if (this.answers.size === 0) return mockPortfolioContent;
 
+    /* 목도 서버와 같은 규칙으로 반영한다. 여기서만 헐겁게 만들면 화면은
+       "반영됐어요"라고 말하는데 문서는 그대로인 상태를 로컬에서 한 번도
+       못 보게 된다 — 서버에서는 실제로 일어날 수 있는 일이다. */
     const projects = mockPortfolioContent.projects.map((project) => {
-      if (project.id !== "project_signal") return project;
+      const name = project.repositoryUrl.split("/").pop() ?? "";
+      const mine = mockPortfolioQuestions.filter((question) => question.repositoryName === name);
       const answerFor = (field: string) =>
-        mockPortfolioQuestions
-          .filter((question) => question.field === field)
+        mine.filter((question) => question.field === field)
           .map((question) => this.answers.get(question.id))
           .find(Boolean) ?? "";
 
       const next = { ...project };
       const role = answerFor("role");
       if (role) next.role = role;
+
+      const highlight = answerFor("highlights");
+      // 강조점은 기존 항목 뒤에 붙는다. 덮어쓰지 않는다.
+      if (highlight && !next.highlights.includes(highlight)) {
+        next.highlights = [...next.highlights, highlight];
+      }
 
       /* 결정은 셋이 다 있을 때만 채운다. 하나만 답하고 반쪽짜리 결정이 문서에
          박히면 안 된다. 서버 병합도 같은 규칙을 쓴다. */
@@ -287,6 +296,7 @@ export class MockApiClient implements ApiClient {
     await maybeFail("applyPortfolioStatements");
     // 모델 호출이 들어가는 경로라 다른 요청보다 오래 걸린다.
     await wait(900);
+    const before = JSON.stringify(this.contentWithAnswers());
     const updatedFields = [];
     for (const entry of answers) {
       const question = mockPortfolioQuestions.find((item) => item.id === entry.questionId);
@@ -295,10 +305,14 @@ export class MockApiClient implements ApiClient {
       updatedFields.push({ repositoryName: question.repositoryName, field: question.field });
     }
     void portfolioId;
+
+    /* 실제로 문서가 달라졌을 때만 바뀐 자리로 센다. 답을 받았다고 무조건
+       세면 화면이 "채웠어요"라고 말해놓고 문서는 그대로인 상태가 된다. */
+    const content = this.contentWithAnswers();
     return {
-      content: this.contentWithAnswers(),
+      content,
       questions: this.questions(),
-      updatedFields,
+      updatedFields: JSON.stringify(content) === before ? [] : updatedFields,
     };
   }
 

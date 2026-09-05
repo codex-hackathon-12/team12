@@ -84,37 +84,53 @@ test("패널이 화면 끝에 붙지 않는다", () => {
   assert.match(rule[1], /max-height:/u, "높이 상한이 없어요");
 });
 
-test("패널 안 층위가 뒤집히지 않는다", () => {
-  /* 구획 사이 간격이 카드 안쪽 여백보다 넓어야 어디까지가 한 프로젝트
-     이야기인지 눈으로 갈린다. 예전에는 16과 12뿐이라 층위가 없었다. */
-  const space = { "--space-1": 4, "--space-2": 8, "--space-3": 12, "--space-4": 16, "--space-6": 24 };
-  const read = (selector, property) => {
-    const rule = css.match(new RegExp(`\\${selector} \\{([^}]*)\\}`, "u"));
-    assert.ok(rule, `${selector} 규칙이 없어요`);
-    /* 첫 값이 세로 여백이다. 탐욕적으로 읽으면 `padding: 24px 16px`에서
-       가로 값을 집어 층위가 뒤집힌 것처럼 보인다. */
-    const value = rule[1].match(new RegExp(`${property}:[^;]*?var\\((--space-\\d+)\\)`, "u"));
-    assert.ok(value, `${selector}에 ${property}가 없어요`);
-    return space[value[1]];
-  };
-
-  const section = read(".follow-up-project", "padding");
-  const card = read(".follow-up-card", "padding");
-  const inside = read(".follow-up-card", "gap");
-  assert.ok(section > card, `구획 간격(${section})이 카드 여백(${card})보다 넓어야 해요`);
-  assert.ok(card > inside, `카드 여백(${card})이 안쪽 간격(${inside})보다 넓어야 해요`);
+test("한 번에 하나만 묻는다", () => {
+  /* 질문을 전부 펼친 폼이었을 때는 열 개가 넘으면 사람이 닫아버릴 것 같아
+     물을 것을 8개로 묶어뒀다. 그러다 보니 저장소가 다섯이면 프로젝트마다
+     한두 개밖에 못 물었다 — 폼을 유지하는 대가로 물을 것을 버린 셈이다. */
+  assert.match(rail, /const current = queue\[cursor\] \?\? null;/u, "지금 물을 것을 하나로 좁히지 않아요");
+  assert.match(rail, /setCursor\(cursor \+ 1\)/u, "다음 질문으로 넘어가지 않아요");
 });
 
-test("프로젝트마다 구획을 나눈다", () => {
-  // 구분선이 없으면 어디서 다음 프로젝트가 시작하는지 알 수 없다.
-  assert.match(css, /\.follow-up-project \+ \.follow-up-project \{ border-top:/u, "구획선이 없어요");
+test("대화 순서를 열 때 한 번 정한다", () => {
+  /* 답할 때마다 목록을 다시 계산하면 방금 답한 질문이 빠지면서 커서가
+     가리키는 자리가 밀려, 다음 질문 하나가 통째로 건너뛰어진다. */
+  assert.match(rail, /useState\(\(\) => questions\.filter\(\(question\) => !question\.answer\)\)/u);
 });
 
-test("핵심 결정만 색을 쓴다", () => {
-  /* 점선 라임 카드가 연달아 쌓이면 어수선하고, 어느 것이 이 프로젝트의
-     본문인지도 흐려진다. */
-  assert.match(css, /\.follow-up-card\.is-decision \{[^}]*background: var\(--lime-soft\)/u);
-  assert.match(rail, /isDecision \? "follow-up-card is-decision" : "follow-up-card"/u);
+test("결정 셋을 모아 한 번에 보낸다", () => {
+  /* 결정은 셋이 모여야 문서에 들어간다. 폼이었을 때는 "세 가지를 다
+     알려주셔야" 하고 되돌려 보내야 했던 일이 대화에서는 그냥 순서가 된다. */
+  assert.match(rail, /if \(!isGroupComplete\(current, cursor\)\) \{/u);
+  assert.match(rail, /pending\.current = \[\.\.\.pending\.current,/u, "모으지 않고 바로 보내요");
+  // 건너뛸 때도 묶음째. 셋 중 하나만 건너뛰면 나머지는 답해도 반영되지 않는다.
+  assert.match(rail, /while \(queue\[next\] && sameDecision\(current, queue\[next\]\)\) next \+= 1;/u);
+});
+
+test("보내지 못한 답을 잃지 않는다", () => {
+  // 실패했다고 모아둔 것을 버리면 결정 세 개를 처음부터 다시 답해야 한다.
+  assert.match(rail, /pending\.current = batch;/u, "실패 시 모아둔 답을 되돌리지 않아요");
+});
+
+test("한글을 쓰는 중에 Enter로 보내지 않는다", () => {
+  /* 조합 중의 Enter는 글자를 확정하는 키다. 그때 보내면 쓰던 글자가 잘린
+     채로 나간다. */
+  assert.match(rail, /!event\.nativeEvent\.isComposing/u, "조합 중 Enter를 걸러내지 않아요");
+});
+
+test("입력은 아래에 고정하고 배경을 깔지 않는다", () => {
+  /* 답하는 자리가 한 곳이어야 다음에 무엇을 할지 찾을 필요가 없다. 배경을
+     깔면 대화가 아니라 별도의 폼처럼 보인다. */
+  const rule = css.match(/\.follow-up-composer \{([^}]*)\}/u);
+  assert.ok(rule, ".follow-up-composer 규칙이 없어요");
+  assert.match(rule[1], /border-top:/u, "입력 자리를 구분하는 선이 없어요");
+  assert.doesNotMatch(rule[1], /background:/u, "입력 자리에 배경을 깔았어요");
+});
+
+test("묻는 쪽과 답한 쪽이 모양으로 갈린다", () => {
+  // 누가 한 말인지 읽지 않고도 알 수 있어야 대화로 읽힌다.
+  assert.match(css, /\.follow-up-said \{[^}]*justify-self: end/u, "답이 오른쪽으로 붙지 않아요");
+  assert.match(css, /\.follow-up-ask \{[^}]*margin-right/u, "물음이 오른쪽을 비우지 않아요");
 });
 
 test("패널이 문서를 가리지 않는다", () => {
@@ -131,11 +147,6 @@ test("좁은 화면에서는 아래에서 올라온다", () => {
 
 test("패널이 종이에 찍히지 않는다", () => {
   assert.match(printBlock(), /\.follow-up-rail,/u, "패널이 인쇄에서 숨겨지지 않아요");
-});
-
-test("결정은 세 가지를 다 받아야 보낸다", () => {
-  assert.match(rail, /isDecision && answered\.length < group\.questions\.length/u);
-  assert.match(rail, /세 가지를 다 알려주셔야/u, "왜 안 되는지 말해주지 않아요");
 });
 
 test("진행 표시를 반드시 되돌린다", () => {
