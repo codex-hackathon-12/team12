@@ -29,6 +29,7 @@ export type SelectedQuestion = {
 /** 질문 대상이 되는 프로젝트의 현재 상태. 그 자리가 비어 있는지 판단한다. */
 export type QuestionTarget = {
   repositoryName: string;
+  /** 이미 쓴 강조점. 자리가 남아 있으면 더 물을 수 있다. */
   highlights: string[];
   /** 초안이 결정을 채웠는지. 채웠으면 결정을 다시 묻지 않는다. */
   hasKeyDecision: boolean;
@@ -41,14 +42,20 @@ export type QuestionTarget = {
 /**
  * 상한.
  *
- * 상한이 없으면 저장소 세 개짜리에서 열 개 넘는 질문이 나오고, 그러면 사람은
- * 아무것도 답하지 않고 화면을 닫는다.
+ * 예전에는 8개였다. 한 화면에 폼을 다 펼쳐 보여주던 때라, 열 개가 넘으면
+ * 사람이 아무것도 답하지 않고 닫을 것을 걱정했다.
  *
- * 프로젝트당 결정 묶음 하나(3개)와 낱개 둘까지다. 결정 묶음은 화면에서 카드
- * 하나로 보이므로 사용자가 체감하는 질문 수는 프로젝트당 셋에 가깝다.
+ * 이제 대화창이 하나씩 묻는다. 한 번에 보이는 것은 늘 질문 하나뿐이라 목록이
+ * 길어도 부담이 되지 않고, 오히려 물을 것을 8개에서 끊는 쪽이 손해다 —
+ * 저장소가 다섯이면 프로젝트마다 한두 개밖에 못 묻는다.
+ *
+ * 프로젝트당 결정 묶음 하나(3개)와 낱개 셋까지, 전체 24개.
  */
-export const MAX_QUESTIONS = 8;
-export const MAX_SINGLE_QUESTIONS_PER_PROJECT = 2;
+export const MAX_QUESTIONS = 24;
+export const MAX_SINGLE_QUESTIONS_PER_PROJECT = 3;
+
+/** 강조점이 담기는 자리 수. 계약의 CONTENT_LIMITS.highlights와 같은 값이다. */
+const HIGHLIGHT_SLOTS = 4;
 
 const QUESTION_MIN_LENGTH = 8;
 export const QUESTION_MAX_LENGTH = 120;
@@ -93,7 +100,10 @@ function isOpenSlot(target: QuestionTarget, field: SelectableField): boolean {
   if (isDecisionField(field)) {
     return !target.hasKeyDecision;
   }
-  return target.highlights.length === 0;
+  /* highlights는 비어 있을 때만 묻던 것을 자리가 남았을 때로 넓혔다. 초안이
+     하나만 채워도 더 물을 수 없어서, 혼자 만든 프로젝트에는 질문이 아예 안
+     나가는 일이 흔했다. 답은 기존 항목 뒤에 붙으므로 덮어쓸 위험이 없다. */
+  return target.highlights.length < HIGHLIGHT_SLOTS;
 }
 
 export function selectFollowUpQuestions(

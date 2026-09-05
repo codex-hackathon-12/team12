@@ -3081,8 +3081,10 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 
 /* 인쇄 미리보기처럼 A4 낱장으로 보여주는 모드.
    낱장 크기와 여백은 인쇄 CSS의 @page와 같은 규격을 쓴다. */
-/* 낱장 규격은 인쇄 @page와 같아야 한다. 여백 8mm = 약 30px. */
-.portfolio-pages { --page-w: 794px; --page-h: 1123px; --page-margin: 30px; }
+/* 낱장 규격은 인쇄 @page와 같은 값을 쓴다. px로 반올림해두면 종이보다 0.5px
+   넓거나 좁아, 줄바꿈이 경계에 걸린 문단에서 한 줄 차이가 난다. 같은 단위로
+   적어 그 여지를 없앤다. */
+.portfolio-pages { --page-w: 210mm; --page-h: 297mm; --page-margin: 8mm; }
 
 /* 경과 시간과 예상 소요. 진행률이 잠시 멈춰 보여도 이 줄은 계속 움직인다. */
 .progress-timing {
@@ -3223,10 +3225,24 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   box-shadow: 0 18px 50px rgb(18 26 22 / 16%);
 }
 
-/* 낱장 안쪽 여백이 인쇄 여백에 해당한다. 문서 폭은 그대로 유지된다. */
+/* 낱장 안쪽 여백이 인쇄 여백에 해당한다. 문서 폭은 그대로 유지된다.
+
+   테두리를 지운다. 이 요소는 `.portfolio-preview` 클래스를 함께 달고 있어서
+   문서 테두리(1px)를 물려받았는데, 낱장에서는 두 가지를 망가뜨렸다.
+
+   하나는 눈에 보이는 것 — 안쪽 상자가 낱장보다 짧아 테두리 아랫변이 종이
+   한가운데를 가로지르는 선으로 남았다.
+
+   다른 하나는 눈에 안 보이는 것 — 좌우 테두리가 본문 폭을 2px 먹어 미리보기는
+   732px, 인쇄는 733.5px에서 줄을 접었다. 긴 문단이 미리보기에서만 한 줄 더
+   접히고, 그것이 쌓여 프로젝트 하나가 통째로 다음 장으로 밀렸다. 인쇄는 한
+   장에 둘을 담는데 미리보기는 하나만 담던 이유가 이것이다.
+
+   낱장 자체가 종이라 테두리가 따로 필요하지도 않다. */
 .portfolio-page-inner {
   max-width: none;
   padding: var(--page-margin);
+  border: 0;
   box-shadow: none;
 }
 

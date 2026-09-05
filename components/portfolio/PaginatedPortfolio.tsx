@@ -9,9 +9,13 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
  * 남아 있어서, 화면은 인쇄보다 한 장에 30px씩 적게 담는다고 계산했다. 그 차이로
  * 프로젝트 두 개가 아슬아슬하게 넘쳐 한 장에 하나씩 잘렸다.
  */
-const PAGE_WIDTH = 794;
-const PAGE_HEIGHT = 1123;
-const PAGE_MARGIN = 30;
+/* 1mm를 96dpi 픽셀로. A4와 @page 여백을 mm로 적고 여기서 한 번만 환산한다.
+   px로 반올림해 적으면 종이와 0.5px씩 어긋나고, 그 차이가 줄바꿈 경계에 걸린
+   문단에서 한 줄이 되어 쌓인다. */
+const MM = 96 / 25.4;
+const PAGE_WIDTH = 210 * MM;
+const PAGE_HEIGHT = 297 * MM;
+const PAGE_MARGIN = 8 * MM;
 const CONTENT_HEIGHT = PAGE_HEIGHT - PAGE_MARGIN * 2;
 
 type Block = { key: string; node: ReactNode; kind?: "project" };

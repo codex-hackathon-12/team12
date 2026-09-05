@@ -101,7 +101,9 @@ const schema = {
     notablePatterns: { type: "array", maxItems: 4, items: { type: "string" } },
     followUpQuestions: {
       type: "array",
-      maxItems: 8,
+      /* 코드가 다시 거르므로 여기서는 넉넉히 받는다. 여기가 좁으면 저장소가
+         여럿일 때 뒤쪽 프로젝트가 통째로 질문 없이 지나간다. */
+      maxItems: 30,
       items: {
         type: "object",
         additionalProperties: false,
