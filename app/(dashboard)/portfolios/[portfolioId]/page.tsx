@@ -89,20 +89,22 @@ export default function PortfolioResultPage() {
   const applyResult = (result: PortfolioStatementResultDto) =>
     setRewritten({ content: result.content, questions: result.questions });
 
-  /* 패널은 문서에 나오는 순서를 따른다. 질문 목록 순서를 그대로 쓰면 화면과
-     문서가 어긋나 어느 프로젝트를 말하는지 눈으로 좇기 어렵다. */
   const content = rewritten?.content ?? portfolio.content;
+  /* 대화창이 질문을 문서 순서로 묻도록 여기서 정렬한다. 목록 순서를 그대로
+     쓰면 프로젝트를 오가며 물어 어느 이야기인지 좇기 어렵다. */
   const railProjects: RailProject[] = content.projects.flatMap((project) => {
     const name = repositoryNameByUrl.get(project.repositoryUrl);
-    const questions = name
-      ? openQuestions.filter((question) => question.repositoryName === name)
-      : [];
-    return questions.length > 0
-      ? [{ url: project.repositoryUrl, name: name ?? "", title: project.title, questions }]
-      : [];
+    return name ? [{ url: project.repositoryUrl, name, title: project.title }] : [];
   });
+  const order = new Map(railProjects.map((project, index) => [project.name, index]));
+  const railQuestions = [...(rewritten?.questions ?? portfolio.questions)].sort(
+    (a, b) => (order.get(a.repositoryName ?? "") ?? 99) - (order.get(b.repositoryName ?? "") ?? 99),
+  );
+  const markedUrls = railProjects
+    .filter((project) => openQuestions.some((question) => question.repositoryName === project.name))
+    .map((project) => project.url);
 
-  const railOpen = (railChoice ?? roomForRail) && railProjects.length > 0;
+  const railOpen = (railChoice ?? roomForRail) && openQuestions.length > 0;
 
   const sourceLabel = portfolio.repositories.length > 1
     ? `${portfolio.repository.fullName} 외 ${portfolio.repositories.length - 1}개`
@@ -223,7 +225,7 @@ export default function PortfolioResultPage() {
               )}
               {/* 답할 것이 있으면 문서를 읽다가도 바로 열 수 있어야 한다.
                   숫자를 함께 보여야 열어볼 이유가 생긴다. */}
-              {railProjects.length > 0 ? (
+              {openQuestions.length > 0 ? (
                 <button
                   className="button secondary"
                   type="button"
@@ -303,7 +305,7 @@ export default function PortfolioResultPage() {
       */}
       <PortfolioDocument
         content={content}
-        markedProjectUrls={railOpen ? railProjects.map((project) => project.url) : undefined}
+        markedProjectUrls={railOpen ? markedUrls : undefined}
       />
       {actionError ? (
         <div className="page-container">
@@ -312,6 +314,7 @@ export default function PortfolioResultPage() {
       ) : null}
       <FollowUpRail
         portfolioId={portfolio.id}
+        questions={railQuestions}
         projects={railProjects}
         open={railOpen}
         onClose={() => setRailChoice(false)}

@@ -50,12 +50,30 @@ test("재는 DOM과 인쇄되는 DOM이 같은 래퍼를 쓴다", () => {
   );
 });
 
-test("낱장 규격이 인쇄 @page와 같다", () => {
-  // 두 값이 갈라지면 한 장에 담기는 양이 달라진다.
+test("낱장 규격이 인쇄 @page와 같은 단위를 쓴다", () => {
+  /* px로 반올림해 적으면 종이보다 0.5px씩 어긋나고, 그 차이가 줄바꿈 경계에
+     걸린 문단에서 한 줄이 되어 쌓인다. 같은 단위로 적어 여지를 없앤다. */
   const css = readFileSync(root + "app/globals.css", "utf8");
-  assert.match(css, /--page-w: 794px; --page-h: 1123px; --page-margin: 30px;/u);
+  assert.match(css, /--page-w: 210mm; --page-h: 297mm; --page-margin: 8mm;/u);
   assert.match(css, /@page \{[^}]*margin: 8mm;/u, "@page 여백이 8mm가 아니에요");
-  assert.match(paginated, /const PAGE_WIDTH = 794;/u);
-  assert.match(paginated, /const PAGE_HEIGHT = 1123;/u);
-  assert.match(paginated, /const PAGE_MARGIN = 30;/u);
+  assert.match(paginated, /const MM = 96 \/ 25\.4;/u);
+  assert.match(paginated, /const PAGE_WIDTH = 210 \* MM;/u);
+  assert.match(paginated, /const PAGE_HEIGHT = 297 \* MM;/u);
+  assert.match(paginated, /const PAGE_MARGIN = 8 \* MM;/u);
+});
+
+test("낱장 안쪽에 테두리를 두지 않는다", () => {
+  /* 이 요소는 `.portfolio-preview` 클래스를 함께 달고 있어 문서 테두리를
+     물려받았다. 두 가지가 망가졌다.
+
+     보이는 것 — 안쪽 상자가 낱장보다 짧아 테두리 아랫변이 종이 한가운데를
+     가로지르는 선으로 남았다.
+
+     안 보이는 것 — 좌우 테두리가 본문 폭을 2px 먹어 미리보기는 732px,
+     인쇄는 733.5px에서 줄을 접었다. 긴 문단이 미리보기에서만 한 줄 더 접히고,
+     쌓여서 프로젝트 하나가 통째로 다음 장으로 밀렸다. */
+  const css = readFileSync(root + "app/globals.css", "utf8");
+  const rule = css.match(/\.portfolio-page-inner \{([^}]*)\}/u);
+  assert.ok(rule, ".portfolio-page-inner 규칙이 없어요");
+  assert.match(rule[1], /border: 0/u, "낱장 안쪽에 테두리가 남아 있어요");
 });

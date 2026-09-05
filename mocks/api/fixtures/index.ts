@@ -265,6 +265,32 @@ export const mockPortfolioQuestions = [
     question: "세 명이 함께 만든 프로젝트인데 어느 부분을 맡으셨나요?",
     answer: null,
   },
+  {
+    id: "question_signal_highlights",
+    repositoryName: "signal-board",
+    field: "highlights",
+    topic: null,
+    question: "이 대시보드에서 직접 만든 것 중 더 남기고 싶은 게 있나요?",
+    answer: null,
+  },
+  /* 결정이 채워진 프로젝트에도 낱개 질문은 남는다. 강조점은 자리가 남아
+     있으면 더 물을 수 있어서, 예전처럼 질문이 아예 없는 프로젝트가 줄었다. */
+  {
+    id: "question_folio_highlights",
+    repositoryName: "folio-maker",
+    field: "highlights",
+    topic: null,
+    question: "mock adapter 말고 백엔드와 맞춘 방법이 더 있었나요?",
+    answer: null,
+  },
+  {
+    id: "question_folio_role",
+    repositoryName: "folio-maker",
+    field: "role",
+    topic: null,
+    question: "혼자 만든 프로젝트인데 설계에서 가장 오래 붙잡은 건 무엇인가요?",
+    answer: null,
+  },
 ] satisfies PortfolioQuestionDto[];
 
 export const mockPortfolio = {
