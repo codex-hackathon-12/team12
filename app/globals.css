@@ -2117,6 +2117,26 @@ a {
   /* 문서의 좌우 기준선. 모든 본문이 이 선에서 시작한다. */
   --doc-gutter: var(--space-8);
 
+  /*
+    문서의 세로 리듬.
+
+    값을 토큰으로 빼고 규칙은 한 번만 선언한다. 예전에는 같은 속성이 기본
+    규칙, `.result-paper`, `@media print` 세 곳에 있었고, 그중 하나가 특정도
+    (0,2,0)으로 올라가 `:first-child`를 이기는 바람에 A4 보기에서만 카드마다
+    12px이 더 붙었다. 선언이 하나면 그런 일이 일어날 수 없다.
+
+    값은 가로 기준선(24px)에 맞춘다. 세로가 가로보다 좁으면 한 덩어리가
+    어디까지인지 읽히지 않는다. 프로젝트가 12px이던 것은 "한 장에 둘을
+    넣으려고" 좁힌 값인데, 함께 있던 공간 채우기를 걷어내면서 좁혀서 얻는
+    것은 사라지고 좁힌 대가만 남았다.
+  */
+  --doc-hero-pad: var(--space-6);       /* 히어로 위아래 */
+  --doc-section-gap: var(--space-8);    /* 섹션 경계 (PROJECTS 라벨 위) */
+  --doc-project-pad: var(--space-6);    /* 프로젝트 위아래 — 사이 48px + 구분선 */
+  --doc-metric-pad: var(--space-2) var(--space-3);
+  --doc-expertise-pad: var(--space-6) var(--doc-gutter) var(--space-8);
+  --doc-block-gap: var(--space-3);      /* 카드 안 묶음 사이 */
+
   /* A4 세로(210mm)에서 @page 여백 8mm를 양쪽으로 뺀 본문 폭이다.
      화면과 인쇄가 같은 폭을 써야 줄바꿈과 열 구성이 어긋나지 않는다.
      이 값이 인쇄보다 좁으면 화면에서만 줄이 더 접혀 문서가 길어진다. */
@@ -2179,7 +2199,7 @@ a {
 
 .result-portfolio-hero {
   display: block;
-  padding: var(--space-8) var(--doc-gutter);
+  padding: var(--doc-hero-pad) var(--doc-gutter);
   border-bottom: 0;
   background:
     radial-gradient(circle at 88% 12%, rgb(200 245 93 / 20%), transparent 16rem),
@@ -2275,7 +2295,7 @@ a {
 }
 
 .result-metric-strip { padding: 0 var(--space-4); }
-.result-metric-strip > div { min-width: 0; padding: var(--space-3) var(--space-4); }
+.result-metric-strip > div { min-width: 0; padding: var(--doc-metric-pad); }
 .result-metric-strip > div + div { border-left: 1px solid var(--result-border); }
 
 .result-metric-strip dt {
@@ -2306,14 +2326,25 @@ a {
 
 /* 카드 단위로 페이지에 담기므로 섹션 래퍼 대신 블록마다 기준선을 준다. */
 .result-block { padding: 0 var(--doc-gutter); }
-.result-block .result-section-label { margin-top: var(--space-6); }
+.result-block .result-section-label { margin-top: var(--doc-section-gap); }
 
-.result-project-card {
-  padding: var(--space-3) 0;
+.result-project-card { padding-block: var(--doc-project-pad); }
+
+/*
+   프로젝트 사이 구분선. 첫 프로젝트 위에는 긋지 않는다.
+
+   예전에는 `:first-child`로 첫 번째만 가리려 했는데, 카드가 저마다 자기
+   블록(`.result-block`) 안에 하나씩 들어 있어 **전부 첫째**였다. 그래서 모든
+   카드의 위 여백과 구분선이 함께 지워졌고, 선은 한 번도 그려진 적이 없으며
+   프로젝트 사이 간격도 적어둔 값의 절반이었다.
+
+   블록끼리는 래퍼 <div>를 사이에 두고 형제라, 앞에도 프로젝트가 있는 경우만
+   골라 긋는다. A4에서 장이 넘어가면 사슬이 끊겨 장 맨 위에는 선이 없다 —
+   그게 맞다.
+*/
+div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-card {
   border-top: 1px solid var(--result-border);
 }
-
-.result-project-card:first-child { padding-top: 0; border-top: 0; }
 
 .result-project-title-row {
   display: grid;
@@ -2355,7 +2386,7 @@ a {
   line-height: 1.7;
 }
 
-.result-tech-list { display: flex; flex-wrap: wrap; gap: var(--space-1); margin: var(--space-3) 0 0; }
+.result-tech-list { display: flex; flex-wrap: wrap; gap: var(--space-1); margin: var(--doc-block-gap) 0 0; }
 
 .result-tech-list span {
   padding: var(--space-1) var(--space-2);
@@ -2375,7 +2406,7 @@ a {
    보인다. 배경 대신 선을 쓰는 것은 인쇄 때문이다 — 배경 그래픽을 끄면
    background는 사라지지만 border는 남는다. */
 .result-decision {
-  margin: var(--space-3) 0 0;
+  margin: var(--doc-block-gap) 0 0;
   padding-left: var(--space-4);
   border-left: 2px solid #62a06f;
 }
@@ -2429,7 +2460,7 @@ a {
    변환은 아무 일도 하지 않아, 글자 사이가 뜬 것처럼만 보인다.
    문서 안의 다른 한국어 표지(언어 비율, 저장소에서 읽은 것)와 같은 규칙이다. */
 .result-highlight-caption {
-  margin: var(--space-3) 0 0;
+  margin: var(--doc-block-gap) 0 0;
   color: #a9b5ad;
   font-size: var(--doc-label);
   font-weight: 700;
@@ -2441,7 +2472,7 @@ a {
 .result-highlight-list {
   display: grid;
   gap: var(--space-1);
-  margin: var(--space-3) 0 0;
+  margin: var(--doc-block-gap) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -2468,8 +2499,8 @@ a {
      아랫줄로 접히면서 카드가 통째로 100px 넘게 길어진다. */
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
   gap: var(--space-6);
-  margin-top: var(--space-2);
-  padding-top: var(--space-2);
+  margin-top: var(--doc-block-gap);
+  padding-top: var(--doc-block-gap);
   border-top: 1px solid var(--result-border);
 }
 
@@ -2509,7 +2540,7 @@ a {
 }
 
 .result-expertise-section {
-  padding: var(--space-6) var(--doc-gutter) var(--space-8);
+  padding: var(--doc-expertise-pad);
   background: #1d2a23;
   color: #f2f5f0;
 }
@@ -3155,37 +3186,16 @@ a {
    여백으로 그렸다. 그래서 미리보기가 인쇄보다 훨씬 적게 담아 프로젝트가 한 장에
    하나씩 잘려 보였다. 낱장을 그리는 곳에 이 클래스를 붙여 두 경로를 하나로 묶는다. */
 
-/* 페이지 여백과 겹치므로 문서 기준선을 조금 줄인다. */
+/* 종이는 본문 폭이 733px이라 좌우 기준선을 한 단계 줄인다.
+   세로 여백은 화면과 같다 — 문서는 하나이므로 리듬도 하나다. 예전에는 한
+   장에 더 담으려고 종이만 좁혔는데, 그 좁힘과 짝이던 공간 채우기를 걷어내면서
+   좁힐 이유가 사라졌다. 두 벌을 유지하려다 12px이 갈라진 적도 있다. */
 .result-paper { --doc-gutter: var(--space-6); }
-
-/* 세로 리듬을 좁혀 한 장에 더 담는다. */
-.result-paper .result-portfolio-hero { padding-top: var(--space-4); padding-bottom: var(--space-4); }
 
 /* 목차와 꼬리말은 종이에서 쓸모가 없다. "Back to top"은 특히 그렇다.
    연락처는 히어로에 이미 있어 목차를 감춰도 잃는 정보가 없다. */
 .result-paper .result-portfolio-nav,
 .result-paper .result-portfolio-footer { display: none; }
-
-/* 프로젝트 카드가 500px대라 한 장(1063px)에 두 개가 아슬아슬하게 못 들어갔다.
-   10px 남짓 넘쳐서 한 장을 통째로 더 쓰고, 그 장의 절반이 비었다.
-   종이에서는 화면보다 세로 리듬을 좁혀 두 개가 여유 있게 들어가게 한다. */
-/* 지표 값이 줄바꿈 경계에 걸려 있어 1px 차이로 두 줄이 되곤 한다.
-   칸 여백을 줄여 글자가 쓸 수 있는 폭을 넓힌다. */
-.result-paper .result-metric-strip > div { padding: var(--space-2) var(--space-3); }
-.result-paper .result-block .result-section-label { margin-top: var(--space-3); }
-/*
-   프로젝트 카드 여백은 여기서 다시 선언하지 않는다.
-
-   기본 규칙과 값이 같아 아무것도 바꾸지 않으면서, 특정도만 (0,2,0)으로 올라가
-   `.result-project-card:first-child { padding-top: 0 }`을 이겼다. 그래서 A4
-   보기에서만 카드마다 12px이 더 붙었다. 인쇄 쪽 사본은 (0,1,0)이라 지지
-   않았고, 같은 값을 적어둔 두 줄이 서로 다른 결과를 냈다.
-   같은 값을 두 번 적으면 언젠가 이렇게 갈라진다.
-*/
-.result-paper .result-expertise-section { padding-top: var(--space-4); padding-bottom: var(--space-6); }
-.result-paper .result-story-list { margin-top: var(--space-2); padding-top: var(--space-2); }
-.result-paper .result-highlight-list { margin-top: var(--space-2); }
-.result-paper .result-tech-list { margin-top: var(--space-2); }
 
 /* 높이를 재기 위한 사본. 레이아웃은 실제와 같아야 하므로 display:none을 쓰지 않는다. */
 .portfolio-pages-measure {
@@ -3277,38 +3287,67 @@ a {
   margin: 8mm;
 }
 
-/* 되묻기 — 문서 옆 패널.
+/* 되묻기 — 문서 옆에 떠 있는 카드.
 
-   처음에는 비어 있는 자리에 카드를 직접 끼워 넣었다. 답이 어디로 가는지는
-   분명했지만 읽는 대상 한가운데 편집 UI가 박혔고, A4 보기에서는 나눔이
-   어긋나 아예 숨겨야 했다. 문서 밖으로 나오면 둘 다 풀린다.
+   처음에는 화면 오른쪽 끝에 붙은 전체 높이 슬래브였다. 위는 헤더, 아래는
+   뷰포트 바닥까지 꽉 차고 안쪽은 전부 같은 간격이라, 어디까지가 한 프로젝트
+   이야기인지 눈으로 갈리지 않았다.
+
+   이 앱이 쓰는 카드 모양을 그대로 쓴다 — 1px 테두리에 오프셋 그림자, 각진
+   모서리. 크레딧 잔액 카드나 선택한 저장소 칸과 같은 꼴이다.
 
    패널이 문서를 밀어낸다(--rail-width). 겹치면 읽으면서 답할 수 없다. */
 .result-page { --rail-width: 0px; padding-right: var(--rail-width); }
-.result-page.with-rail { --rail-width: 360px; }
+.result-page.with-rail { --rail-width: 396px; }
 
 .follow-up-rail {
   position: fixed;
   z-index: 40;
-  top: var(--header-height);
-  right: 0;
-  bottom: 0;
-  display: grid;
-  align-content: start;
-  gap: var(--space-4);
-  width: var(--rail-width);
-  padding: var(--space-4);
-  overflow-y: auto;
-  border-left: 1px solid var(--ink);
+  top: calc(var(--header-height) + var(--space-4));
+  right: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  /* 내용이 짧으면 카드도 짧다. 바닥까지 늘리면 다시 슬래브가 된다. */
+  max-height: calc(100vh - var(--header-height) - var(--space-8));
+  width: calc(var(--rail-width) - var(--space-12));
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  box-shadow: 7px 8px 0 var(--ink);
+}
+
+/* 머리는 고정하고 아래를 선으로 끊는다. 개수와 닫기가 여기 산다. */
+.follow-up-rail-head {
+  display: flex;
+  flex: none;
+  gap: var(--space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--ink);
   background: var(--surface);
 }
 
-.follow-up-rail-head { display: flex; gap: var(--space-3); align-items: flex-start; justify-content: space-between; }
-.follow-up-rail-head > div { display: grid; gap: 4px; }
+.follow-up-rail-head > div { display: grid; gap: 2px; }
 .follow-up-rail-head strong { font-size: var(--text-md); }
-.follow-up-rail-lead { margin: 0; color: var(--ink-soft); font-size: var(--text-xs); line-height: 1.7; }
+.follow-up-rail-body { min-height: 0; overflow-y: auto; }
+.follow-up-rail-lead {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) 0;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  line-height: 1.7;
+}
 
-.follow-up-project { display: grid; gap: var(--space-3); }
+/* 프로젝트마다 구획. 구획 사이 간격(24)이 카드 안쪽(16)보다 넓어야
+   어디까지가 한 이야기인지 눈으로 갈린다. 예전에는 16과 12뿐이라 층위가
+   없었다. */
+.follow-up-project {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+}
+
+.follow-up-project + .follow-up-project { border-top: 1px solid var(--line); }
 
 /* 어느 프로젝트 이야기인지 잇는 자리. 누르면 문서에서 그곳으로 간다. */
 .follow-up-project-name {
@@ -3318,25 +3357,41 @@ a {
   border: 0;
   background: transparent;
   color: var(--ink);
-  font-size: var(--text-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-xs);
   font-weight: 700;
+  letter-spacing: 0.06em;
   text-align: left;
+  text-transform: uppercase;
   cursor: pointer;
 }
 
-.follow-up-project-name span { color: var(--ink-muted); font-size: var(--text-2xs); font-weight: 600; }
+.follow-up-project-name span {
+  color: var(--ink-muted);
+  font-family: var(--font-pretendard);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 .follow-up-project-name:hover span { color: var(--ink-soft); }
 
 .follow-up-card {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-3);
-  /* 점선으로 "아직 채워지지 않은 자리"임을 말한다. 문서의 실선 결정과 대비된다. */
-  border: 1px dashed var(--ink);
-  background: var(--lime-soft);
+  padding: var(--space-4);
+  /* 점선은 "아직 채워지지 않은 자리"라는 뜻이다. 문서의 실선 결정과 대비된다. */
+  border: 1px dashed var(--line-dark);
+  background: var(--paper);
 }
 
+/* 핵심 결정만 라임으로 둔다. 점선 라임 카드가 연달아 쌓이면 어수선하고,
+   어느 것이 이 프로젝트의 본문인지도 흐려진다. */
+.follow-up-card.is-decision { border-color: var(--ink); background: var(--lime-soft); }
+
 .follow-up-eyebrow { margin: 0; color: #4a7a55; font-size: var(--text-2xs); font-weight: 700; letter-spacing: 0.04em; }
+.follow-up-card:not(.is-decision) .follow-up-eyebrow { color: var(--ink-muted); }
 
 .follow-up-topic {
   margin: 0;
@@ -3348,7 +3403,7 @@ a {
   line-height: 1.6;
 }
 
-.follow-up-field { display: grid; gap: 4px; }
+.follow-up-field { display: grid; gap: 6px; }
 .follow-up-field > div { display: grid; gap: 2px; }
 .follow-up-field label { font-size: var(--text-xs); font-weight: 650; line-height: 1.55; }
 .follow-up-field small { font-size: var(--text-2xs); }
@@ -3390,17 +3445,17 @@ a {
 .result-block-marked { outline: 2px dashed rgb(98 160 111 / 45%); outline-offset: var(--space-2); }
 .result-block-active { outline-color: #4a7a55; outline-style: solid; }
 
-/* 좁은 화면에는 옆에 둘 자리가 없다. 아래에서 올라오는 시트가 된다. */
+/* 좁은 화면에는 옆에 둘 자리가 없다. 아래에서 올라오되 화면 끝에 붙이지 않고
+   같은 카드 모양으로 여백을 두고 띄운다. */
 @media (max-width: 1100px) {
   .result-page.with-rail { --rail-width: 0px; }
   .follow-up-rail {
     top: auto;
-    left: 0;
+    right: var(--space-3);
+    bottom: var(--space-3);
+    left: var(--space-3);
     width: auto;
-    max-height: 72vh;
-    border-top: 1px solid var(--ink);
-    border-left: 0;
-    box-shadow: 0 -12px 40px rgb(18 26 22 / 18%);
+    max-height: 68vh;
   }
 }
 
@@ -3471,21 +3526,13 @@ a {
     그래서 미리보기로 A4를 보고 있어도 실제로 찍히는 건 다른 조판이었고,
     화면 전용인 "Back to top ↑"까지 종이에 남았다.
 
-    :3076-3079 주석이 "미리보기와 인쇄가 어긋나던 문제를 고쳤다"고 적어둔
-    바로 그 부류가 이 경로에 남아 있었다. 클래스가 아니라 미디어로 건다.
+    세로 여백은 여기서 다시 적지 않는다. 문서의 리듬은 `--doc-*` 토큰 한
+    벌로 정해지고 화면·A4·인쇄가 같은 값을 쓴다. 좌우 기준선만 종이 폭에
+    맞춰 줄인다 — `.result-paper`가 하는 것과 같은 이유이고 같은 값이다.
   */
   .result-portfolio-preview { --doc-gutter: var(--space-6); }
-  .result-portfolio-hero { padding-top: var(--space-4); padding-bottom: var(--space-4); }
   .result-portfolio-nav,
   .result-portfolio-footer { display: none !important; }
-  .result-metric-strip > div { padding: var(--space-2) var(--space-3); }
-  .result-block .result-section-label { margin-top: var(--space-3); }
-  /* 프로젝트 카드 여백은 기본 규칙과 값이 같아 다시 적지 않는다. 위쪽 A4
-     보기 주석에 왜인지 적어두었다. */
-  .result-expertise-section { padding-top: var(--space-4); padding-bottom: var(--space-6); }
-  .result-story-list { margin-top: var(--space-2); padding-top: var(--space-2); }
-  .result-highlight-list { margin-top: var(--space-2); }
-  .result-tech-list { margin-top: var(--space-2); }
 
   /* 채움은 색을 지키므로 흑백으로 되돌리지 않는다.
      트랙만 밝은 바탕에 맞게 바꾼다 — 트랙은 배경이 빠져도 테두리로 남는다. */

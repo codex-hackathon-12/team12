@@ -104,39 +104,43 @@ export function FollowUpRail({
         <button className="text-link" type="button" onClick={onClose}>닫기</button>
       </header>
 
-      <p className="follow-up-rail-lead">
-        저장소만 봐서는 알 수 없는 것들이에요. 답해주시면 문서의 그 자리만 다시 써요.
-      </p>
+      {/* 머리는 고정하고 목록만 스크롤한다. 개수와 닫기가 늘 같은 자리에 있어야
+          몇 개 남았는지 보면서 답할 수 있다. */}
+      <div className="follow-up-rail-body">
+        <p className="follow-up-rail-lead">
+          저장소만 봐서는 알 수 없는 것들이에요. 답해주시면 문서의 그 자리만 다시 써요.
+        </p>
 
-      {projects.map((project) => (
-        <section className="follow-up-project" key={project.url}>
+        {projects.map((project) => (
+          <section className="follow-up-project" key={project.url}>
           {/* 어느 프로젝트 이야기인지 잇는 자리. 누르면 문서에서 그곳으로 간다. */}
-          <button
-            className="follow-up-project-name"
-            type="button"
-            onClick={() => {
-              const block = findProjectBlock(project.url);
-              block?.scrollIntoView({ behavior: "smooth", block: "center" });
-            }}
-            onMouseEnter={() => findProjectBlock(project.url)?.classList.add("result-block-active")}
-            onMouseLeave={() => findProjectBlock(project.url)?.classList.remove("result-block-active")}
-            onFocus={() => findProjectBlock(project.url)?.classList.add("result-block-active")}
-            onBlur={() => findProjectBlock(project.url)?.classList.remove("result-block-active")}
-          >
-            {project.title}
-            <span aria-hidden="true">문서에서 보기 ↓</span>
-          </button>
+            <button
+              className="follow-up-project-name"
+              type="button"
+              onClick={() => {
+                const block = findProjectBlock(project.url);
+                block?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+              onMouseEnter={() => findProjectBlock(project.url)?.classList.add("result-block-active")}
+              onMouseLeave={() => findProjectBlock(project.url)?.classList.remove("result-block-active")}
+              onFocus={() => findProjectBlock(project.url)?.classList.add("result-block-active")}
+              onBlur={() => findProjectBlock(project.url)?.classList.remove("result-block-active")}
+            >
+              {project.title}
+              <span aria-hidden="true">문서에서 보기 ↓</span>
+            </button>
 
-          {groupByTopic(project.questions).map((group) => (
-            <FollowUpCard
-              key={group.topic ?? "single"}
-              portfolioId={portfolioId}
-              group={group}
-              onApplied={onApplied}
-            />
-          ))}
-        </section>
-      ))}
+            {groupByTopic(project.questions).map((group) => (
+              <FollowUpCard
+                key={group.topic ?? "single"}
+                portfolioId={portfolioId}
+                group={group}
+                onApplied={onApplied}
+              />
+            ))}
+          </section>
+        ))}
+      </div>
     </aside>
   );
 }
@@ -205,7 +209,7 @@ function FollowUpCard({
   };
 
   return (
-    <div className="follow-up-card">
+    <div className={isDecision ? "follow-up-card is-decision" : "follow-up-card"}>
       <p className="follow-up-eyebrow">{isDecision ? "핵심 결정" : "그 밖에"}</p>
       {/* 무엇에 대한 질문인지 짚어야 답의 범위가 정해진다. 저장소에서 본
           그대로라 지원자가 "아, 그거" 하고 떠올릴 수 있다. */}
