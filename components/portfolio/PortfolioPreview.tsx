@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Image from "next/image";
 import { PaginatedPortfolio } from "@/components/portfolio/PaginatedPortfolio";
 import type { PortfolioContentDto, PortfolioProjectDto } from "@/contracts/api-contract";
@@ -353,9 +353,13 @@ export function PortfolioPreview({
     return <PaginatedPortfolio blocks={blocks} onPageCount={onPageCount} />;
   }
 
+  /* 블록마다 <div>로 감싼다. 높이를 재는 사본(PaginatedPortfolio)이 같은
+     래퍼를 쓰기 때문이다. 한쪽만 감싸면 마진 상쇄가 달라져 잰 높이와 실제
+     높이가 어긋나고, 그 차이가 그대로 미리보기와 인쇄의 차이가 된다.
+     인쇄는 이 경로를 쓴다 — 종이 폭에서는 낱장 보기가 열리지 않는다. */
   return (
     <article className="portfolio-preview result-portfolio-preview">
-      {blocks.map((block) => <Fragment key={block.key}>{block.node}</Fragment>)}
+      {blocks.map((block) => <div key={block.key}>{block.node}</div>)}
     </article>
   );
 }

@@ -77,15 +77,29 @@ test("어느 보기에서 인쇄해도 종이 조판이 같다", () => {
   /* `.result-paper`는 A4 낱장 경로에만 붙는데, 인쇄할 때 브라우저는 종이
      폭(794px)으로 다시 레이아웃한다. 그 값이 A4_MIN_WIDTH(900)보다 작아
      문서가 읽기 보기로 뒤집히고, 그 경로에는 이 클래스가 없다. 그래서
-     미리보기와 인쇄가 달랐다. 인쇄 블록이 같은 값을 직접 들고 있어야 한다. */
+     인쇄 블록이 같은 값을 직접 들고 있어야 한다. */
   const block = printBlock();
   for (const [rule, label] of [
     [/--doc-gutter:\s*var\(--space-6\)/u, "문서 기준선"],
     [/\.result-portfolio-hero\s*\{[^}]*padding-top:\s*var\(--space-4\)/u, "히어로 여백"],
-    [/\.result-project-card\s*\{[^}]*padding:\s*var\(--space-3\)/u, "프로젝트 카드 여백"],
+    [/\.result-metric-strip > div\s*\{[^}]*padding:\s*var\(--space-2\)/u, "지표 칸 여백"],
   ]) {
     assert.match(block, rule, `인쇄 블록에 ${label} 규칙이 없어요`);
   }
+});
+
+test("같은 값을 두 곳에 적어두지 않는다", () => {
+  /* 프로젝트 카드 여백을 기본 규칙과 같은 값으로 두 곳에 더 적어두고 있었다.
+     아무것도 바꾸지 않는 줄처럼 보였지만, `.result-paper .result-project-card`는
+     특정도가 (0,2,0)이라 `.result-project-card:first-child { padding-top: 0 }`을
+     이겼고 인쇄 쪽 사본은 (0,1,0)이라 지지 않았다. 같은 값을 적은 두 줄이
+     서로 다른 결과를 내서, A4 보기에서만 카드마다 12px이 더 붙었다. */
+  const base = css.match(/^\.result-project-card\s*\{([^}]*)\}/mu);
+  assert.ok(base, ".result-project-card 기본 규칙이 없어요");
+  assert.match(base[1], /padding:\s*var\(--space-3\) 0/u);
+
+  assert.doesNotMatch(css, /\.result-paper \.result-project-card\s*\{/u, "A4 보기가 카드 여백을 다시 적고 있어요");
+  assert.doesNotMatch(printBlock(), /^\s*\.result-project-card\s*\{/mu, "인쇄가 카드 여백을 다시 적고 있어요");
 });
 
 test("화면 전용 요소가 종이에 남지 않는다", () => {
