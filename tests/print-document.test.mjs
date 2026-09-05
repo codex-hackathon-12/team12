@@ -73,33 +73,52 @@ test("인쇄가 막대를 흑백으로 되돌리지 않는다", () => {
   );
 });
 
-test("어느 보기에서 인쇄해도 종이 조판이 같다", () => {
-  /* `.result-paper`는 A4 낱장 경로에만 붙는데, 인쇄할 때 브라우저는 종이
-     폭(794px)으로 다시 레이아웃한다. 그 값이 A4_MIN_WIDTH(900)보다 작아
-     문서가 읽기 보기로 뒤집히고, 그 경로에는 이 클래스가 없다. 그래서
-     인쇄 블록이 같은 값을 직접 들고 있어야 한다. */
-  const block = printBlock();
-  for (const [rule, label] of [
-    [/--doc-gutter:\s*var\(--space-6\)/u, "문서 기준선"],
-    [/\.result-portfolio-hero\s*\{[^}]*padding-top:\s*var\(--space-4\)/u, "히어로 여백"],
-    [/\.result-metric-strip > div\s*\{[^}]*padding:\s*var\(--space-2\)/u, "지표 칸 여백"],
-  ]) {
-    assert.match(block, rule, `인쇄 블록에 ${label} 규칙이 없어요`);
+test("문서의 세로 리듬을 한 곳에서만 정한다", () => {
+  /* 예전에는 같은 속성이 기본 규칙, `.result-paper`, `@media print` 세 곳에
+     있었다. 그중 하나가 특정도 (0,2,0)으로 올라가 `:first-child`를 이기는
+     바람에 A4 보기에서만 카드마다 12px이 더 붙었다. 같은 값을 적은 두 줄이
+     서로 다른 결과를 낸 것이다.
+
+     값을 토큰으로 빼고 규칙을 한 번만 선언하면 그 일이 일어날 수 없다.
+     여기서 지키는 것은 그 구조다. */
+  const paper = css.slice(css.indexOf(".result-paper {"), css.indexOf(".portfolio-pages-measure"));
+  for (const [source, label] of [[paper, "A4 경로"], [printBlock(), "인쇄"]]) {
+    for (const property of ["padding-top", "padding-bottom", "padding-block", "margin-top"]) {
+      const offenders = [...source.matchAll(new RegExp(`(\\.result-[a-z-]+[^{}]*)\\{[^}]*${property}:`, "gu"))]
+        .map((match) => match[1].trim());
+      assert.deepEqual(offenders, [], `${label}가 세로 여백을 다시 적고 있어요: ${offenders.join(", ")}`);
+    }
   }
 });
 
-test("같은 값을 두 곳에 적어두지 않는다", () => {
-  /* 프로젝트 카드 여백을 기본 규칙과 같은 값으로 두 곳에 더 적어두고 있었다.
-     아무것도 바꾸지 않는 줄처럼 보였지만, `.result-paper .result-project-card`는
-     특정도가 (0,2,0)이라 `.result-project-card:first-child { padding-top: 0 }`을
-     이겼고 인쇄 쪽 사본은 (0,1,0)이라 지지 않았다. 같은 값을 적은 두 줄이
-     서로 다른 결과를 내서, A4 보기에서만 카드마다 12px이 더 붙었다. */
-  const base = css.match(/^\.result-project-card\s*\{([^}]*)\}/mu);
-  assert.ok(base, ".result-project-card 기본 규칙이 없어요");
-  assert.match(base[1], /padding:\s*var\(--space-3\) 0/u);
+test("종이에서 덮어쓰는 것은 좌우 기준선뿐이다", () => {
+  /* 세로 여백을 화면과 종이가 다르게 가져갈 이유가 없다. 종이만 좁혔던
+     이유(한 장에 더 담기)는 공간 채우기를 걷어내면서 사라졌다. 좌우는
+     본문 폭이 733px이라 한 단계 줄인다. */
+  assert.match(css, /\.result-paper \{ --doc-gutter: var\(--space-6\); \}/u);
+  assert.match(printBlock(), /\.result-portfolio-preview \{ --doc-gutter: var\(--space-6\); \}/u);
 
-  assert.doesNotMatch(css, /\.result-paper \.result-project-card\s*\{/u, "A4 보기가 카드 여백을 다시 적고 있어요");
-  assert.doesNotMatch(printBlock(), /^\s*\.result-project-card\s*\{/mu, "인쇄가 카드 여백을 다시 적고 있어요");
+  // 세로 토큰은 종이에서 다시 정하지 않는다.
+  for (const token of ["--doc-hero-pad", "--doc-project-pad", "--doc-section-gap", "--doc-block-gap"]) {
+    assert.equal(
+      [...css.matchAll(new RegExp(`${token}:`, "gu"))].length,
+      1,
+      `${token}이 두 곳에서 정의됐어요`,
+    );
+  }
+});
+
+test("프로젝트 구분선을 :first-child로 가리지 않는다", () => {
+  /* 카드가 저마다 자기 블록 안에 하나씩 들어 있어 전부 `:first-child`다.
+     그래서 첫 번째만 가리려던 규칙이 모든 카드의 위 여백과 구분선을 지웠고,
+     선은 한 번도 그려진 적이 없으며 프로젝트 사이 간격도 절반이었다. */
+  assert.doesNotMatch(css, /\.result-project-card:first-child/u, "다시 :first-child로 가리고 있어요");
+  // 앞에도 프로젝트가 있을 때만 긋는다.
+  assert.match(
+    css,
+    /div:has\(> \[data-project-url\]\) \+ div:has\(> \[data-project-url\]\) \.result-project-card/u,
+    "프로젝트 사이 구분선 규칙이 없어요",
+  );
 });
 
 test("화면 전용 요소가 종이에 남지 않는다", () => {
