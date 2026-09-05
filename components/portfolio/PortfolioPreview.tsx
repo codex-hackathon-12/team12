@@ -17,8 +17,13 @@ function accent(language: string): { "--language-color"?: string } {
   return color.startsWith("#") ? { "--language-color": color } : {};
 }
 
-// 근거가 없으면 빈 배열이 오므로, 내용이 있는 항목만 열로 만든다.
-// 비어 있는 항목까지 라벨을 그리면 채용 담당자에게 빈칸만 보인다.
+/**
+ * 규격 이전 결과의 서술 항목.
+ *
+ * 새 결과는 `keyDecision` 하나로 쓴다. 이 경로를 남겨두는 것은 이미 저장된
+ * 포트폴리오가 이 값을 들고 있어서다 — 지우면 그 사람들의 문서에서 문장이
+ * 사라진다. 근거가 없으면 빈 배열이 오므로 내용이 있는 항목만 열로 만든다.
+ */
 function storyColumns(project: PortfolioProjectDto): Array<{ label: string; items: string[] }> {
   return [
     { label: "Challenge", items: project.challenges },
@@ -27,16 +32,37 @@ function storyColumns(project: PortfolioProjectDto): Array<{ label: string; item
   ].filter((column) => column.items.length > 0);
 }
 
+/**
+ * 프로젝트를 읽기 전에 필요한 맥락 한 줄.
+ *
+ * 면접관이 가장 먼저 찾는 것이 "무슨 역할로, 몇 명이서, 언제"다. 없는 값은
+ * 칸을 만들지 않는다 — 빈칸을 남기느니 그 사실을 말하지 않는 편이 낫다.
+ */
+function metaLine(project: PortfolioProjectDto): string {
+  return [project.role, project.context.scale, project.context.period]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export function PortfolioPreview({
   content,
   paginated = false,
   onPageCount,
+  renderProjectSlot,
 }: {
   content: PortfolioContentDto;
   /** A4 낱장으로 나눠 인쇄 미리보기처럼 보여준다. */
   paginated?: boolean;
   /** 나눠본 장수. 인쇄 전 분량 안내에 쓴다. */
   onPageCount?: (count: number) => void;
+  /**
+   * 프로젝트 카드 안에 끼워 넣을 화면 전용 요소.
+   *
+   * 결과 화면이 되묻기 카드를 여기 넣는다. 공개 페이지와 갤러리는 넘기지
+   * 않으므로 아무것도 그려지지 않는다 — 이 방향이 아니면 남에게 보내는
+   * 링크에 질문이 새어 나간다. 문서는 무엇이 들어오는지 알 필요가 없다.
+   */
+  renderProjectSlot?: (project: PortfolioProjectDto) => ReactNode;
 }) {
   const initials =
     content.profile.displayName.replace(/\s/gu, "").slice(0, 2).toUpperCase() ||
@@ -166,7 +192,7 @@ export function PortfolioPreview({
             <article className="result-project-card">
               <div className="result-project-title-row">
                 <div>
-                  <p>{project.role}</p>
+                  <p>{metaLine(project)}</p>
                   <h3>{project.title}</h3>
                 </div>
                 <a href={project.repositoryUrl} target="_blank" rel="noreferrer">
@@ -182,15 +208,45 @@ export function PortfolioPreview({
                 </div>
               )}
 
-              {project.highlights.length > 0 && (
-                <ul className="result-highlight-list">
-                  {project.highlights.map((highlight) => (
-                    <li key={highlight}>{highlight}</li>
-                  ))}
-                </ul>
+              {/*
+                프로젝트의 본문. 짧은 불릿을 열 개 나열하는 대신 결정 하나를
+                문제 → 선택과 근거 → 결과로 이어 쓴다. 면접관이 읽는 것은
+                나열이 아니라 결정이고, 후속 질문을 던질 지점이 여기 생긴다.
+              */}
+              {project.keyDecision.headline && (
+                <div className="result-decision">
+                  <h4>
+                    <span>핵심 결정</span>
+                    {project.keyDecision.headline}
+                  </h4>
+                  {project.keyDecision.problem && <p>{project.keyDecision.problem}</p>}
+                  {project.keyDecision.approach && <p>{project.keyDecision.approach}</p>}
+                  {project.keyDecision.outcome && (
+                    <p className="result-decision-outcome">{project.keyDecision.outcome}</p>
+                  )}
+                </div>
               )}
 
-              {storyColumns(project).length > 0 && (
+              {renderProjectSlot?.(project)}
+
+              {project.highlights.length > 0 && (
+                <>
+                  {/* 결정이 본문이고 이건 나머지다. 표지가 없으면 둘이 같은
+                      무게로 읽혀 결정이 묻힌다. */}
+                  {project.keyDecision.headline && (
+                    <p className="result-highlight-caption">그 밖에</p>
+                  )}
+                  <ul className="result-highlight-list">
+                    {project.highlights.map((highlight) => (
+                      <li key={highlight}>{highlight}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {/* 규격 이전 결과만 이 경로로 온다. 결정이 있으면 그것이 본문이므로
+                  같은 내용을 두 모양으로 두 번 보여주지 않는다. */}
+              {!project.keyDecision.headline && storyColumns(project).length > 0 && (
                 <div className="result-story-list">
                   {storyColumns(project).map((column) => (
                     <div key={column.label}>

@@ -20,6 +20,8 @@ const evidence = {
       readme: "Next.js와 Supabase로 만든 서비스입니다.",
       ownCommits: [{ title: "feat: Tailwind로 레이아웃 정리", body: "" }],
       ownContributionUnverifiable: false,
+      ownCommitDiffs: [],
+      contributionPeriod: null,
       dependencies: [],
       teamCommitTitles: [],
       ownPullRequests: [{ title: "PostgreSQL 인덱스 추가", merged: true, body: "" }],

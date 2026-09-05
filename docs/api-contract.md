@@ -547,10 +547,17 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
         "repositoryUrl": "https://github.com/octocat/portfolio-api",
         "role": "Backend Engineer",
         "techStack": ["TypeScript", "Next.js", "Drizzle"],
+        "context": { "period": "2026.03–06", "scale": "개인" },
+        "keyDecision": {
+          "headline": "생성 흐름을 한 단계에서 세 단계로 나눔",
+          "problem": "저장 단계에서 실패하면 GitHub 수집과 모델 호출까지 통째로 다시 돌았다.",
+          "approach": "단계 사이 산출물을 별도 테이블에 두고 이미 끝난 일을 건너뛰게 했다. 워크플로 이벤트로 넘기지 않은 것은 근거가 수십 KB라 직렬화할 수 없기 때문이다.",
+          "outcome": "저장에서 실패해 다시 돌아도 모델을 다시 부르지 않는다."
+        },
         "highlights": ["비동기 생성 작업 설계"],
-        "challenges": ["긴 생성 시간 동안 사용자 상태 유지"],
-        "solutions": ["job 기반 polling API 설계"],
-        "impact": ["새로고침 후에도 생성 상태 복구"]
+        "challenges": [],
+        "solutions": [],
+        "impact": []
       }
     ],
     "gitAnalysis": {
@@ -603,8 +610,9 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
       {
         "id": "question_1",
         "repositoryName": "portfolio-api",
-        "field": "impact",
-        "question": "생성 작업을 단계로 나눈 뒤 무엇이 달라졌나요?",
+        "field": "decisionProblem",
+        "topic": "재시도 처리를 withRetry로 감싼 커밋",
+        "question": "그 전에는 어떤 문제가 있었나요?",
         "answer": null
       }
     ],
@@ -612,6 +620,15 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
   }
 }
 ```
+
+`keyDecision`의 네 값은 근거가 없으면 빈 문자열이다. `headline`이 비면 결정
+자체가 없는 것으로 보고 화면이 그 블록을 그리지 않는다.
+
+`context`의 기간과 규모는 서버가 GitHub 근거에서 만든다. 계산할 수 없으면
+`null`이다.
+
+`challenges`·`solutions`·`impact`는 규격 이전에 저장된 결과를 위해 남아 있다.
+새로 만든 결과에서는 빈 배열이며, 서술은 `keyDecision`이 담는다.
 
 `repository`와 `content`는 8.1의 전체 구조를 사용한다. 소유자만 조회할 수 있으며 다른 사용자의 결과에는 `404`를 반환한다.
 
@@ -651,7 +668,8 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
         "id": "question_1",
         "repositoryName": "portfolio-api",
         "field": "impact",
-        "question": "생성 작업을 단계로 나눈 뒤 무엇이 달라졌나요?",
+        "topic": null,
+        "question": "이 작업으로 무엇이 달라졌나요?",
         "answer": "배포할 때마다 손으로 확인하던 절차가 없어졌어요."
       }
     ],
@@ -661,6 +679,11 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
   }
 }
 ```
+
+`field`는 항목 단위(`impact`, `challenges`, `solutions`, `role`, `highlights`)와
+결정 단위(`decisionProblem`, `decisionApproach`, `decisionOutcome`)로 나뉜다.
+결정 셋은 같은 `topic`을 공유하며 화면에서 한 카드로 묶여 함께 답한다. 셋이 다
+답해져야 결정이 문서에 들어간다 — 반쪽짜리 결정은 반영하지 않는다.
 
 `content`는 8.1의 전체 구조이며, `updatedFields`에 없는 자리는 요청 전과
 글자 하나까지 같다. 이 보장은 프롬프트가 아니라 서버 병합 단계가 지킨다.

@@ -196,18 +196,20 @@ export async function persistGenerationPortfolio(jobId: string): Promise<void> {
   const verifiedProjects = draft.projects.map((project) => {
     const techStack = verifyTechStack(project.techStack, evidence, haystack);
     removedTech.push(...techStack.removed);
-    const narrative = (field: "highlights" | "challenges" | "solutions" | "impact") => {
-      const result = verifyNarrative(project[field], numbers);
-      removedNarratives.push(...result.removed);
-      return result.value;
-    };
+    const highlights = verifyNarrative(project.highlights, numbers);
+    removedNarratives.push(...highlights.removed);
+
+    /* 결정도 같은 수치 검증을 받는다. 조각마다 따로 보되 headline이 걸리면
+       결정을 통째로 비운다 — 제목이 지어낸 수치를 말하는데 본문만 남기면
+       무엇에 대한 결정인지 알 수 없는 문단이 된다. */
+    const decision = verifyDecision(project.keyDecision, numbers);
+    removedNarratives.push(...decision.removed);
+
     return {
       ...project,
       techStack: techStack.value,
-      highlights: narrative("highlights"),
-      challenges: narrative("challenges"),
-      solutions: narrative("solutions"),
-      impact: narrative("impact"),
+      highlights: highlights.value,
+      keyDecision: decision.value,
     };
   });
   const removed = [...verifiedSkills.removed, ...removedTech, ...removedNarratives];
@@ -239,9 +241,25 @@ export async function persistGenerationPortfolio(jobId: string): Promise<void> {
       role: project.role,
       techStack: project.techStack,
       highlights: clampTextArray(project.highlights, TEXT_LIMITS.highlight),
-      challenges: clampTextArray(project.challenges, TEXT_LIMITS.story),
-      solutions: clampTextArray(project.solutions, TEXT_LIMITS.story),
-      impact: clampTextArray(project.impact, TEXT_LIMITS.story),
+      context: {
+        /* 기간과 규모는 모델을 거치지 않는다. 커밋 날짜와 기여자 수는 관찰된
+           사실이라 지어낼 여지를 줄 이유가 없다. */
+        period: projectRepositories[index].contributionPeriod,
+        scale: projectRepositories[index].contributorCount > 1
+          ? `${projectRepositories[index].contributorCount}명`
+          : "개인",
+      },
+      keyDecision: {
+        headline: clampText(project.keyDecision.headline, TEXT_LIMITS.decisionHeadline),
+        problem: clampText(project.keyDecision.problem, TEXT_LIMITS.decisionProblem),
+        approach: clampText(project.keyDecision.approach, TEXT_LIMITS.decisionApproach),
+        outcome: clampText(project.keyDecision.outcome, TEXT_LIMITS.decisionOutcome),
+      },
+      /* 새 결과는 결정 서사로 쓴다. 이 셋은 규격 이전 결과를 위해 계약에만
+         남아 있어 빈 배열로 채운다. */
+      challenges: [],
+      solutions: [],
+      impact: [],
       repositoryUrl: projectRepositories[index].url,
     })),
     gitAnalysis: {
@@ -284,6 +302,36 @@ export async function persistGenerationPortfolio(jobId: string): Promise<void> {
   await markCompleted(jobId, portfolio.id);
 }
 
+type DraftDecision = GeneratedPortfolioDraft["projects"][number]["keyDecision"];
+
+const EMPTY_DECISION: DraftDecision = { headline: "", problem: "", approach: "", outcome: "" };
+
+/** 결정의 네 조각에 수치 검증을 건다. headline이 걸리면 결정 전체를 비운다. */
+function verifyDecision(
+  decision: DraftDecision,
+  numbers: Set<string>,
+): { value: DraftDecision; removed: string[] } {
+  const removed: string[] = [];
+  const keep = (text: string) => {
+    const result = verifyNarrative([text], numbers);
+    removed.push(...result.removed);
+    return result.value[0] ?? "";
+  };
+
+  const headline = keep(decision.headline);
+  if (!headline) return { value: EMPTY_DECISION, removed };
+
+  return {
+    value: {
+      headline,
+      problem: keep(decision.problem),
+      approach: keep(decision.approach),
+      outcome: keep(decision.outcome),
+    },
+    removed,
+  };
+}
+
 /**
  * 초안이 비워둔 자리를 지원자에게 되물을 질문으로 남긴다.
  *
@@ -309,9 +357,8 @@ async function persistFollowUpQuestions(
       return [{
         repositoryName: repository.name,
         highlights: project.highlights,
-        challenges: project.challenges,
-        solutions: project.solutions,
-        impact: project.impact,
+        // headline이 비면 결정이 없는 것이다. 그때만 결정을 묻는다.
+        hasKeyDecision: Boolean(project.keyDecision.headline),
         contributorCount: repository.contributorCount,
         ownContributionUnverifiable: repository.ownContributionUnverifiable,
       }];
@@ -324,6 +371,7 @@ async function persistFollowUpQuestions(
       questions.map((question) => ({
         repositoryName: question.repositoryName,
         field: question.field,
+        topic: question.topic,
         question: question.question,
       })),
     );

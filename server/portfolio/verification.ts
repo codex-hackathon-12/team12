@@ -31,6 +31,13 @@ function buildHaystack(evidence: PortfolioEvidence): string {
     /* 의존성은 지시문이 techStack의 근거로 쓰라고 안내하는 자리다. 여기 없으면
        "React를 쓰라"고 말해놓고 모델이 쓴 React를 검증이 도로 걷어낸다. */
     parts.push(...repository.dependencies);
+    /* diff에서만 확인되는 기술이 있다. 지시문이 diff를 근거로 쓰라고 하면서
+       검증이 그걸 모르면, 모델이 쓴 것을 검증이 도로 걷어낸다 — 의존성에서
+       겪은 것과 같다. 파일 경로도 함께 넣는다. */
+    for (const diff of repository.ownCommitDiffs) {
+      parts.push(diff.title);
+      for (const file of diff.files) parts.push(file.path, file.patch);
+    }
   }
   // 사용자가 직접 적어 넣은 강조점도 근거로 인정한다. 본인이 주장하는 범위다.
   parts.push(...evidence.highlights);

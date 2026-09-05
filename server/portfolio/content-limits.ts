@@ -23,6 +23,13 @@ export const TEXT_LIMITS = {
   description: 160,
   highlight: 70,
   story: 90,
+  /* 핵심 결정. 네 조각의 길이가 서로 다른 것은 각자 하는 일이 다르기 때문이다.
+     headline은 목차처럼 훑는 줄, problem과 outcome은 한두 문장, approach는
+     "왜 그것을 골랐는지"까지 담아야 해서 가장 길다. */
+  decisionHeadline: 60,
+  decisionProblem: 160,
+  decisionApproach: 220,
+  decisionOutcome: 100,
 } as const;
 
 /**

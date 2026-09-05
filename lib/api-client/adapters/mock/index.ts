@@ -255,12 +255,28 @@ export class MockApiClient implements ApiClient {
 
     const projects = mockPortfolioContent.projects.map((project) => {
       if (project.id !== "project_signal") return project;
+      const answerFor = (field: string) =>
+        mockPortfolioQuestions
+          .filter((question) => question.field === field)
+          .map((question) => this.answers.get(question.id))
+          .find(Boolean) ?? "";
+
       const next = { ...project };
-      for (const question of mockPortfolioQuestions) {
-        const answer = this.answers.get(question.id);
-        if (!answer) continue;
-        if (question.field === "impact") next.impact = [answer];
-        if (question.field === "challenges") next.challenges = [answer];
+      const role = answerFor("role");
+      if (role) next.role = role;
+
+      /* 결정은 셋이 다 있을 때만 채운다. 하나만 답하고 반쪽짜리 결정이 문서에
+         박히면 안 된다. 서버 병합도 같은 규칙을 쓴다. */
+      const problem = answerFor("decisionProblem");
+      const approach = answerFor("decisionApproach");
+      const outcome = answerFor("decisionOutcome");
+      if (problem && approach && outcome) {
+        next.keyDecision = {
+          headline: "지표 갱신 주기를 늘려 부하를 줄임",
+          problem,
+          approach,
+          outcome,
+        };
       }
       return next;
     });

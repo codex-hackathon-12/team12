@@ -16,6 +16,19 @@ const URL_BY_NAME = new Map([
   ["signal-board", "https://github.com/example/signal-board"],
 ]);
 
+const EMPTY_DECISION = { headline: "", problem: "", approach: "", outcome: "" };
+
+const FILLED_DECISION = {
+  headline: "생성 흐름을 세 단계로 나눔",
+  problem: "저장에서 실패하면 GitHub 수집과 모델 호출이 통째로 다시 돌았다.",
+  approach: "단계 사이 산출물을 별도 테이블에 두고 이미 있으면 건너뛰게 했다.",
+  outcome: "저장 재시도에서 모델을 다시 부르지 않는다.",
+};
+
+/** 결정 세 조각을 한 번에 반영하는 요청. 실제 흐름과 같은 모양이다. */
+const DECISION_SLOTS = ["decisionProblem", "decisionApproach", "decisionOutcome"]
+  .map((field) => ({ repositoryName: "portfolio-api", field }));
+
 function content() {
   return {
     profile: {
@@ -34,6 +47,8 @@ function content() {
         repositoryUrl: "https://github.com/example/portfolio-api",
         role: "프로젝트 개발",
         techStack: ["TypeScript", "Next.js"],
+        context: { period: "2026.03–06", scale: "개인" },
+        keyDecision: { ...EMPTY_DECISION },
         highlights: ["생성 파이프라인을 단계로 분리"],
         challenges: [],
         solutions: [],
@@ -46,6 +61,8 @@ function content() {
         repositoryUrl: "https://github.com/example/signal-board",
         role: "프로젝트 개발",
         techStack: ["React"],
+        context: { period: null, scale: "3명" },
+        keyDecision: { ...EMPTY_DECISION },
         highlights: [],
         challenges: [],
         solutions: [],
@@ -69,9 +86,7 @@ const rewrite = (overrides = {}) => ({
   repositoryName: "portfolio-api",
   role: "프로젝트 개발",
   highlights: [],
-  challenges: [],
-  solutions: [],
-  impact: [],
+  keyDecision: { ...EMPTY_DECISION },
   ...overrides,
 });
 
@@ -79,13 +94,13 @@ test("답한 자리만 바뀌고 나머지는 참조까지 그대로다", () => 
   const before = content();
   const { content: after, updatedFields } = applyRewrite(
     before,
-    [rewrite({ impact: ["배포마다 손으로 확인하던 절차가 없어졌다"] })],
-    [{ repositoryName: "portfolio-api", field: "impact" }],
+    [rewrite({ keyDecision: FILLED_DECISION })],
+    DECISION_SLOTS,
     URL_BY_NAME,
   );
 
-  assert.deepEqual(updatedFields, [{ repositoryName: "portfolio-api", field: "impact" }]);
-  assert.deepEqual(after.projects[0].impact, ["배포마다 손으로 확인하던 절차가 없어졌다"]);
+  assert.deepEqual(after.projects[0].keyDecision, FILLED_DECISION);
+  assert.equal(updatedFields.length, 3, "세 조각 모두 답한 자리로 세어야 해요");
 
   // 손대지 않은 항목은 값이 같은 정도가 아니라 같은 객체여야 한다.
   assert.equal(after.profile, before.profile);
@@ -95,6 +110,7 @@ test("답한 자리만 바뀌고 나머지는 참조까지 그대로다", () => 
   assert.equal(after.introduction, before.introduction);
   assert.equal(after.projects[1], before.projects[1]);
   assert.equal(after.projects[0].highlights, before.projects[0].highlights);
+  assert.equal(after.projects[0].context, before.projects[0].context);
 });
 
 test("요청하지 않은 자리는 모델이 돌려줘도 버린다", () => {
@@ -105,43 +121,55 @@ test("요청하지 않은 자리는 모델이 돌려줘도 버린다", () => {
     before,
     [rewrite({
       role: "백엔드 리드",
-      impact: ["배포 절차가 없어졌다"],
-      challenges: ["동시 요청이 몰렸다"],
-      solutions: ["큐를 도입했다"],
       highlights: ["새 하이라이트"],
+      keyDecision: FILLED_DECISION,
     })],
-    [{ repositoryName: "portfolio-api", field: "impact" }],
+    DECISION_SLOTS,
     URL_BY_NAME,
   );
 
-  assert.deepEqual(updatedFields, [{ repositoryName: "portfolio-api", field: "impact" }]);
-  assert.equal(after.projects[0].role, "프로젝트 개발");
-  assert.deepEqual(after.projects[0].challenges, []);
-  assert.deepEqual(after.projects[0].solutions, []);
+  assert.deepEqual(after.projects[0].keyDecision, FILLED_DECISION);
+  assert.equal(after.projects[0].role, "프로젝트 개발", "요청하지 않은 role이 바뀌었어요");
   assert.deepEqual(after.projects[0].highlights, ["생성 파이프라인을 단계로 분리"]);
+  assert.ok(updatedFields.every((slot) => slot.field.startsWith("decision")));
+});
+
+test("반쪽짜리 결정은 문서에 넣지 않는다", () => {
+  /* 문제만 있고 선택이 없는 문단은 면접관에게 아무것도 말해주지 않는다.
+     사용자에게는 "답했는데 왜 저렇게 나왔지"로 보인다. */
+  const before = content();
+  const half = { ...FILLED_DECISION, approach: "" };
+  const { content: after, updatedFields } = applyRewrite(
+    before,
+    [rewrite({ keyDecision: half })],
+    DECISION_SLOTS,
+    URL_BY_NAME,
+  );
+  assert.deepEqual(updatedFields, []);
+  assert.equal(after, before);
 });
 
 test("답하지 않은 프로젝트는 건드리지 않는다", () => {
   const before = content();
   const { content: after } = applyRewrite(
     before,
-    [rewrite({ repositoryName: "signal-board", impact: ["지표를 한눈에 보게 됐다"] })],
-    [{ repositoryName: "portfolio-api", field: "impact" }],
+    [rewrite({ repositoryName: "signal-board", keyDecision: FILLED_DECISION })],
+    DECISION_SLOTS,
     URL_BY_NAME,
   );
   assert.equal(after, before, "요청한 자리에 재작성이 없으면 원본이 그대로 나와야 해요");
 });
 
 test("빈 값이 기존 문장을 지우지 않는다", () => {
-  /* 모델이 빈 배열을 돌려주는 것은 "근거가 없어 못 썼다"는 뜻이다. 그걸
-     그대로 반영하면 답변 한 번에 멀쩡하던 항목이 사라진다. */
+  /* 모델이 빈 값을 돌려주는 것은 "근거가 없어 못 썼다"는 뜻이다. 그걸 그대로
+     반영하면 답변 한 번에 멀쩡하던 항목이 사라진다. */
   const before = content();
-  before.projects[0].challenges = ["재시도가 중복 호출을 일으켰다"];
+  before.projects[0].highlights = ["재시도가 중복 호출을 일으켰다"];
 
   const { content: after, updatedFields } = applyRewrite(
     before,
-    [rewrite({ challenges: [] })],
-    [{ repositoryName: "portfolio-api", field: "challenges" }],
+    [rewrite({ highlights: [] })],
+    [{ repositoryName: "portfolio-api", field: "highlights" }],
     URL_BY_NAME,
   );
   assert.deepEqual(updatedFields, []);
@@ -163,26 +191,27 @@ test("같은 값을 다시 쓴 것은 바뀐 것으로 세지 않는다", () => 
 test("분량 상한을 넘긴 재작성을 잘라 담는다", () => {
   /* 되묻기는 생성 파이프라인 밖이라 runner의 자르기를 타지 않는다. 여기서
      자르지 않으면 답변 한 번으로 문서 레이아웃이 무너진다. */
-  const long = "가".repeat(200);
+  const long = "가".repeat(400);
   const { content: after } = applyRewrite(
     content(),
-    [rewrite({ impact: [long, long, long, long, long] })],
-    [{ repositoryName: "portfolio-api", field: "impact" }],
+    [rewrite({ keyDecision: { headline: long, problem: long, approach: long, outcome: long } })],
+    DECISION_SLOTS,
     URL_BY_NAME,
   );
 
-  assert.equal(after.projects[0].impact.length, 3);
-  for (const item of after.projects[0].impact) {
-    assert.ok([...item].length <= 90, `항목이 90자를 넘었어요 (${[...item].length}자)`);
-  }
+  const decision = after.projects[0].keyDecision;
+  assert.ok([...decision.headline].length <= 60, "headline이 60자를 넘었어요");
+  assert.ok([...decision.problem].length <= 160, "problem이 160자를 넘었어요");
+  assert.ok([...decision.approach].length <= 220, "approach가 220자를 넘었어요");
+  assert.ok([...decision.outcome].length <= 100, "outcome이 100자를 넘었어요");
 });
 
 test("근거에 없는 저장소 이름은 무시한다", () => {
   const before = content();
   const { content: after, updatedFields } = applyRewrite(
     before,
-    [rewrite({ repositoryName: "없는-저장소", impact: ["무언가"] })],
-    [{ repositoryName: "없는-저장소", field: "impact" }],
+    [rewrite({ repositoryName: "없는-저장소", keyDecision: FILLED_DECISION })],
+    [{ repositoryName: "없는-저장소", field: "decisionProblem" }],
     URL_BY_NAME,
   );
   assert.deepEqual(updatedFields, []);

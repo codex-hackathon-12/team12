@@ -314,6 +314,43 @@ export interface PortfolioSkillGroupDto {
   skills: string[];
 }
 
+/**
+ * 프로젝트에서 가장 판단이 필요했던 결정 하나.
+ *
+ * 면접관이 읽는 것은 나열이 아니라 결정이다. "무엇을 했다"는 줄이 열 개
+ * 있는 것보다, 왜 그렇게 골랐는지가 보이는 결정 하나가 대화를 시작한다.
+ * 짧은 불릿만으로는 그 인과가 끊겨 자소서처럼 읽힌다.
+ *
+ * 네 필드는 근거가 없으면 빈 문자열이다. null 대신 빈 문자열을 쓰는 것은
+ * "근거가 없으면 빈 배열"이라는 이 계약의 기존 규칙과 같은 모양이고,
+ * 생성 schema의 strict 모드에서 다루기도 쉽기 때문이다.
+ * `headline`이 비면 결정 자체가 없는 것으로 본다.
+ */
+export interface PortfolioKeyDecisionDto {
+  /** 무엇을 정했나. 한 줄. */
+  headline: string;
+  /** 왜 정해야 했나 — 그 전에 무엇이 문제였나. */
+  problem: string;
+  /** 무엇을 골랐고 왜 그것을 골랐나. 근거에 대안이 있으면 함께 적는다. */
+  approach: string;
+  /** 그래서 무엇이 달라졌나. */
+  outcome: string;
+}
+
+/**
+ * 프로젝트를 읽기 전에 필요한 맥락.
+ *
+ * 면접관이 가장 먼저 찾는 것이 "언제, 몇 명이서"다. 이 값은 모델이 아니라
+ * 서버가 GitHub 근거에서 직접 만든다. 날짜와 인원은 관찰되는 사실이라
+ * 모델에게 맡길 이유가 없다.
+ */
+export interface PortfolioProjectContextDto {
+  /** 본인 커밋 기준 기여 기간. 예: "2026.03–06". 계산할 수 없으면 null. */
+  period: string | null;
+  /** "개인" 또는 "3명". 기여자 수에서 만든다. */
+  scale: string | null;
+}
+
 export interface PortfolioProjectDto {
   id: EntityId;
   title: string;
@@ -321,7 +358,16 @@ export interface PortfolioProjectDto {
   repositoryUrl: UrlString;
   role: string;
   techStack: string[];
+  context: PortfolioProjectContextDto;
+  keyDecision: PortfolioKeyDecisionDto;
   highlights: string[];
+  /**
+   * 규격 이전 결과의 서술 항목.
+   *
+   * 새 결과는 `keyDecision` 하나로 쓴다. 이 셋을 계약에서 지우지 않는 것은
+   * 이미 저장된 포트폴리오가 값을 들고 있어서다 — 지우면 그 사람들의 문서에서
+   * 문장이 사라진다. 화면은 `keyDecision`이 있으면 그것을, 없으면 이 셋을 쓴다.
+   */
   challenges: string[];
   solutions: string[];
   impact: string[];
@@ -381,13 +427,29 @@ export type PortfolioStatementField =
   | "challenges"
   | "solutions"
   | "role"
-  | "highlights";
+  | "highlights"
+  /**
+   * 핵심 결정을 이루는 세 조각.
+   *
+   * "성과를 알려주세요"처럼 넓게 물으면 무엇을 답할지 알 수 없다. 한 결정을
+   * 문제·선택·결과로 나눠 물으면 각 질문이 한두 문장으로 답할 만해진다.
+   * 셋은 같은 `topic`을 공유해 한 카드로 묶인다.
+   */
+  | "decisionProblem"
+  | "decisionApproach"
+  | "decisionOutcome";
 
 export interface PortfolioQuestionDto {
   id: EntityId;
   /** 어느 프로젝트에 대한 질문인지. 저장소 전체에 대한 질문이면 null. */
   repositoryName: string | null;
   field: PortfolioStatementField;
+  /**
+   * 이 질문이 어떤 결정에 대한 것인지 짚는 한 줄. 예: "재시도 처리를
+   * withRetry로 감싼 커밋". 같은 topic을 가진 질문들은 한 카드로 묶여
+   * 함께 답한다. 낱개 질문은 null이다.
+   */
+  topic: string | null;
   question: string;
   /** 아직 답하지 않았으면 null. 답한 그대로 돌려준다. */
   answer: string | null;

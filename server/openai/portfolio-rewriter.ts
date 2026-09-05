@@ -20,14 +20,22 @@ const schema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["repositoryName", "role", "highlights", "challenges", "solutions", "impact"],
+        required: ["repositoryName", "role", "highlights", "keyDecision"],
         properties: {
           repositoryName: { type: "string" },
           role: { type: "string" },
           highlights: { type: "array", maxItems: 4, items: { type: "string" } },
-          challenges: { type: "array", maxItems: 3, items: { type: "string" } },
-          solutions: { type: "array", maxItems: 3, items: { type: "string" } },
-          impact: { type: "array", maxItems: 3, items: { type: "string" } },
+          keyDecision: {
+            type: "object",
+            additionalProperties: false,
+            required: ["headline", "problem", "approach", "outcome"],
+            properties: {
+              headline: { type: "string" },
+              problem: { type: "string" },
+              approach: { type: "string" },
+              outcome: { type: "string" },
+            },
+          },
         },
       },
     },
