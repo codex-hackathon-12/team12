@@ -2071,7 +2071,9 @@ a {
 }
 
 .portfolio-canvas-wrap {
-  padding: 42px max(24px, calc((100vw - 1360px) / 2));
+  /* 100vw는 옆 패널이 차지한 폭을 모른다. 부모(=패널만큼 좁아진 영역) 기준인
+     100%를 써야 문서가 가운데에 남는다. */
+  padding: 42px max(24px, calc((100% - 1360px) / 2));
   background: #d9d8cf;
 }
 
@@ -3275,57 +3277,84 @@ a {
   margin: 8mm;
 }
 
-/* 되묻기 — 문서 안, 채울 자리에서 묻는다.
+/* 되묻기 — 문서 옆 패널.
 
-   문서 위에 모아두면 답이 어디로 가는지 보이지 않는다. 채울 자리에서 물으면
-   답의 범위가 저절로 정해지고, 반영된 뒤에는 그 자리에 결정이 들어차는 것을
-   눈으로 확인하게 된다.
+   처음에는 비어 있는 자리에 카드를 직접 끼워 넣었다. 답이 어디로 가는지는
+   분명했지만 읽는 대상 한가운데 편집 UI가 박혔고, A4 보기에서는 나눔이
+   어긋나 아예 숨겨야 했다. 문서 밖으로 나오면 둘 다 풀린다.
 
-   화면 전용이다. 인쇄에서는 숨긴다 — 종이에 남으면 채용 담당자가 지원자에게
-   던지는 질문 목록이 된다. */
-.follow-up-slot { display: grid; gap: var(--space-3); margin: var(--space-3) 0 0; }
+   패널이 문서를 밀어낸다(--rail-width). 겹치면 읽으면서 답할 수 없다. */
+.result-page { --rail-width: 0px; padding-right: var(--rail-width); }
+.result-page.with-rail { --rail-width: 360px; }
+
+.follow-up-rail {
+  position: fixed;
+  z-index: 40;
+  top: var(--header-height);
+  right: 0;
+  bottom: 0;
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  width: var(--rail-width);
+  padding: var(--space-4);
+  overflow-y: auto;
+  border-left: 1px solid var(--ink);
+  background: var(--surface);
+}
+
+.follow-up-rail-head { display: flex; gap: var(--space-3); align-items: flex-start; justify-content: space-between; }
+.follow-up-rail-head > div { display: grid; gap: 4px; }
+.follow-up-rail-head strong { font-size: var(--text-md); }
+.follow-up-rail-lead { margin: 0; color: var(--ink-soft); font-size: var(--text-xs); line-height: 1.7; }
+
+.follow-up-project { display: grid; gap: var(--space-3); }
+
+/* 어느 프로젝트 이야기인지 잇는 자리. 누르면 문서에서 그곳으로 간다. */
+.follow-up-project-name {
+  display: grid;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.follow-up-project-name span { color: var(--ink-muted); font-size: var(--text-2xs); font-weight: 600; }
+.follow-up-project-name:hover span { color: var(--ink-soft); }
 
 .follow-up-card {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-4);
-  /* 점선으로 "아직 채워지지 않은 자리"임을 말한다. 결정 블록의 실선과 대비된다. */
+  padding: var(--space-3);
+  /* 점선으로 "아직 채워지지 않은 자리"임을 말한다. 문서의 실선 결정과 대비된다. */
   border: 1px dashed var(--ink);
   background: var(--lime-soft);
 }
 
-.follow-up-card header { display: grid; gap: 4px; }
+.follow-up-eyebrow { margin: 0; color: #4a7a55; font-size: var(--text-2xs); font-weight: 700; letter-spacing: 0.04em; }
 
-.follow-up-eyebrow {
-  margin: 0;
-  color: #4a7a55;
-  font-size: var(--doc-label);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.follow-up-lead { margin: 0; font-size: var(--text-base); font-weight: 650; line-height: 1.5; }
-
-/* 무엇에 대한 질문인지. 저장소에서 본 그대로라 지원자가 떠올릴 수 있다. */
 .follow-up-topic {
   margin: 0;
   padding: var(--space-1) var(--space-2);
   border-left: 2px solid #62a06f;
   color: var(--ink-soft);
-  /* 대부분 한국어 문장이라 모노를 쓰지 않는다. 글자 사이만 벌어져 오히려
-     읽기 어려워진다. 안에 섞인 함수 이름은 그대로도 충분히 구별된다. */
-  font-size: var(--text-xs);
+  /* 대부분 한국어 문장이라 모노를 쓰지 않는다. 글자 사이만 벌어져 읽기 어려워진다. */
+  font-size: var(--text-2xs);
   line-height: 1.6;
 }
 
-.follow-up-field { display: grid; gap: 6px; }
-.follow-up-field > div { display: flex; justify-content: space-between; gap: var(--space-3); align-items: baseline; }
-.follow-up-field label { font-size: var(--text-sm); font-weight: 650; line-height: 1.55; }
-.follow-up-field small { flex: none; font-size: var(--text-xs); }
+.follow-up-field { display: grid; gap: 4px; }
+.follow-up-field > div { display: grid; gap: 2px; }
+.follow-up-field label { font-size: var(--text-xs); font-weight: 650; line-height: 1.55; }
+.follow-up-field small { font-size: var(--text-2xs); }
 
 .follow-up-field-label {
   display: block;
-  margin-bottom: 2px;
   color: var(--ink-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--text-2xs);
@@ -3338,29 +3367,41 @@ a {
 .follow-up-field textarea {
   width: 100%;
   /* 답 하나가 한두 문장이면 충분하다. 칸이 클수록 길게 써야 할 것처럼 보인다. */
-  min-height: 62px;
-  padding: var(--space-2) var(--space-3);
+  min-height: 58px;
+  padding: var(--space-2);
   border: 1px solid var(--line-control);
   border-radius: 0;
   outline: 0;
   background: var(--paper);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   line-height: 1.7;
   resize: vertical;
   transition: border 140ms ease, box-shadow 140ms ease;
 }
 
 .follow-up-field textarea:focus { border-color: var(--ink); box-shadow: 3px 3px 0 var(--lime); }
+.follow-up-card .button { width: 100%; justify-content: center; }
 
-.follow-up-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
-.follow-up-actions p { margin: 0; max-width: 42ch; color: var(--ink-soft); font-size: var(--text-xs); line-height: 1.6; }
+/* 문서 쪽 표시.
 
-/* A4 보기에서 되묻기가 안 보이면 막다른 길이 된다. */
-.document-pending { margin: 0 0 var(--space-3); font-weight: 650; }
+   outline은 자리를 차지하지 않는다. border나 padding을 쓰면 블록 높이가
+   달라져 A4 나눔이 인쇄와 어긋난다 — 그것 때문에 예전에 A4 보기에서 되묻기를
+   숨겼다. 표시는 화면에서만 의미가 있으므로 인쇄에서 지운다. */
+.result-block-marked { outline: 2px dashed rgb(98 160 111 / 45%); outline-offset: var(--space-2); }
+.result-block-active { outline-color: #4a7a55; outline-style: solid; }
 
-@media (max-width: 720px) {
-  .follow-up-card { padding: var(--space-3); }
-  .follow-up-field > div { flex-direction: column; gap: 4px; }
+/* 좁은 화면에는 옆에 둘 자리가 없다. 아래에서 올라오는 시트가 된다. */
+@media (max-width: 1100px) {
+  .result-page.with-rail { --rail-width: 0px; }
+  .follow-up-rail {
+    top: auto;
+    left: 0;
+    width: auto;
+    max-height: 72vh;
+    border-top: 1px solid var(--ink);
+    border-left: 0;
+    box-shadow: 0 -12px 40px rgb(18 26 22 / 18%);
+  }
 }
 
 @media print {
@@ -3387,8 +3428,7 @@ a {
   .result-toolbar,
   /* 물어보는 칸은 화면에서만 의미가 있다. 종이에 찍히면 채용 담당자가
      지원자에게 던지는 질문 목록이 된다. */
-  .follow-up-slot,
-  .document-pending,
+  .follow-up-rail,
   .result-portfolio-nav,
   .result-footer-actions,
   /* 공유 페이지의 안내와 인쇄 버튼은 종이에 남을 이유가 없다. */

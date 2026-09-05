@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useState } from "react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { PortfolioPreview } from "@/components/portfolio/PortfolioPreview";
-import type { PortfolioContentDto, PortfolioProjectDto } from "@/contracts/api-contract";
-import type { ReactNode } from "react";
+import type { PortfolioContentDto } from "@/contracts/api-contract";
 import { documentSummary } from "@/lib/copy";
 
 /**
@@ -26,41 +26,25 @@ const A4_MIN_WIDTH = 900;
 
 const QUERY = `(min-width: ${A4_MIN_WIDTH}px)`;
 
-function subscribe(onChange: () => void): () => void {
-  const query = window.matchMedia(QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-const getSnapshot = () => window.matchMedia(QUERY).matches;
-
-/* 서버는 화면 폭을 모른다. A4로 그렸다가 좁은 화면에서 읽기 보기로 바뀌면
-   첫 화면이 번쩍이므로, 모를 때는 읽기 보기에서 시작한다. */
-const getServerSnapshot = () => false;
-
 export function PortfolioDocument({
   content,
   printClassName = "button primary",
-  renderProjectSlot,
-  hasOpenQuestions = false,
+  markedProjectUrls,
 }: {
   content: PortfolioContentDto;
   /** 공개 페이지는 다른 버튼 위계를 쓴다. */
   printClassName?: string;
   /**
-   * 프로젝트 카드 안에 끼울 화면 전용 요소. 결과 화면만 넘긴다.
+   * 표시를 남길 프로젝트의 저장소 URL. 결과 화면만 넘긴다.
    *
-   * A4 보기에는 넘기지 않는다. 그 보기는 실제 인쇄 배치를 재는 미리보기라,
-   * 화면에만 있는 요소가 끼면 페이지가 넘어가는 지점이 실제와 어긋난다.
+   * 되묻기가 문서 옆 패널로 나가면서 문서 안에는 자리를 차지하지 않는 표시만
+   * 남는다. 그래서 A4 보기에서도 그대로 쓸 수 있다 — 예전에는 화면 전용
+   * 카드가 끼어 나눔이 어긋나는 탓에 A4 보기에서 되묻기를 아예 숨겼다.
    */
-  renderProjectSlot?: (project: PortfolioProjectDto) => ReactNode;
-  /** 아직 답하지 않은 되묻기가 있는지. 있으면 읽기 보기로 시작한다. */
-  hasOpenQuestions?: boolean;
+  markedProjectUrls?: readonly string[];
 }) {
-  const wideEnough = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  /* 답할 것이 남아 있으면 손볼 수 있는 보기에서 시작한다. 두 보기의 역할이
-     이걸로 오히려 또렷해진다 — 읽기 보기는 손보는 곳, A4 보기는 인쇄 확인. */
-  const [prefersPaged, setPrefersPaged] = useState(!hasOpenQuestions);
+  const wideEnough = useMediaQuery(QUERY);
+  const [prefersPaged, setPrefersPaged] = useState(true);
   const paginated = wideEnough && prefersPaged;
 
   /* 장수는 실제로 나눠본 결과다. 읽기 보기에서는 나누지 않으므로 알 수 없고,
@@ -108,20 +92,12 @@ export function PortfolioDocument({
         </div>
       </div>
 
-      {/* A4 보기에서 되묻기가 안 보이면 막다른 길이 된다. 어디로 가야 하는지
-          한 줄로 알린다. */}
-      {paginated && hasOpenQuestions ? (
-        <p className="document-note document-pending" role="status">
-          아직 답하지 않은 질문이 있어요. 읽기 보기에서 채울 수 있어요.
-        </p>
-      ) : null}
-
       <div className="portfolio-canvas-wrap">
         <PortfolioPreview
           content={content}
           paginated={paginated}
           onPageCount={handlePageCount}
-          renderProjectSlot={paginated ? undefined : renderProjectSlot}
+          markedProjectUrls={markedProjectUrls}
         />
       </div>
     </div>
