@@ -11,8 +11,9 @@ import type {
 } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReturnFocus } from "@/hooks/useReturnFocus";
-import { InlineFollowUp } from "@/components/portfolio/InlineFollowUp";
+import { FollowUpRail, type RailProject } from "@/components/portfolio/FollowUpRail";
 import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { LABEL } from "@/lib/copy";
@@ -36,6 +37,11 @@ export default function PortfolioResultPage() {
     content: PortfolioContentDto;
     questions: PortfolioQuestionDto[];
   } | null>(null);
+  /* 옆에 둘 자리가 있으면 열린 채로 시작한다. 접혀서 시작하면 있는 줄도
+     모른다. 좁은 화면에서는 패널이 아래에서 올라와 문서를 덮으므로, 열려고
+     누른 사람에게만 연다. 사용자가 한 번 정하면 그 선택을 따른다. */
+  const roomForRail = useMediaQuery("(min-width: 1101px)");
+  const [railChoice, setRailChoice] = useState<boolean | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   /* 공개 상태는 서버 응답이 출발점이고, 전환에 성공했을 때만 덮어쓴다.
@@ -82,6 +88,21 @@ export default function PortfolioResultPage() {
     .filter((question) => !question.answer);
   const applyResult = (result: PortfolioStatementResultDto) =>
     setRewritten({ content: result.content, questions: result.questions });
+
+  /* 패널은 문서에 나오는 순서를 따른다. 질문 목록 순서를 그대로 쓰면 화면과
+     문서가 어긋나 어느 프로젝트를 말하는지 눈으로 좇기 어렵다. */
+  const content = rewritten?.content ?? portfolio.content;
+  const railProjects: RailProject[] = content.projects.flatMap((project) => {
+    const name = repositoryNameByUrl.get(project.repositoryUrl);
+    const questions = name
+      ? openQuestions.filter((question) => question.repositoryName === name)
+      : [];
+    return questions.length > 0
+      ? [{ url: project.repositoryUrl, name: name ?? "", title: project.title, questions }]
+      : [];
+  });
+
+  const railOpen = (railChoice ?? roomForRail) && railProjects.length > 0;
 
   const sourceLabel = portfolio.repositories.length > 1
     ? `${portfolio.repository.fullName} 외 ${portfolio.repositories.length - 1}개`
@@ -131,7 +152,7 @@ export default function PortfolioResultPage() {
   };
 
   return (
-    <div className="result-page">
+    <div className={railOpen ? "result-page with-rail" : "result-page"}>
       <div className="page-container result-toolbar">
         <div>
           <span className="success-check" aria-hidden="true">✓</span>
@@ -200,6 +221,18 @@ export default function PortfolioResultPage() {
                   />
                 </button>
               )}
+              {/* 답할 것이 있으면 문서를 읽다가도 바로 열 수 있어야 한다.
+                  숫자를 함께 보여야 열어볼 이유가 생긴다. */}
+              {railProjects.length > 0 ? (
+                <button
+                  className="button secondary"
+                  type="button"
+                  aria-expanded={railOpen}
+                  onClick={() => setRailChoice(!railOpen)}
+                >
+                  답할 것 {openQuestions.length}개
+                </button>
+              ) : null}
               {/* 파괴적이지 않은 이동은 공유 다음. 삭제는 마지막. */}
               <Link className="button secondary" href="/repositories">{LABEL.create}</Link>
               <button
@@ -264,35 +297,26 @@ export default function PortfolioResultPage() {
         </div>
       ) : null}
       {/*
-        되묻기는 문서 위가 아니라 채울 자리에서 묻는다. 답이 어디로 가는지
-        보이지 않으면 사용자는 무엇을 위해 쓰는지 모른 채 칸을 채워야 한다.
-
-        문서는 되묻기를 알지 못한다. 슬롯을 받을 뿐이고, 공개 페이지와 갤러리는
-        넘기지 않으므로 남에게 보내는 링크에 질문이 새어 나갈 통로가 없다.
+        문서는 되묻기를 알지 못한다. 표시를 남길 프로젝트만 받고, 공개 페이지와
+        갤러리는 그것도 넘기지 않으므로 남에게 보내는 링크에 질문이 새어 나갈
+        통로가 없다.
       */}
       <PortfolioDocument
-        content={rewritten?.content ?? portfolio.content}
-        hasOpenQuestions={openQuestions.length > 0}
-        renderProjectSlot={(project) => {
-          const name = repositoryNameByUrl.get(project.repositoryUrl);
-          const list = name
-            ? openQuestions.filter((question) => question.repositoryName === name)
-            : [];
-          if (list.length === 0) return null;
-          return (
-            <InlineFollowUp
-              portfolioId={portfolio.id}
-              questions={list}
-              onApplied={applyResult}
-            />
-          );
-        }}
+        content={content}
+        markedProjectUrls={railOpen ? railProjects.map((project) => project.url) : undefined}
       />
       {actionError ? (
         <div className="page-container">
           <p className="inline-error" role="alert">{actionError}</p>
         </div>
       ) : null}
+      <FollowUpRail
+        portfolioId={portfolio.id}
+        projects={railProjects}
+        open={railOpen}
+        onClose={() => setRailChoice(false)}
+        onApplied={applyResult}
+      />
       <div className="page-container result-footer-actions">
         <Link className="text-link" href="/dashboard">← {LABEL.dashboard}로 돌아가기</Link>
         <p>인쇄 화면에서 “PDF로 저장”을 고르면 A4 포트폴리오로 남길 수 있어요.</p>

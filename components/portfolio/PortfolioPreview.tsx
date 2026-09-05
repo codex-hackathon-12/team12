@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Image from "next/image";
 import { PaginatedPortfolio } from "@/components/portfolio/PaginatedPortfolio";
 import type { PortfolioContentDto, PortfolioProjectDto } from "@/contracts/api-contract";
@@ -48,7 +48,7 @@ export function PortfolioPreview({
   content,
   paginated = false,
   onPageCount,
-  renderProjectSlot,
+  markedProjectUrls,
 }: {
   content: PortfolioContentDto;
   /** A4 낱장으로 나눠 인쇄 미리보기처럼 보여준다. */
@@ -56,13 +56,15 @@ export function PortfolioPreview({
   /** 나눠본 장수. 인쇄 전 분량 안내에 쓴다. */
   onPageCount?: (count: number) => void;
   /**
-   * 프로젝트 카드 안에 끼워 넣을 화면 전용 요소.
+   * 표시를 남길 프로젝트의 저장소 URL.
    *
-   * 결과 화면이 되묻기 카드를 여기 넣는다. 공개 페이지와 갤러리는 넘기지
-   * 않으므로 아무것도 그려지지 않는다 — 이 방향이 아니면 남에게 보내는
-   * 링크에 질문이 새어 나간다. 문서는 무엇이 들어오는지 알 필요가 없다.
+   * 결과 화면이 "여기 답할 것이 있어요"를 알리는 데 쓴다. 공개 페이지와
+   * 갤러리는 넘기지 않으므로 아무 표시도 나지 않는다.
+   *
+   * 표시는 `outline`이라 자리를 차지하지 않는다. border나 padding을 쓰면
+   * 블록 높이가 달라져 A4 나눔이 인쇄와 어긋난다.
    */
-  renderProjectSlot?: (project: PortfolioProjectDto) => ReactNode;
+  markedProjectUrls?: readonly string[];
 }) {
   const initials =
     content.profile.displayName.replace(/\s/gu, "").slice(0, 2).toUpperCase() ||
@@ -187,8 +189,15 @@ export function PortfolioPreview({
   ) });
 
   content.projects.forEach((project) => {
+    const marked = markedProjectUrls?.includes(project.repositoryUrl) ?? false;
     blocks.push({ key: `project-${project.id}`, kind: "project", node: (
-      <div className="result-block">
+      /* data 속성은 옆 패널이 이 프로젝트를 찾아 스크롤하고 잠깐 강조하는 데
+         쓴다. A4 보기에서는 숨은 측정 사본에도 같은 속성이 생기므로, 찾는
+         쪽이 `.portfolio-pages-measure` 안을 건너뛴다. */
+      <div
+        className={marked ? "result-block result-block-marked" : "result-block"}
+        data-project-url={project.repositoryUrl}
+      >
             <article className="result-project-card">
               <div className="result-project-title-row">
                 <div>
@@ -226,8 +235,6 @@ export function PortfolioPreview({
                   )}
                 </div>
               )}
-
-              {renderProjectSlot?.(project)}
 
               {project.highlights.length > 0 && (
                 <>
@@ -353,9 +360,13 @@ export function PortfolioPreview({
     return <PaginatedPortfolio blocks={blocks} onPageCount={onPageCount} />;
   }
 
+  /* 블록마다 <div>로 감싼다. 높이를 재는 사본(PaginatedPortfolio)이 같은
+     래퍼를 쓰기 때문이다. 한쪽만 감싸면 마진 상쇄가 달라져 잰 높이와 실제
+     높이가 어긋나고, 그 차이가 그대로 미리보기와 인쇄의 차이가 된다.
+     인쇄는 이 경로를 쓴다 — 종이 폭에서는 낱장 보기가 열리지 않는다. */
   return (
     <article className="portfolio-preview result-portfolio-preview">
-      {blocks.map((block) => <Fragment key={block.key}>{block.node}</Fragment>)}
+      {blocks.map((block) => <div key={block.key}>{block.node}</div>)}
     </article>
   );
 }

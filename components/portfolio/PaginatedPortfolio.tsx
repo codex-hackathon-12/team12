@@ -16,17 +16,18 @@ const CONTENT_HEIGHT = PAGE_HEIGHT - PAGE_MARGIN * 2;
 
 type Block = { key: string; node: ReactNode; kind?: "project" };
 
-/** 한 장에 프로젝트를 너무 많이 담으면 훑기 어렵다. */
-const MAX_PROJECTS_PER_PAGE = 2;
-
-/** 남는 공간을 블록 사이로 나눠 넣되, 한 틈이 지나치게 벌어지지 않게 막는다. */
-const MAX_FILL_GAP = 64;
-
-/** 반올림으로 마지막 블록이 밀려나지 않도록 여유를 남긴다. */
-const FILL_SAFETY = 0.9;
-
-/** 소수점 반올림이 쌓여 한 장을 넘기지 않도록 두는 최소 여유. */
-const FILL_GUARD = 6;
+/*
+ * 여기에 인쇄 엔진이 갖지 않은 규칙을 두지 않는다.
+ *
+ * 예전에는 둘이 있었다. "한 장에 프로젝트 2개까지"와 "남는 공간을 블록 사이로
+ * 나눠 채우기"다. 훑기 좋게 만들려는 의도였지만, 인쇄 엔진에는 그런 규칙이
+ * 없어서 미리보기가 지키지도 못할 약속을 하고 있었다. 실제로 표지 문구 위치가
+ * 최대 254px, 한 장의 4분의 1만큼 어긋났다.
+ *
+ * 미리보기의 일은 보기 좋게 만드는 것이 아니라 인쇄되는 모습을 보여주는
+ * 것이다. 마지막 장 아래가 비어 보인다면 실제로 그렇게 인쇄되기 때문이고,
+ * 그 사실을 감추면 사용자는 인쇄해 보기 전까지 알 수 없다.
+ */
 
 /**
  * 축소 하한.
@@ -37,7 +38,7 @@ const FILL_GUARD = 6;
  */
 const MIN_SCALE = 0.85;
 
-type Page = { indexes: number[]; gap: number };
+type Page = { indexes: number[] };
 
 /**
  * 인쇄 미리보기처럼 A4 낱장에 나눠 담는다.
@@ -72,43 +73,28 @@ export function PaginatedPortfolio({
         (child) => (child as HTMLElement).getBoundingClientRect().height,
       );
 
-      const grouped: Array<{ indexes: number[]; used: number }> = [];
+      /* 넘칠 때만 다음 장으로 넘긴다. 인쇄 엔진이 하는 것과 같은 판단이고,
+         여기에 규칙을 더하면 그만큼 인쇄와 갈라진다. */
+      const grouped: number[][] = [];
       let current: number[] = [];
       let used = 0;
-      let projects = 0;
 
       heights.forEach((height, index) => {
-        const isProject = blocks[index].kind === "project";
-        const overflows = used + height > CONTENT_HEIGHT;
-        const tooManyProjects = isProject && projects >= MAX_PROJECTS_PER_PAGE;
-
         // 한 블록이 페이지보다 크면 어차피 나눌 수 없으므로 그대로 한 장에 둔다.
-        if (current.length > 0 && (overflows || tooManyProjects)) {
-          grouped.push({ indexes: current, used });
+        if (current.length > 0 && used + height > CONTENT_HEIGHT) {
+          grouped.push(current);
           current = [];
           used = 0;
-          projects = 0;
         }
 
         current.push(index);
         used += height;
-        if (isProject) projects += 1;
       });
 
-      if (current.length > 0) grouped.push({ indexes: current, used });
+      if (current.length > 0) grouped.push(current);
 
       onPageCount?.(grouped.length);
-
-      // 마지막 장을 뺀 나머지는 남는 공간을 블록 사이로 나눠 채운다.
-      // 문서가 끝난 마지막 장까지 늘리면 어색하다.
-      setPages(grouped.map((page, pageIndex) => {
-        const slots = page.indexes.length - 1;
-        const isLast = pageIndex === grouped.length - 1;
-        if (isLast || slots < 1) return { indexes: page.indexes, gap: 0 };
-
-        const leftover = Math.max(CONTENT_HEIGHT - page.used - FILL_GUARD, 0) * FILL_SAFETY;
-        return { indexes: page.indexes, gap: Math.min(leftover / slots, MAX_FILL_GAP) };
-      }));
+      setPages(grouped.map((indexes) => ({ indexes })));
     };
 
     measure();
@@ -168,14 +154,8 @@ export function PaginatedPortfolio({
           {pages.map((page, pageIndex) => (
             <article className="portfolio-page" key={`page-${pageIndex}`}>
               <div className="portfolio-page-inner portfolio-preview result-portfolio-preview result-paper">
-                {page.indexes.map((index, slot) => (
-                  <div
-                    key={blocks[index].key}
-                    // 인라인 여백이라 인쇄에도 그대로 적용되어 나눔 지점이 어긋나지 않는다.
-                    style={slot === 0 || page.gap === 0 ? undefined : { marginTop: `${page.gap}px` }}
-                  >
-                    {blocks[index].node}
-                  </div>
+                {page.indexes.map((index) => (
+                  <div key={blocks[index].key}>{blocks[index].node}</div>
                 ))}
               </div>
               <span className="portfolio-page-number" aria-hidden="true">

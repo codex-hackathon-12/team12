@@ -10,15 +10,17 @@ import { ApiClientError, apiClient } from "@/lib/api-client";
 import { SteadyLabel } from "@/components/ui/SteadyLabel";
 
 /**
- * 비어 있는 자리에서 직접 되묻는다.
+ * 문서 옆에서 되묻는다.
  *
- * 예전에는 문서 위에 textarea가 나열돼 있었다. 답이 문서의 어디로 가는지 보이지
- * 않아, 사용자는 무엇을 위해 쓰는지 모른 채 칸을 채워야 했다. 채울 자리에서
- * 물으면 답의 범위가 저절로 정해지고, 반영된 뒤에는 그 자리에 결정이 들어차는
- * 것을 눈으로 확인하게 된다.
+ * 처음에는 비어 있는 자리에 카드를 직접 끼워 넣었다. 답이 어디로 가는지는
+ * 분명했지만 대가가 컸다 — 읽는 대상 한가운데 편집 UI가 박혔고, A4 보기에서는
+ * 나눔이 어긋나는 것을 피하려고 아예 숨겨야 했다. 숨긴 자리를 "읽기 보기에서
+ * 채울 수 있어요" 한 줄로 덮었는데, 그건 막다른 길을 가린 것이지 고친 것이
+ * 아니었다.
  *
- * 화면 전용이다. 인쇄에서는 숨긴다 — 종이에 남으면 채용 담당자가 지원자에게
- * 던지는 질문 목록이 된다.
+ * 문서 밖으로 나오면 둘 다 풀린다. 문서는 다시 문서만 남고, 화면 전용 요소가
+ * 문서 높이에 끼어들지 않으므로 A4 보기에서도 그대로 쓸 수 있다. 어느
+ * 프로젝트 이야기인지는 문서에 남긴 표시와 눌러서 이동으로 잇는다.
  */
 
 /** 이만큼 남았을 때부터 남은 글자 수를 알린다. 막지 않고 알린다(GOV.UK). */
@@ -35,12 +37,26 @@ const FIELD_LABEL: Record<PortfolioQuestionDto["field"], string> = {
   decisionOutcome: "결과",
 };
 
+export type RailProject = {
+  /** 문서에서 이 프로젝트를 찾는 열쇠. */
+  url: string;
+  name: string;
+  title: string;
+  questions: PortfolioQuestionDto[];
+};
+
 /**
- * 같은 결정에 속한 질문을 한 카드로 묶는다.
+ * 문서에서 그 프로젝트의 블록을 찾는다.
  *
- * 셋은 하나의 결정이므로 한 동작으로 보낸다. 따로 보내면 반쪽짜리 결정이 되어
- * 서버가 반영하지 않고, 사용자에게는 "답했는데 아무것도 안 바뀐다"로 보인다.
+ * A4 보기에서는 같은 속성이 DOM에 두 번 있다. 하나는 높이를 재려고 화면 밖에
+ * 그려둔 사본이라, 그쪽을 잡으면 스크롤도 강조도 보이지 않는 곳에서 일어난다.
  */
+function findProjectBlock(url: string): HTMLElement | null {
+  const candidates = document.querySelectorAll<HTMLElement>(`[data-project-url="${CSS.escape(url)}"]`);
+  return [...candidates].find((element) => !element.closest(".portfolio-pages-measure")) ?? null;
+}
+
+/** 같은 결정에 속한 질문을 한 카드로 묶는다. 셋은 하나의 결정이라 한 번에 보낸다. */
 type Group = { topic: string | null; questions: PortfolioQuestionDto[] };
 
 function groupByTopic(questions: PortfolioQuestionDto[]): Group[] {
@@ -56,33 +72,72 @@ function groupByTopic(questions: PortfolioQuestionDto[]): Group[] {
   }
 
   const groups: Group[] = [...decisions.entries()].map(([topic, list]) => ({ topic, questions: list }));
-  // 낱개는 한 카드에 모은다. 질문마다 카드를 만들면 문서가 카드로 뒤덮인다.
   if (singles.length > 0) groups.push({ topic: null, questions: singles });
   return groups;
 }
 
-export function InlineFollowUp({
+export function FollowUpRail({
   portfolioId,
-  questions,
+  projects,
+  open,
+  onClose,
   onApplied,
 }: {
   portfolioId: string;
-  /** 이 프로젝트에 대해 아직 답하지 않은 질문. */
-  questions: PortfolioQuestionDto[];
+  /** 답할 것이 남은 프로젝트를 문서에 나오는 순서로. */
+  projects: RailProject[];
+  open: boolean;
+  onClose: () => void;
   onApplied: (result: PortfolioStatementResultDto) => void;
 }) {
-  const groups = groupByTopic(questions);
+  if (!open || projects.length === 0) return null;
+
+  const total = projects.reduce((count, project) => count + project.questions.length, 0);
+
   return (
-    <div className="follow-up-slot">
-      {groups.map((group) => (
-        <FollowUpCard
-          key={group.topic ?? "single"}
-          portfolioId={portfolioId}
-          group={group}
-          onApplied={onApplied}
-        />
+    <aside className="follow-up-rail" aria-label="더 알려주기">
+      <header className="follow-up-rail-head">
+        <div>
+          <p className="mono-label">MISSING CONTEXT</p>
+          <strong>답할 것 {total}개</strong>
+        </div>
+        <button className="text-link" type="button" onClick={onClose}>닫기</button>
+      </header>
+
+      <p className="follow-up-rail-lead">
+        저장소만 봐서는 알 수 없는 것들이에요. 답해주시면 문서의 그 자리만 다시 써요.
+      </p>
+
+      {projects.map((project) => (
+        <section className="follow-up-project" key={project.url}>
+          {/* 어느 프로젝트 이야기인지 잇는 자리. 누르면 문서에서 그곳으로 간다. */}
+          <button
+            className="follow-up-project-name"
+            type="button"
+            onClick={() => {
+              const block = findProjectBlock(project.url);
+              block?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            onMouseEnter={() => findProjectBlock(project.url)?.classList.add("result-block-active")}
+            onMouseLeave={() => findProjectBlock(project.url)?.classList.remove("result-block-active")}
+            onFocus={() => findProjectBlock(project.url)?.classList.add("result-block-active")}
+            onBlur={() => findProjectBlock(project.url)?.classList.remove("result-block-active")}
+          >
+            {project.title}
+            <span aria-hidden="true">문서에서 보기 ↓</span>
+          </button>
+
+          {groupByTopic(project.questions).map((group) => (
+            <FollowUpCard
+              key={group.topic ?? "single"}
+              portfolioId={portfolioId}
+              group={group}
+              onApplied={onApplied}
+            />
+          ))}
+        </section>
       ))}
-    </div>
+    </aside>
   );
 }
 
@@ -150,18 +205,11 @@ function FollowUpCard({
   };
 
   return (
-    <section className="follow-up-card" aria-label={isDecision ? "핵심 결정 채우기" : "더 알려주기"}>
-      <header>
-        <p className="follow-up-eyebrow">{isDecision ? "핵심 결정 — 아직 비어 있어요" : "조금만 더"}</p>
-        <p className="follow-up-lead">
-          {isDecision
-            ? "저장소만 봐서는 왜 그렇게 했는지 알 수 없어요."
-            : "저장소에 드러나지 않은 것이 남아 있어요."}
-        </p>
-        {/* 무엇에 대한 질문인지 짚어야 답의 범위가 정해진다. 저장소에서 본
-            그대로라 지원자가 "아, 그거" 하고 떠올릴 수 있다. */}
-        {group.topic ? <p className="follow-up-topic">{group.topic}</p> : null}
-      </header>
+    <div className="follow-up-card">
+      <p className="follow-up-eyebrow">{isDecision ? "핵심 결정" : "그 밖에"}</p>
+      {/* 무엇에 대한 질문인지 짚어야 답의 범위가 정해진다. 저장소에서 본
+          그대로라 지원자가 "아, 그거" 하고 떠올릴 수 있다. */}
+      {group.topic ? <p className="follow-up-topic">{group.topic}</p> : null}
 
       {group.questions.map((question) => {
         const value = drafts[question.id] ?? "";
@@ -198,21 +246,14 @@ function FollowUpCard({
         );
       })}
 
-      <div className="follow-up-actions">
-        <button className="button primary" type="button" aria-disabled={submitting} onClick={submit}>
-          <SteadyLabel
-            states={["이 자리 채우기", "다시 쓰는 중…"]}
-            value={submitting ? "다시 쓰는 중…" : "이 자리 채우기"}
-          />
-        </button>
-        <p>
-          {isDecision
-            ? "답한 내용으로 이 자리만 다시 써요. 다른 문장은 그대로예요."
-            : "답한 항목만 바뀌어요. 모두 답하지 않아도 괜찮아요."}
-        </p>
-      </div>
+      <button className="button primary" type="button" aria-disabled={submitting} onClick={submit}>
+        <SteadyLabel
+          states={["이 자리 채우기", "다시 쓰는 중…"]}
+          value={submitting ? "다시 쓰는 중…" : "이 자리 채우기"}
+        />
+      </button>
 
       {error ? <p className="inline-error" role="alert">{error}</p> : null}
-    </section>
+    </div>
   );
 }
