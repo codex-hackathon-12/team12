@@ -108,7 +108,10 @@ test("keeps conservative fallback rules when repository activity is empty", () =
   const input = JSON.parse(prompt.input);
 
   assert.match(prompt.instructions, /저장소 하나당 프로젝트 하나/);
-  assert.match(prompt.instructions, /충분한 근거가 없으면 빈 배열을 반환하세요/);
+  /* 근거가 없으면 지어내는 대신 비운다. 결정은 네 값을 모두 비우고,
+     나머지는 빈 배열이다. */
+  assert.match(prompt.instructions, /keyDecision의 네 값을 모두 빈 문자열로 두세요/);
+  assert.match(prompt.instructions, /근거가 없으면 빈 배열을 반환합니다/);
   assert.match(prompt.instructions, /'프로젝트 개발'처럼 중립적인 표현/);
   assert.deepEqual(input.repositoryEvidence, {
     repositories: [{
@@ -221,7 +224,39 @@ test("빈칸을 메우는 대신 되물으라고 지시한다", () => {
      가장 잘 아는 것이 방금 그것을 비운 호출이기 때문이다. */
   const { instructions } = buildPortfolioPrompt(baseEvidence);
   assert.match(instructions, /followUpQuestions에는 근거가 없어 비워둔 자리에 대해/);
-  assert.match(instructions, /질문은 이미 비어 있는 자리에 대해서만 만드세요/);
+  // 이미 채워진 자리를 물으면 사용자가 답해도 아무것도 바뀌지 않는다.
+  assert.match(instructions, /이미 있는 것을 다시 물으면 지원자가 답해도 아무것도 바뀌지 않습니다/);
+});
+
+test("결정은 세 조각을 한 묶음으로 묻는다", () => {
+  /* "성과를 알려주세요"처럼 넓게 물으면 무엇을 답할지 알 수 없다. 한 결정을
+     문제·선택·결과로 나누면 각 질문이 한두 문장으로 답할 만해진다. */
+  const { instructions } = buildPortfolioPrompt(baseEvidence);
+  assert.match(instructions, /세 개를 한 묶음으로 냅니다/);
+  assert.match(instructions, /셋 중 하나라도 빠지면 세 개 모두 버려집니다/);
+  // 무엇에 대한 질문인지 짚지 못하면 지원자는 답할 수 없다.
+  assert.match(instructions, /'아, 그거' 하고 떠올릴 수 있는 것이라야 합니다/);
+});
+
+test("프로젝트를 결정 하나로 쓰라고 지시한다", () => {
+  /* 짧은 불릿 열몇 개는 전부 같은 무게라 인과가 끊긴 채 놓인다. 면접관이
+     읽는 것은 나열이 아니라 결정이다. */
+  const { instructions } = buildPortfolioPrompt(baseEvidence);
+  assert.match(instructions, /각 프로젝트에는 keyDecision 하나를 씁니다/);
+  assert.match(instructions, /여러 결정을 요약해 하나로 합치지 마세요/);
+  // 무엇을 했는지만 쓰면 결정이 아니다.
+  assert.match(instructions, /왜 그것을 골랐는지를 함께 쓰세요/);
+  // 이유가 없으면 지어내는 대신 비우고 나중에 묻는다.
+  assert.match(instructions, /제목만 보고 이유를 추측해 채우지 마세요/);
+});
+
+test("diff를 근거로 쓰되 성과로 부풀리지 않게 한다", () => {
+  const { instructions } = buildPortfolioPrompt(baseEvidence);
+  assert.match(instructions, /ownCommitDiffs는 지원자가 실제로 바꾼 코드입니다/);
+  // 코드 몇 줄에서 성능 개선이나 사용자 수가 나올 수는 없다.
+  assert.match(instructions, /diff에 보이는 것은 변경이지 성과가 아닙니다/);
+  // 반대로 파일 경로와 함수 이름은 면접에서 되짚을 수 있는 구체성이다.
+  assert.match(instructions, /파일 경로와 함수 이름은 그대로 인용해도 됩니다/);
 });
 
 test("답할 수 없는 질문을 막는다", () => {

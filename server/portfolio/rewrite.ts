@@ -23,7 +23,16 @@ import { CONTENT_LIMITS, TEXT_LIMITS, clampText, clampTextArray } from "@/server
  * 셋이 모여야 하나의 결정이 되므로 낱개 병합 규칙으로 다룰 수 없다. 여기 없는
  * field는 슬롯이 되지 못하고, 슬롯이 아니면 병합도 없다.
  */
-export const REWRITABLE_FIELDS = ["impact", "challenges", "solutions", "role", "highlights"] as const;
+export const REWRITABLE_FIELDS = [
+  "role",
+  "highlights",
+  "decisionProblem",
+  "decisionApproach",
+  "decisionOutcome",
+] as const;
+
+/** 결정을 이루는 세 조각. 셋이 다 답해질 때만 결정이 문서에 들어간다. */
+export const DECISION_FIELDS = ["decisionProblem", "decisionApproach", "decisionOutcome"] as const;
 
 export type RewritableField = (typeof REWRITABLE_FIELDS)[number];
 
@@ -41,9 +50,12 @@ export type ProjectRewrite = {
   repositoryName: string;
   role: string;
   highlights: string[];
-  challenges: string[];
-  solutions: string[];
-  impact: string[];
+  keyDecision: {
+    headline: string;
+    problem: string;
+    approach: string;
+    outcome: string;
+  };
 };
 
 export type RewriteResult = {
@@ -52,19 +64,35 @@ export type RewriteResult = {
   updatedFields: RewriteSlot[];
 };
 
-const ARRAY_LIMITS = {
-  highlights: { count: CONTENT_LIMITS.highlights, length: TEXT_LIMITS.highlight },
-  challenges: { count: CONTENT_LIMITS.challenges, length: TEXT_LIMITS.story },
-  solutions: { count: CONTENT_LIMITS.solutions, length: TEXT_LIMITS.story },
-  impact: { count: CONTENT_LIMITS.impact, length: TEXT_LIMITS.story },
-} as const;
-
-function cleanArray(value: unknown, field: keyof typeof ARRAY_LIMITS): string[] {
-  const limits = ARRAY_LIMITS[field];
+function cleanHighlights(value: unknown): string[] {
   const items = Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
     : [];
-  return clampTextArray(items.slice(0, limits.count), limits.length);
+  return clampTextArray(items.slice(0, CONTENT_LIMITS.highlights), TEXT_LIMITS.highlight);
+}
+
+const DECISION_LIMITS = {
+  headline: TEXT_LIMITS.decisionHeadline,
+  problem: TEXT_LIMITS.decisionProblem,
+  approach: TEXT_LIMITS.decisionApproach,
+  outcome: TEXT_LIMITS.decisionOutcome,
+} as const;
+
+function cleanDecision(value: unknown): PortfolioContentDto["projects"][number]["keyDecision"] | null {
+  const source = (value ?? {}) as Record<string, unknown>;
+  const read = (key: keyof typeof DECISION_LIMITS) =>
+    typeof source[key] === "string" ? clampText((source[key] as string).trim(), DECISION_LIMITS[key]) : "";
+
+  const decision = {
+    headline: read("headline"),
+    problem: read("problem"),
+    approach: read("approach"),
+    outcome: read("outcome"),
+  };
+  /* 한 조각이라도 비면 반영하지 않는다. 문제만 있고 선택이 없는 문단은
+     면접관에게 아무것도 말해주지 않고, 지원자는 자기가 답한 것이 왜 저렇게
+     나왔는지 알 수 없다. */
+  return Object.values(decision).every(Boolean) ? decision : null;
 }
 
 function sameArray(left: string[], right: string[]): boolean {
@@ -114,10 +142,29 @@ export function applyRewrite(
       // 빈 값은 "근거가 없어 못 썼다"는 뜻이다. 기존 표현을 지우지 않는다.
       if (!role || role === project.role) continue;
       projects[index] = { ...project, role };
+    } else if (slot.field === "highlights") {
+      const value = cleanHighlights(rewrite.highlights);
+      if (value.length === 0 || sameArray(value, project.highlights)) continue;
+      projects[index] = { ...project, highlights: value };
     } else {
-      const value = cleanArray(rewrite[slot.field], slot.field);
-      if (value.length === 0 || sameArray(value, project[slot.field])) continue;
-      projects[index] = { ...project, [slot.field]: value };
+      /* 결정 세 조각은 하나의 값이다. 슬롯이 셋이어도 결정은 한 번만 쓴다 —
+         같은 값을 세 번 덮어쓰면 두 번째부터는 "바뀐 것"으로 세어져, 화면이
+         실제보다 많이 바뀌었다고 말하게 된다. */
+      const decision = cleanDecision(rewrite.keyDecision);
+      if (!decision) continue;
+      if (projects[index].keyDecision.headline !== decision.headline
+        || projects[index].keyDecision.problem !== decision.problem
+        || projects[index].keyDecision.approach !== decision.approach
+        || projects[index].keyDecision.outcome !== decision.outcome) {
+        projects[index] = { ...projects[index], keyDecision: decision };
+      } else if (updatedFields.some((done) => done.repositoryName === slot.repositoryName
+        && DECISION_FIELDS.includes(done.field as (typeof DECISION_FIELDS)[number]))) {
+        // 같은 결정의 다른 조각으로 이미 반영됐다. 그 조각도 답한 자리이므로 함께 센다.
+        updatedFields.push(slot);
+        continue;
+      } else {
+        continue;
+      }
     }
 
     updatedFields.push(slot);

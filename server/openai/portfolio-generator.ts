@@ -19,9 +19,19 @@ export type GeneratedPortfolioDraft = {
     role: string;
     techStack: string[];
     highlights: string[];
-    challenges: string[];
-    solutions: string[];
-    impact: string[];
+    /**
+     * 가장 판단이 필요했던 결정 하나. 근거가 없으면 네 값이 모두 빈 문자열이다.
+     *
+     * challenges·solutions·impact를 대신한다. 셋으로 나뉜 짧은 불릿은 서로
+     * 인과가 끊긴 채 나열돼 자소서처럼 읽혔다. 면접관이 읽는 것은 나열이
+     * 아니라 결정이다.
+     */
+    keyDecision: {
+      headline: string;
+      problem: string;
+      approach: string;
+      outcome: string;
+    };
   }>;
   /**
    * 근거가 없어 비운 자리에 대해 지원자에게 되묻는 질문.
@@ -32,7 +42,9 @@ export type GeneratedPortfolioDraft = {
    */
   followUpQuestions: Array<{
     repositoryName: string;
-    field: "impact" | "challenges" | "solutions" | "role" | "highlights";
+    field: "decisionProblem" | "decisionApproach" | "decisionOutcome" | "role" | "highlights";
+    /** 결정 세 조각이 공유하는 한 줄. 낱개 질문은 빈 문자열이다. */
+    topic: string;
     question: string;
   }>;
 };
@@ -64,7 +76,7 @@ const schema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["title", "description", "repositoryName", "role", "techStack", "highlights", "challenges", "solutions", "impact"],
+        required: ["title", "description", "repositoryName", "role", "techStack", "highlights", "keyDecision"],
         properties: {
           title: { type: "string" },
           description: { type: "string" },
@@ -72,9 +84,17 @@ const schema = {
           role: { type: "string" },
           techStack: { type: "array", maxItems: 10, items: { type: "string" } },
           highlights: { type: "array", maxItems: 4, items: { type: "string" } },
-          challenges: { type: "array", maxItems: 3, items: { type: "string" } },
-          solutions: { type: "array", maxItems: 3, items: { type: "string" } },
-          impact: { type: "array", maxItems: 3, items: { type: "string" } },
+          keyDecision: {
+            type: "object",
+            additionalProperties: false,
+            required: ["headline", "problem", "approach", "outcome"],
+            properties: {
+              headline: { type: "string" },
+              problem: { type: "string" },
+              approach: { type: "string" },
+              outcome: { type: "string" },
+            },
+          },
         },
       },
     },
@@ -85,10 +105,19 @@ const schema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["repositoryName", "field", "question"],
+        required: ["repositoryName", "field", "topic", "question"],
         properties: {
           repositoryName: { type: "string" },
-          field: { type: "string", enum: ["impact", "challenges", "solutions", "role", "highlights"] },
+          field: {
+            type: "string",
+            enum: [
+              "decisionProblem", "decisionApproach", "decisionOutcome",
+              "role", "highlights",
+            ],
+          },
+          /* 결정 세 조각이 공유하는 한 줄. 무엇에 대한 질문인지 짚는다.
+             낱개 질문은 빈 문자열이다 — strict 모드는 nullable보다 이쪽이 단순하다. */
+          topic: { type: "string" },
           question: { type: "string" },
         },
       },

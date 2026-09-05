@@ -77,16 +77,27 @@ async function loadEvidence(generationJobId: string): Promise<PortfolioEvidence 
   return data ? ((data as { evidence: PortfolioEvidence }).evidence) : null;
 }
 
-/** 근거 어디에도 없는 숫자가 든 문장을 걷어낸다. role은 문장이 아니라 구절이라 그대로 둔다. */
+/**
+ * 근거 어디에도 없는 숫자가 든 문장을 걷어낸다.
+ *
+ * role은 문장이 아니라 구절이라 그대로 둔다. 결정은 조각마다 보되 하나라도
+ * 걸리면 통째로 비운다 — 병합이 어차피 셋이 다 있을 때만 쓰므로, 조각만
+ * 지워두면 사용자는 답했는데 아무것도 안 바뀐 이유를 알 수 없다.
+ */
 function sanitizeRewrite(rewrite: ProjectRewrite, numbers: Set<string>): ProjectRewrite {
   const clean = (values: unknown) =>
     verifyNarrative(Array.isArray(values) ? values.filter((v): v is string => typeof v === "string") : [], numbers).value;
+
+  const decision = rewrite.keyDecision ?? { headline: "", problem: "", approach: "", outcome: "" };
+  const parts = [decision.headline, decision.problem, decision.approach, decision.outcome];
+  const kept = verifyNarrative(parts.filter((part) => typeof part === "string"), numbers);
+
   return {
     ...rewrite,
     highlights: clean(rewrite.highlights),
-    challenges: clean(rewrite.challenges),
-    solutions: clean(rewrite.solutions),
-    impact: clean(rewrite.impact),
+    keyDecision: kept.removed.length > 0
+      ? { headline: "", problem: "", approach: "", outcome: "" }
+      : decision,
   };
 }
 
@@ -127,9 +138,7 @@ export async function applyPortfolioStatements(
       description: project.description,
       role: project.role,
       highlights: project.highlights,
-      challenges: project.challenges,
-      solutions: project.solutions,
-      impact: project.impact,
+      keyDecision: project.keyDecision,
     }];
   });
 

@@ -28,9 +28,7 @@ export type RewriteProjectSnapshot = {
   description: string;
   role: string;
   highlights: string[];
-  challenges: string[];
-  solutions: string[];
-  impact: string[];
+  keyDecision: { headline: string; problem: string; approach: string; outcome: string };
 };
 
 export type RewriteRequest = {
@@ -57,6 +55,9 @@ const instructions = [
   "답변이 그 자리에 쓸 내용을 담고 있지 않으면 — 예를 들어 '잘 모르겠어요'라고 적혀 있으면 — 그 자리는 빈 배열로 돌려주세요. 억지로 채우지 않습니다.",
   "이미 있는 다른 항목과 같은 말을 반복하지 마세요. currentPortfolio에 있는 문장과 겹치면 그 자리는 비웁니다.",
   "role은 지원자가 답한 담당 범위를 한 구절로 씁니다. 확인되지 않은 직함이나 직급을 붙이지 마세요.",
+  "decisionProblem·decisionApproach·decisionOutcome은 하나의 결정을 이루는 세 조각입니다. 세 답을 합쳐 keyDecision을 채우되, problem에는 그 전에 있던 문제를, approach에는 무엇을 골랐고 왜 그것인지를, outcome에는 그래서 무엇이 달라졌는지를 씁니다. 답이 말한 것만 쓰고 순서를 바꿔 옮기지 마세요.",
+  "keyDecision.headline은 지원자가 답하지 않은 유일한 값입니다. 세 답이 말하는 결정을 한 줄로 요약하되, 세 답에 없는 사실을 넣지 마세요. 무엇을 정했는지가 드러나면 충분합니다.",
+  "세 답 중 하나라도 그 자리에 쓸 내용이 없으면 keyDecision의 네 값을 모두 빈 문자열로 두세요. 문제만 있고 선택이 없는 문단은 면접관에게 아무것도 말해주지 않습니다.",
   "분량 상한은 highlights 4개(항목 70자), challenges·solutions·impact 각 3개(항목 90자), role 60자입니다. 상한은 채워야 할 목표가 아닙니다.",
   "최종 응답 전 각 문장이 applicantStatement 또는 repositoryEvidence로 뒷받침되는지 내부적으로 검토하세요. 어느 쪽으로도 뒷받침되지 않으면 그 문장을 빼세요. 검토 과정은 출력하지 마세요.",
   "응답은 요청된 JSON schema만 정확히 반환하고, 마크다운·설명·추가 필드를 포함하지 마세요.",
