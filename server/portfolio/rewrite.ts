@@ -16,8 +16,20 @@ import { CONTENT_LIMITS, TEXT_LIMITS, clampText, clampTextArray } from "@/server
  * 외부 의존이 없는 순수 함수다.
  */
 
-/** 되묻기로 다시 쓸 수 있는 자리. 이 목록 밖은 무슨 일이 있어도 바뀌지 않는다. */
-export type RewritableField = PortfolioStatementField;
+/**
+ * 되묻기로 다시 쓸 수 있는 자리. 이 목록 밖은 무슨 일이 있어도 바뀌지 않는다.
+ *
+ * 계약의 `PortfolioStatementField`보다 좁다. 결정 질문(decisionProblem 등)은
+ * 셋이 모여야 하나의 결정이 되므로 낱개 병합 규칙으로 다룰 수 없다. 여기 없는
+ * field는 슬롯이 되지 못하고, 슬롯이 아니면 병합도 없다.
+ */
+export const REWRITABLE_FIELDS = ["impact", "challenges", "solutions", "role", "highlights"] as const;
+
+export type RewritableField = (typeof REWRITABLE_FIELDS)[number];
+
+export function isRewritableField(field: PortfolioStatementField): field is RewritableField {
+  return (REWRITABLE_FIELDS as readonly string[]).includes(field);
+}
 
 export type RewriteSlot = {
   repositoryName: string;

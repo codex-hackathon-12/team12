@@ -26,6 +26,9 @@ const FIELD_LABEL: Record<PortfolioQuestionDto["field"], string> = {
   solutions: "해결",
   role: "역할",
   highlights: "강조",
+  decisionProblem: "문제",
+  decisionApproach: "선택",
+  decisionOutcome: "결과",
 };
 
 /** 이만큼 남았을 때부터 남은 글자 수를 알린다. 막지 않고 알린다(GOV.UK). */

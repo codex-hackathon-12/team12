@@ -14,17 +14,20 @@ export type StatementRecord = {
   id: string;
   repository_name: string | null;
   field: PortfolioStatementField;
+  /** 같은 결정에 속한 질문들이 공유하는 한 줄. 낱개 질문은 null이다. */
+  topic: string | null;
   question: string;
   answer: string | null;
 };
 
-const COLUMNS = "id, repository_name, field, question, answer";
+const COLUMNS = "id, repository_name, field, topic, question, answer";
 
 function toDto(record: StatementRecord): PortfolioQuestionDto {
   return {
     id: record.id,
     repositoryName: record.repository_name,
     field: record.field,
+    topic: record.topic,
     question: record.question,
     answer: record.answer,
   };
@@ -76,6 +79,7 @@ export async function listQuestionsByPortfolio(
 export type NewQuestion = {
   repositoryName: string | null;
   field: PortfolioStatementField;
+  topic: string | null;
   question: string;
 };
 
@@ -103,6 +107,7 @@ export async function insertPortfolioQuestions(
         user_id: userId,
         repository_name: question.repositoryName,
         field: question.field,
+        topic: question.topic,
         question: question.question,
       })),
       { onConflict: "portfolio_id,repository_name,field", ignoreDuplicates: true },

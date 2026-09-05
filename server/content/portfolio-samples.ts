@@ -46,6 +46,9 @@ export function createPortfolioContent(input: GalleryExampleInput): PortfolioCon
         repositoryUrl: PUBLIC_GITHUB_URL,
         role: input.targetRole,
         techStack: [...input.techStack],
+        // 운영자가 만든 정적 예시라 GitHub 근거가 없다. 맥락과 결정은 비운다.
+        context: { period: null, scale: null },
+        keyDecision: { headline: "", problem: "", approach: "", outcome: "" },
         highlights: [
           "기술 선택과 구현 범위를 읽기 쉽게 구조화",
           "문제와 해결 과정을 한 프로젝트 흐름으로 정리",

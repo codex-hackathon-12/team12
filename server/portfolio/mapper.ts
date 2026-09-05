@@ -115,6 +115,28 @@ function mapSkills(value: unknown): PortfolioContentDto["skills"] {
   });
 }
 
+/**
+ * 규격 이전에 저장된 결과에는 이 두 값이 없다. 없으면 "아직 없다"로 읽는다.
+ * 화면은 비어 있는 자리를 아예 그리지 않으므로 예전 결과도 그대로 보인다.
+ */
+function mapContext(value: unknown): PortfolioContentDto["projects"][number]["context"] {
+  const source = isRecord(value) ? value : {};
+  return {
+    period: readNullableString(source.period),
+    scale: readNullableString(source.scale),
+  };
+}
+
+function mapKeyDecision(value: unknown): PortfolioContentDto["projects"][number]["keyDecision"] {
+  const source = isRecord(value) ? value : {};
+  return {
+    headline: clampText(readString(source.headline), TEXT_LIMITS.decisionHeadline),
+    problem: clampText(readString(source.problem), TEXT_LIMITS.decisionProblem),
+    approach: clampText(readString(source.approach), TEXT_LIMITS.decisionApproach),
+    outcome: clampText(readString(source.outcome), TEXT_LIMITS.decisionOutcome),
+  };
+}
+
 function mapProjects(
   value: unknown,
   repository: GitRepositoryDto,
@@ -136,6 +158,8 @@ function mapProjects(
       repositoryUrl: readString(item.repositoryUrl, repository.htmlUrl),
       role: readString(item.role, targetRole),
       techStack: readStringArray(item.techStack, CONTENT_LIMITS.techStack),
+      context: mapContext(item.context),
+      keyDecision: mapKeyDecision(item.keyDecision),
       highlights: clampTextArray(readStringArray(item.highlights, CONTENT_LIMITS.highlights), TEXT_LIMITS.highlight),
       challenges: clampTextArray(readStringArray(item.challenges, CONTENT_LIMITS.challenges), TEXT_LIMITS.story),
       solutions: clampTextArray(readStringArray(item.solutions, CONTENT_LIMITS.solutions), TEXT_LIMITS.story),

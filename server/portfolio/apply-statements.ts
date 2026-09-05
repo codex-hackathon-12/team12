@@ -7,7 +7,12 @@ import { generatePortfolioRewrite } from "@/server/openai/portfolio-rewriter";
 import { buildPortfolioPrompt, type PortfolioEvidence } from "@/server/openai/portfolio-prompt";
 import type { RewriteProjectSnapshot, RewriteStatement } from "@/server/openai/rewrite-prompt";
 import { mapPortfolioContent, mapRepository, type PortfolioRecord } from "@/server/portfolio/mapper";
-import { applyRewrite, type ProjectRewrite, type RewriteSlot } from "@/server/portfolio/rewrite";
+import {
+  applyRewrite,
+  isRewritableField,
+  type ProjectRewrite,
+  type RewriteSlot,
+} from "@/server/portfolio/rewrite";
 import { buildNumberSet, verifyNarrative } from "@/server/portfolio/verification";
 import { listPortfolioQuestions, saveAnswers } from "@/server/portfolio/statements";
 import { getSupabaseClient } from "@/server/supabase/client";
@@ -128,12 +133,18 @@ export async function applyPortfolioStatements(
     }];
   });
 
-  const statements: RewriteStatement[] = answered.map((question) => ({
-    repositoryName: question.repositoryName,
-    field: question.field,
-    question: question.question,
-    answer: question.answer,
-  }));
+  /* 다시 쓸 수 있는 자리만 넘긴다. 병합이 다루지 못하는 field를 프롬프트에만
+     실으면 모델은 답을 반영하려 하고 병합은 버려, 사용자에게는 "답했는데
+     아무것도 안 바뀌었다"로 보인다. */
+  const statements: RewriteStatement[] = answered
+    .filter((question) => isRewritableField(question.field))
+    .map((question) => ({
+      repositoryName: question.repositoryName,
+      field: question.field as RewriteSlot["field"],
+      question: question.question,
+      answer: question.answer,
+    }));
+  if (statements.length === 0) return { kind: "noAnswers" };
   const slots: RewriteSlot[] = statements.map((statement) => ({
     repositoryName: statement.repositoryName,
     field: statement.field,

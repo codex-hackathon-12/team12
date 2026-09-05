@@ -324,6 +324,8 @@ async function persistFollowUpQuestions(
       questions.map((question) => ({
         repositoryName: question.repositoryName,
         field: question.field,
+        // 낱개 질문이라 묶을 상대가 없다. 결정 묶음이 생기면 그때 채워진다.
+        topic: null,
         question: question.question,
       })),
     );

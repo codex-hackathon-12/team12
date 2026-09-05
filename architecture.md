@@ -287,6 +287,23 @@ MVP에서는 하나의 고정 스타일을 제공한다. 결과는 이름과 핵
 단일 컬럼 중심 레이아웃을 사용한다. 스타일 선택과 세부 편집은 이후 확장
 범위로 둔다.
 
+#### 프로젝트는 결정 하나로 말한다
+
+프로젝트 하나가 짧은 불릿 열몇 개로 나열되면, 전부 같은 무게에 같은 추상도라
+인과가 끊긴 채 놓인다. 면접관이 읽는 것은 나열이 아니라 **결정**이다. 왜 그렇게
+골랐는지가 보이는 항목 하나가 "무엇을 했다"는 줄 열 개보다 대화를 만든다.
+
+- 저장소마다 **가장 판단이 필요했던 변경 하나**를 골라 `keyDecision`에 쓴다.
+  문제 → 선택과 근거 → 결과 순서다.
+- 여러 결정을 요약해 합치지 않는다. 합치면 다시 나열이 된다.
+- 근거에 "왜"가 없으면 결정을 통째로 비운다. 제목만 보고 이유를 추측하지 않는다.
+- 나머지 사실은 `highlights`에 짧게 남긴다.
+- `context`의 기간과 규모는 **서버가 GitHub 근거에서 직접 만든다.** 날짜와
+  인원은 관찰되는 사실이라 모델에게 맡길 이유가 없다.
+
+`challenges`·`solutions`·`impact`는 규격 이전 결과를 위해 계약에 남는다. 새
+결과는 이 셋을 만들지 않고, 화면은 `keyDecision`이 있으면 그것을 그린다.
+
 #### 지원자에게 되묻기
 
 초안이 근거를 못 찾아 비운 자리는 비운 채로 두지 않고 지원자에게 묻는다.
@@ -304,6 +321,12 @@ MVP에서는 하나의 고정 스타일을 제공한다. 결과는 이름과 핵
 - 받은 질문은 서버가 거른다. 근거로 쓴 저장소를 가리키는지, 그 자리가 실제로
   비어 있는지, 같은 자리를 두 번 묻지 않는지를 코드가 확인한다. 모델이
   "채워진 자리"를 물어 사용자가 답해도 아무것도 안 바뀌는 일을 막는다.
+- 결정을 물을 때는 **문제·선택·결과 셋을 한 묶음으로** 묻는다. 넓게 하나를
+  물으면 무엇을 답할지 알 수 없고, 셋으로 나누면 각 질문이 한두 문장으로 답할
+  만해진다. 셋은 같은 `topic`을 공유해 화면에서 한 카드로 묶인다.
+- `topic`에는 저장소에서 실제로 본 것을 적는다. 커밋 제목이나 함수 이름처럼
+  지원자가 "아, 그거" 하고 떠올릴 수 있는 것이라야 답이 나온다.
+- 결정은 셋이 다 답해질 때만 문서에 들어간다. 반쪽짜리 결정이 박히면 안 된다.
 - 질문과 답은 `PortfolioStatement`에 남는다. 근거 테이블은 생성 작업에 묶여
   있어 수명이 다르고, 답변은 포트폴리오가 사는 동안 살아야 한다.
 - 답변은 `POST /api/v1/portfolios/{portfolioId}/statements`로 보낸다. 새 생성
@@ -446,6 +469,10 @@ MVP에서는 하나의 고정 스타일을 제공한다. 결과는 이름과 핵
 
 | 필드 | 상한 |
 | --- | --- |
+| `keyDecision.headline` | 60자 |
+| `keyDecision.problem` | 160자 |
+| `keyDecision.approach` | 220자 |
+| `keyDecision.outcome` | 100자 |
 | `profile.headline` | 80자 |
 | `introduction` | 220자 |
 | `project.description` | 160자 |
@@ -749,7 +776,7 @@ mocks/api/
 | `GenerationJob` | `id`, `userId`, `repositoryId`, `workflowInstanceId`, `prompt`, `status`, `stage`, `errorCode`, `portfolioId`, `createdAt` | 비동기 생성 작업 |
 | `GenerationEvidence` | `generationJobId`, `evidence`, `draft`, `createdAt` | 생성 단계 사이의 중간 산출물. 재시도가 GitHub 수집과 모델 호출을 되풀이하지 않게 한다 |
 | `Portfolio` | `id`, `userId`, `repositoryId`, `title`, `content`, `style`, `createdAt` | 생성 결과 |
-| `PortfolioStatement` | `id`, `portfolioId`, `userId`, `repositoryName`, `field`, `question`, `answer`, `createdAt` | 초안이 비운 자리에 대한 질문과 지원자의 답. 저장소 근거와 나란한 사실 층이며 포트폴리오와 수명을 같이한다 |
+| `PortfolioStatement` | `id`, `portfolioId`, `userId`, `repositoryName`, `field`, `topic`, `question`, `answer`, `createdAt` | 초안이 비운 자리에 대한 질문과 지원자의 답. 저장소 근거와 나란한 사실 층이며 포트폴리오와 수명을 같이한다 |
 | `AccountDeletionJob` | `id`, `userId`, `workflowInstanceId`, `status`, `errorCode` | 계정과 Storage 파일의 비동기 삭제 작업 |
 | `GalleryExample` | `id`, `title`, `role`, `techStack`, `thumbnailUrl`, `portfolioContent`, `isPublished` | 공개 예시 |
 | `CreditLedger` | `id`, `userId`, `amount`, `reason`, `referenceId`, `createdAt` | 실제 크레딧 도입 시 사용할 증감 원장. MVP에서는 저장하지 않음 |

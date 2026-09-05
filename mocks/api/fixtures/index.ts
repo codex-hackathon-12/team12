@@ -168,6 +168,13 @@ export const mockPortfolioContent = {
       repositoryUrl: "https://github.com/frontend-builder/folio-maker",
       role: "Frontend Engineer",
       techStack: ["TypeScript", "React", "Next.js"],
+      context: { period: "2026.03–06", scale: "개인" },
+      keyDecision: {
+        headline: "생성 흐름을 한 단계에서 세 단계로 나눔",
+        problem: "저장 단계에서 실패하면 GitHub 수집과 모델 호출까지 통째로 다시 돌았다. 재시도할 때마다 같은 비용이 반복됐다.",
+        approach: "단계 사이 산출물을 별도 테이블에 두고, 각 단계가 이미 끝난 일을 건너뛰게 했다. 워크플로 이벤트로 넘기지 않은 것은 근거가 수십 KB라 직렬화할 수 없기 때문이다.",
+        outcome: "저장에서 실패해 다시 돌아도 모델을 다시 부르지 않는다.",
+      },
       highlights: [
         "계약 기반 mock adapter로 백엔드와 병렬 개발",
         "새로고침 후에도 이어지는 생성 상태 흐름 설계",
@@ -186,6 +193,9 @@ export const mockPortfolioContent = {
       repositoryUrl: "https://github.com/frontend-builder/signal-board",
       role: "프로젝트 개발",
       techStack: ["TypeScript", "React"],
+      context: { period: "2026.07", scale: "3명" },
+      // 비어 있는 결정. 되묻기 카드가 뜨는 조건이다.
+      keyDecision: { headline: "", problem: "", approach: "", outcome: "" },
       highlights: [],
       challenges: [],
       solutions: [],
@@ -223,17 +233,35 @@ export const mockPortfolioContent = {
  */
 export const mockPortfolioQuestions = [
   {
-    id: "question_signal_impact",
+    id: "question_signal_problem",
     repositoryName: "signal-board",
-    field: "impact",
-    question: "이 대시보드를 만든 뒤 팀에서 무엇이 달라졌나요?",
+    field: "decisionProblem",
+    topic: "지표 갱신 주기를 5초에서 30초로 늘린 커밋",
+    question: "그 전에는 어떤 문제가 있었나요?",
     answer: null,
   },
   {
-    id: "question_signal_challenges",
+    id: "question_signal_approach",
     repositoryName: "signal-board",
-    field: "challenges",
-    question: "지표를 한 화면에 모을 때 가장 까다로웠던 것은 무엇인가요?",
+    field: "decisionApproach",
+    topic: "지표 갱신 주기를 5초에서 30초로 늘린 커밋",
+    question: "다른 방법도 있었을 텐데 이 방법을 고른 이유는요?",
+    answer: null,
+  },
+  {
+    id: "question_signal_outcome",
+    repositoryName: "signal-board",
+    field: "decisionOutcome",
+    topic: "지표 갱신 주기를 5초에서 30초로 늘린 커밋",
+    question: "그래서 무엇이 달라졌나요?",
+    answer: null,
+  },
+  {
+    id: "question_signal_role",
+    repositoryName: "signal-board",
+    field: "role",
+    topic: null,
+    question: "세 명이 함께 만든 프로젝트인데 어느 부분을 맡으셨나요?",
     answer: null,
   },
 ] satisfies PortfolioQuestionDto[];
