@@ -72,6 +72,51 @@ test("남에게 보내는 문서에는 되묻기가 새어 나가지 않는다",
   assert.match(resultPage, /markedProjectUrls=\{/u, "결과 화면이 표시를 안 넘겨요");
 });
 
+test("패널이 화면 끝에 붙지 않는다", () => {
+  /* 처음에는 오른쪽 끝에 붙은 전체 높이 슬래브였다. 위는 헤더, 아래는 뷰포트
+     바닥까지 꽉 차서 화면의 일부가 아니라 잘려나간 조각처럼 보였다.
+     이 앱이 쓰는 카드 모양(테두리 + 오프셋 그림자)을 그대로 쓴다. */
+  const rule = css.match(/\.follow-up-rail \{([^}]*)\}/u);
+  assert.ok(rule, ".follow-up-rail 규칙이 없어요");
+  assert.doesNotMatch(rule[1], /right: 0;|bottom: 0;/u, "패널이 화면 끝에 붙어 있어요");
+  assert.match(rule[1], /box-shadow: 7px 8px 0 var\(--ink\)/u, "이 앱의 카드 모양이 아니에요");
+  // 내용이 짧으면 카드도 짧다. 바닥까지 늘리면 다시 슬래브가 된다.
+  assert.match(rule[1], /max-height:/u, "높이 상한이 없어요");
+});
+
+test("패널 안 층위가 뒤집히지 않는다", () => {
+  /* 구획 사이 간격이 카드 안쪽 여백보다 넓어야 어디까지가 한 프로젝트
+     이야기인지 눈으로 갈린다. 예전에는 16과 12뿐이라 층위가 없었다. */
+  const space = { "--space-1": 4, "--space-2": 8, "--space-3": 12, "--space-4": 16, "--space-6": 24 };
+  const read = (selector, property) => {
+    const rule = css.match(new RegExp(`\\${selector} \\{([^}]*)\\}`, "u"));
+    assert.ok(rule, `${selector} 규칙이 없어요`);
+    /* 첫 값이 세로 여백이다. 탐욕적으로 읽으면 `padding: 24px 16px`에서
+       가로 값을 집어 층위가 뒤집힌 것처럼 보인다. */
+    const value = rule[1].match(new RegExp(`${property}:[^;]*?var\\((--space-\\d+)\\)`, "u"));
+    assert.ok(value, `${selector}에 ${property}가 없어요`);
+    return space[value[1]];
+  };
+
+  const section = read(".follow-up-project", "padding");
+  const card = read(".follow-up-card", "padding");
+  const inside = read(".follow-up-card", "gap");
+  assert.ok(section > card, `구획 간격(${section})이 카드 여백(${card})보다 넓어야 해요`);
+  assert.ok(card > inside, `카드 여백(${card})이 안쪽 간격(${inside})보다 넓어야 해요`);
+});
+
+test("프로젝트마다 구획을 나눈다", () => {
+  // 구분선이 없으면 어디서 다음 프로젝트가 시작하는지 알 수 없다.
+  assert.match(css, /\.follow-up-project \+ \.follow-up-project \{ border-top:/u, "구획선이 없어요");
+});
+
+test("핵심 결정만 색을 쓴다", () => {
+  /* 점선 라임 카드가 연달아 쌓이면 어수선하고, 어느 것이 이 프로젝트의
+     본문인지도 흐려진다. */
+  assert.match(css, /\.follow-up-card\.is-decision \{[^}]*background: var\(--lime-soft\)/u);
+  assert.match(rail, /isDecision \? "follow-up-card is-decision" : "follow-up-card"/u);
+});
+
 test("패널이 문서를 가리지 않는다", () => {
   /* 겹치면 읽으면서 답할 수 없다. 문서를 패널 폭만큼 밀어낸다. 캔버스 여백이
      100vw를 쓰면 패널이 차지한 폭을 몰라 문서가 가운데를 벗어난다. */
