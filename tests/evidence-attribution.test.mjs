@@ -92,3 +92,74 @@ test("의존성 목록을 매니페스트에서 읽는다", () => {
   ].join("\n");
   assert.deepEqual(parseManifest("requirements.txt", requirements), ["django", "requests", "pytest"]);
 });
+
+/**
+ * diff와 기여 기간.
+ *
+ * 질문이 포괄적이던 근본 원인은 근거가 얕아서였다. 코드를 한 줄도 안 읽으면
+ * "이 프로젝트로 무엇이 달라졌나요?"처럼 저장소를 안 봐도 물을 수 있는 질문만
+ * 나온다. 여기 걸린 것은 diff를 읽되 잡음에 예산을 뺏기지 않게 하는 규칙이다.
+ */
+
+const { isNoisyPath, formatPeriod, lastPageOf } = await import(
+  new URL("../server/github/evidence-parsing.ts", import.meta.url)
+);
+
+test("사람이 쓰지 않은 파일은 diff에서 걸러낸다", () => {
+  /* 잠금 파일 하나가 수천 줄이라 그대로 실으면 근거 예산을 통째로 먹고,
+     정작 본인이 쓴 코드가 밀려난다. */
+  for (const path of [
+    "package-lock.json",
+    "web/yarn.lock",
+    "pnpm-lock.yaml",
+    "dist/main.js",
+    "app/build/output.css",
+    "vendor/lib.js",
+    "public/logo.svg",
+    "styles/app.min.css",
+    "__snapshots__/view.snap",
+  ]) {
+    assert.ok(isNoisyPath(path), `${path}를 걸러내지 못했어요`);
+  }
+});
+
+test("사람이 쓴 코드는 남긴다", () => {
+  // 너무 넓게 거르면 정작 볼 것이 남지 않는다.
+  for (const path of [
+    "server/portfolio/rewrite.ts",
+    "app/api/v1/generations/route.ts",
+    "package.json",
+    "src/build-config.ts",
+    "lib/distance.ts",
+  ]) {
+    assert.ok(!isNoisyPath(path), `${path}를 잘못 걸러냈어요`);
+  }
+});
+
+test("기여 기간을 읽기 쉬운 한 줄로 만든다", () => {
+  assert.equal(formatPeriod("2026-03-04T00:00:00Z", "2026-06-20T00:00:00Z"), "2026.03–06");
+  // 같은 달이면 한 번만 쓴다.
+  assert.equal(formatPeriod("2026-03-04T00:00:00Z", "2026-03-28T00:00:00Z"), "2026.03");
+  // 해를 넘기면 뒤쪽 연도를 살린다.
+  assert.equal(formatPeriod("2025-11-04T00:00:00Z", "2026-02-20T00:00:00Z"), "2025.11–2026.02");
+});
+
+test("기간을 계산할 수 없으면 지어내지 않는다", () => {
+  /* 화면은 null이면 그 칸을 아예 그리지 않는다. 빈 문자열이나 오늘 날짜로
+     때우면 사실이 아닌 값이 문서에 박힌다. */
+  assert.equal(formatPeriod(null, null), null);
+  assert.equal(formatPeriod("", "2026-06-20T00:00:00Z"), null);
+  assert.equal(formatPeriod("말이 안 되는 값", null), null);
+  // 끝을 모르면 시작만 쓴다.
+  assert.equal(formatPeriod("2026-03-04T00:00:00Z", null), "2026.03");
+});
+
+test("마지막 페이지가 있을 때만 한 번 더 부른다", () => {
+  const header = '<https://api.github.com/repositories/1/commits?per_page=20&page=2>; rel="next", '
+    + '<https://api.github.com/repositories/1/commits?per_page=20&page=7>; rel="last"';
+  assert.equal(lastPageOf(header), 7);
+
+  // 한 페이지에 다 들어가면 헤더가 없고, 이미 받은 목록의 끝이 최초 커밋이다.
+  assert.equal(lastPageOf(null), null);
+  assert.equal(lastPageOf('<https://api.github.com/x?page=1>; rel="last"'), null);
+});

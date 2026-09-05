@@ -17,6 +17,8 @@ const baseRepository = {
   readme: "# Portfolio API\n비동기 포트폴리오 생성 서비스",
   ownCommits: [{ title: "feat: 생성 작업 상태 조회 API 추가", body: "" }],
   ownContributionUnverifiable: false,
+  ownCommitDiffs: [],
+  contributionPeriod: null,
   dependencies: [],
   teamCommitTitles: ["chore: 팀원이 올린 배포 설정"],
   ownPullRequests: [{ title: "Workflow 재시도 처리", merged: true, body: "재시도 시 중복 호출을 막았다." }],
@@ -26,9 +28,13 @@ const baseRepository = {
   teamPullRequestTitles: ["팀원의 로그 정리"],
 };
 
-// 모델에 노출되는 저장소 항목. 내부 id는 빠진다.
+/* 모델에 노출되는 저장소 항목.
+   내부 id는 빠지고, contributionPeriod도 빠진다 — 기간은 서버가 커밋 날짜로
+   직접 만드는 값이라 모델에게 보여줄 이유가 없다. 보여주면 모델이 그것을
+   문장에 녹여 쓰고, 같은 사실이 두 군데서 서로 다르게 나올 수 있다. */
+const HIDDEN_FROM_MODEL = ["id", "contributionPeriod"];
 const exposedRepository = Object.fromEntries(
-  Object.entries(baseRepository).filter(([key]) => key !== "id"),
+  Object.entries(baseRepository).filter(([key]) => !HIDDEN_FROM_MODEL.includes(key)),
 );
 
 const baseEvidence = {
@@ -88,6 +94,8 @@ test("keeps conservative fallback rules when repository activity is empty", () =
       readme: "",
       ownCommits: [],
       ownContributionUnverifiable: false,
+      ownCommitDiffs: [],
+      contributionPeriod: null,
       dependencies: [],
       teamCommitTitles: [],
       ownPullRequests: [],
@@ -109,6 +117,7 @@ test("keeps conservative fallback rules when repository activity is empty", () =
       readme: "",
       ownCommits: [],
       ownContributionUnverifiable: false,
+      ownCommitDiffs: [],
       dependencies: [],
       teamCommitTitles: [],
       ownPullRequests: [],

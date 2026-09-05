@@ -6,7 +6,14 @@ import type {
   PortfolioEvidenceRepository,
   PortfolioTone,
 } from "@/server/openai/portfolio-prompt";
-import { bodyOf, isOwnEmail, parseManifest } from "@/server/github/evidence-parsing";
+import {
+  bodyOf,
+  formatPeriod,
+  isNoisyPath,
+  isOwnEmail,
+  lastPageOf,
+  parseManifest,
+} from "@/server/github/evidence-parsing";
 import { getSupabaseClient } from "@/server/supabase/client";
 
 // 저장소가 늘어나면 README를 그대로 이어붙일 때 AI 입력이 급격히 커진다.
@@ -22,6 +29,25 @@ const MAX_COMMIT_BODIES = 6;
 const MAX_COMMIT_BODY_LENGTH = 300;
 const MAX_TOP_LEVEL_PATHS = 40;
 const MAX_CONTRIBUTORS = 10;
+
+/**
+ * 본인 커밋의 실제 변경 내용.
+ *
+ * 지금까지 근거는 제목과 본문, 즉 "무엇을 했다고 말했는지"였다. 무엇을 실제로
+ * 짰는지는 한 줄도 읽지 않았다. 그래서 질문이 "이 프로젝트로 무엇이
+ * 달라졌나요?"처럼 저장소를 안 봐도 물을 수 있는 것만 나왔다.
+ *
+ * diff를 읽으면 "재시도를 고정 간격으로 둔 이유가 있나요?"를 물을 수 있다.
+ * 파일 전체가 아니라 diff인 이유는, 그것이 정확히 **본인이 바꾼 부분**이기
+ * 때문이다. 파일을 통째로 읽으면 남이 쓴 코드가 섞이고 입력만 커진다.
+ *
+ * 예산은 README와 같은 방식으로 저장소 수에 따라 갈린다.
+ */
+const MAX_DIFF_COMMITS_SINGLE = 3;
+const MAX_DIFF_COMMITS_MULTI = 2;
+const MAX_DIFF_FILES = 5;
+const MAX_PATCH_LENGTH = 800;
+const MAX_COMMIT_PATCH_TOTAL = 2500;
 
 /* 근거를 본인 것과 팀 것으로 나누려면 GitHub 로그인 이름이 필요하다.
    users.username이 연동할 때 저장한 GitHub login이다. */
@@ -104,6 +130,71 @@ async function collectDependencies(
   return [...new Set(names)].slice(0, MAX_DEPENDENCIES);
 }
 
+type CommitEntry = { sha: string; title: string; body: string; date: string; own: boolean };
+
+/**
+ * 어떤 커밋의 diff를 볼지 고른다.
+ *
+ * 본문이 있는 커밋을 먼저 본다. 본문을 쓴 커밋은 그만큼 설명할 것이 있었던
+ * 변경이고, 이유가 적힌 자리와 실제 코드를 나란히 놓으면 근거가 가장 두꺼워진다.
+ */
+function pickDiffCommits(entries: CommitEntry[], budget: number): CommitEntry[] {
+  const withBody = entries.filter((commit) => commit.body);
+  const rest = entries.filter((commit) => !commit.body);
+  return [...withBody, ...rest].slice(0, budget);
+}
+
+async function collectCommitDiff(
+  accessToken: string,
+  fullName: string,
+  commit: CommitEntry,
+): Promise<{ title: string; files: Array<{ path: string; patch: string }> }> {
+  const response = await requestGitHub(accessToken, `/repos/${fullName}/commits/${commit.sha}`);
+  if (!response.ok) return { title: commit.title, files: [] };
+
+  const detail = await response.json() as {
+    files?: Array<{ filename?: string; patch?: string }>;
+  };
+  const files: Array<{ path: string; patch: string }> = [];
+  let used = 0;
+  for (const file of detail.files ?? []) {
+    if (files.length >= MAX_DIFF_FILES || used >= MAX_COMMIT_PATCH_TOTAL) break;
+    const path = file.filename ?? "";
+    // patch가 없는 것은 바이너리이거나 GitHub이 너무 크다고 판단한 파일이다.
+    if (!path || !file.patch || isNoisyPath(path)) continue;
+    const patch = file.patch.slice(0, Math.min(MAX_PATCH_LENGTH, MAX_COMMIT_PATCH_TOTAL - used));
+    files.push({ path, patch });
+    used += patch.length;
+  }
+  return { title: commit.title, files };
+}
+
+/**
+ * 최초 커밋 시각을 찾는다.
+ *
+ * 목록은 최신순이라 손에 있는 것은 최근 커밋뿐이다. 페이지네이션 헤더가
+ * 마지막 페이지를 알려주므로 그 한 장만 더 받는다. 커밋이 한 페이지에 다
+ * 들어가면 헤더가 없고, 그때는 이미 받은 목록의 끝이 최초 커밋이다.
+ */
+async function findFirstCommitDate(
+  accessToken: string,
+  fullName: string,
+  linkHeader: string | null,
+  loaded: CommitEntry[],
+): Promise<string | null> {
+  const lastPage = lastPageOf(linkHeader);
+  if (!lastPage) return loaded.at(-1)?.date ?? null;
+
+  const response = await requestGitHub(
+    accessToken,
+    `/repos/${fullName}/commits?per_page=${MAX_ACTIVITY_ITEMS}&page=${lastPage}`,
+  );
+  if (!response.ok) return loaded.at(-1)?.date ?? null;
+
+  const commits = await response.json() as Array<{ commit?: { author?: { date?: string } | null } }>;
+  return commits.at(-1)?.commit?.author?.date ?? loaded.at(-1)?.date ?? null;
+}
+
 async function collectRepositoryEvidence(
   userId: string,
   repositoryId: string,
@@ -111,6 +202,7 @@ async function collectRepositoryEvidence(
   login: string,
   email: string,
   maxReadmeLength: number,
+  maxDiffCommits: number,
 ): Promise<PortfolioEvidenceRepository> {
   const repository = await getRepository(userId, repositoryId);
   if (!repository) throw new Error("Repository is unavailable.");
@@ -138,7 +230,8 @@ async function collectRepositoryEvidence(
   const languages = Object.entries(languageBytes).map(([name, bytes]) => ({ name, percentage: totalBytes ? Number(((bytes / totalBytes) * 100).toFixed(1)) : 0 }));
   const commits = commitsResponse.ok
     ? await commitsResponse.json() as Array<{
-        commit?: { message?: string; author?: { email?: string } | null };
+        sha?: string;
+        commit?: { message?: string; author?: { email?: string; date?: string } | null };
         author?: { login?: string } | null;
       }>
     : [];
@@ -159,9 +252,11 @@ async function collectRepositoryEvidence(
   const contributors = contributorsResponse.ok
     ? await contributorsResponse.json() as Array<unknown>
     : [];
-  const commitEntries = commits.map((commit) => ({
+  const commitEntries: CommitEntry[] = commits.map((commit) => ({
+    sha: commit.sha ?? "",
     title: titleOf(commit.commit?.message),
     body: bodyOf(commit.commit?.message),
+    date: commit.commit?.author?.date ?? "",
     /* author가 있으면 그걸 믿고, 없을 때만 이메일로 확인한다. */
     own: commit.author
       ? isOwnLogin(login, commit.author.login)
@@ -181,6 +276,23 @@ async function collectRepositoryEvidence(
     .slice(0, MAX_TOP_LEVEL_PATHS);
   /* 트리를 받은 뒤에야 어떤 매니페스트가 있는지 알 수 있어 여기서 한 번 더 부른다. */
   const dependencies = await collectDependencies(accessToken, repository.fullName, topLevelPaths);
+
+  /* diff와 최초 커밋은 목록을 받은 뒤에야 대상을 정할 수 있다. 둘은 서로
+     독립이라 함께 기다린다. 본인 커밋이 하나도 없으면 diff도 기간도 없다. */
+  const [ownCommitDiffs, firstCommitAt] = await Promise.all([
+    Promise.all(
+      pickDiffCommits(ownCommitEntries.filter((commit) => commit.sha), maxDiffCommits)
+        .map((commit) => collectCommitDiff(accessToken, repository.fullName, commit)),
+    ),
+    ownCommitEntries.length > 0
+      ? findFirstCommitDate(
+          accessToken,
+          repository.fullName,
+          commitsResponse.headers.get("link"),
+          ownCommitEntries,
+        )
+      : Promise.resolve(null),
+  ]);
   return {
     id: repository.id,
     name: repository.name,
@@ -200,6 +312,9 @@ async function collectRepositoryEvidence(
     /* 커밋은 있는데 본인 것이 하나도 없다 — 기여가 없는 게 아니라 확인이 안 된
        상태다. 모델이 둘을 구별할 수 있어야 한다. */
     ownContributionUnverifiable: commitEntries.length > 0 && ownCommitEntries.length === 0,
+    /* 파일이 하나도 안 남은 커밋은 잠금 파일만 바꾼 것이라 근거가 아니다. */
+    ownCommitDiffs: ownCommitDiffs.filter((diff) => diff.files.length > 0),
+    contributionPeriod: formatPeriod(firstCommitAt, ownCommitEntries[0]?.date ?? null),
     teamCommitTitles: commitEntries.filter((commit) => !commit.own).map((commit) => commit.title).slice(0, MAX_ACTIVITY_ITEMS),
     // 본문은 최근 몇 건만 싣는다. 전부 실으면 입력이 근거보다 잡음으로 커진다.
     ownPullRequests: ownPulls.map((pull, index) => ({
@@ -223,11 +338,12 @@ export async function collectPortfolioEvidence(
   if (repositoryIds.length === 0) throw new Error("At least one repository is required.");
   const { accessToken, login, email } = await getGitHubIdentity(userId);
   const maxReadmeLength = repositoryIds.length > 1 ? MAX_README_LENGTH_MULTI : MAX_README_LENGTH_SINGLE;
+  const maxDiffCommits = repositoryIds.length > 1 ? MAX_DIFF_COMMITS_MULTI : MAX_DIFF_COMMITS_SINGLE;
 
   // 선택 순서를 유지해야 프로젝트 순서와 대표 저장소가 맞는다.
   const repositories = await Promise.all(
     repositoryIds.map((repositoryId) =>
-      collectRepositoryEvidence(userId, repositoryId, accessToken, login, email, maxReadmeLength)),
+      collectRepositoryEvidence(userId, repositoryId, accessToken, login, email, maxReadmeLength, maxDiffCommits)),
   );
 
   return {

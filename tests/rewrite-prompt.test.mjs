@@ -24,6 +24,8 @@ const repository = {
   readme: "# Portfolio API",
   ownCommits: [{ title: "feat: 재시도 처리", body: "" }],
   ownContributionUnverifiable: false,
+  ownCommitDiffs: [],
+  contributionPeriod: null,
   teamCommitTitles: [],
   ownPullRequests: [],
   teamPullRequestTitles: [],

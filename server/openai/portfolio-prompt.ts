@@ -26,6 +26,16 @@ export type PortfolioEvidenceRepository = {
    * 알아야 한다.
    */
   ownContributionUnverifiable: boolean;
+  /**
+   * 본인 커밋의 실제 변경 내용.
+   *
+   * 제목과 본문은 "무엇을 했다고 말했는지"이고, 이건 무엇을 실제로 짰는지다.
+   * 파일 전체가 아니라 diff인 이유는 그것이 정확히 본인이 바꾼 부분이기
+   * 때문이다. 잠금 파일과 빌드 산출물은 걸러져 있다.
+   */
+  ownCommitDiffs: Array<{ title: string; files: Array<{ path: string; patch: string }> }>;
+  /** 본인 커밋의 최초~최종 시각으로 만든 기여 기간. 예: "2026.03–06". */
+  contributionPeriod: string | null;
   /** 같은 저장소의 다른 사람 커밋 제목. 프로젝트 맥락을 읽는 용도다. */
   teamCommitTitles: string[];
   /** 본인 PR. 제목만으로는 무엇을 왜 했는지 알 수 없어 본문과 머지 여부를 함께 본다. */
@@ -134,6 +144,9 @@ const instructions = [
   "impact는 수치가 없어도 됩니다. README나 커밋·PR 제목에서 확인되는 변화, 그리고 applicantStatement에서 지원자가 밝힌 결과를 사실 그대로 씁니다. 예를 들어 기능이 동작하게 된 상태, 구조가 바뀐 결과, 사용자가 할 수 있게 된 일입니다. 다만 어느 쪽에도 제공되지 않은 수치나 비율은 절대 만들지 마세요.",
   "ownCommits와 ownPullRequests는 지원자 본인이 작성한 것이고, teamCommitTitles와 teamPullRequestTitles는 같은 저장소의 다른 사람이 작성한 것입니다. 지원자의 기여, 역할, 성과는 own 항목, README, 그리고 applicantStatement에서만 끌어오세요.",
   "ownCommits의 body는 제목이 말하지 않는 '왜'가 적히는 자리입니다. 어떤 문제 때문에 그 변경을 했는지, 무엇을 고려해 그 방법을 골랐는지가 여기 있으면 challenges와 solutions의 근거로 쓰세요. body가 비어 있으면 제목만으로 이유를 추측하지 마세요.",
+  "ownCommitDiffs는 지원자가 실제로 바꾼 코드입니다. 제목과 본문이 '무엇을 했다고 말했는지'라면 이건 무엇을 실제로 짰는지입니다. 어떤 구조를 골랐는지, 무엇을 처리했는지, 어디를 손댔는지를 읽는 근거로 쓰세요.",
+  "다만 diff에 보이는 것은 변경이지 성과가 아닙니다. 코드 몇 줄을 보고 성능 개선, 사용자 수, 처리량 같은 결과를 만들어내지 마세요. 그런 결과는 근거에 직접 적혀 있을 때만 씁니다.",
+  "파일 경로와 함수 이름은 그대로 인용해도 됩니다. 지원자가 면접에서 되짚을 수 있는 유일한 구체성이고, 저장소에 실제로 있는 이름이라 지어낸 것이 아닙니다.",
   "ownContributionUnverifiable이 true이면 저장소에 커밋은 있는데 그중 지원자 본인의 것으로 확인된 것이 하나도 없다는 뜻입니다. 기여가 없다는 뜻이 아니라 확인할 수 없다는 뜻이므로, 지원자가 아무것도 하지 않았다고 서술하지 말고 README와 다른 근거로 프로젝트를 설명하세요. 동시에 확인되지 않은 기여를 지원자의 것으로 쓰지도 마세요.",
   "dependencies는 저장소가 실제로 의존하는 라이브러리 목록입니다. 언어 통계는 언어까지만 말하므로, 프레임워크와 도구 수준의 techStack은 여기서 확인하세요. 다만 의존성에 있다는 것이 지원자가 그것을 다뤘다는 근거는 아니므로, own 항목이나 README에 관련 작업이 없으면 skills로 올리지 마세요.",
   "ownPullRequests의 body는 무엇을 왜 바꿨는지 설명하는 가장 좋은 근거입니다. challenges와 solutions는 여기와 README에서 우선 찾고, merged가 true인 작업은 실제로 반영된 변경으로 볼 수 있습니다.",
@@ -184,6 +197,7 @@ export function buildPortfolioPrompt(evidence: PortfolioEvidence): PortfolioProm
           languages: repository.languages,
           readme: repository.readme,
           ownCommits: repository.ownCommits,
+          ownCommitDiffs: repository.ownCommitDiffs,
           ownContributionUnverifiable: repository.ownContributionUnverifiable,
           ownPullRequests: repository.ownPullRequests,
           teamCommitTitles: repository.teamCommitTitles,

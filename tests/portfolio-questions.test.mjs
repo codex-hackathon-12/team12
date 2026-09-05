@@ -21,6 +21,8 @@ function target(overrides = {}) {
     impact: [],
     contributorCount: 1,
     ownContributionUnverifiable: false,
+    ownCommitDiffs: [],
+    contributionPeriod: null,
     ...overrides,
   };
 }

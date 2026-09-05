@@ -78,6 +78,8 @@ const evidenceRepository = (name) => ({
   readme: `# ${name}`,
   ownCommits: [],
   ownContributionUnverifiable: false,
+  ownCommitDiffs: [],
+  contributionPeriod: null,
   dependencies: [],
   teamCommitTitles: [],
   ownPullRequests: [],
