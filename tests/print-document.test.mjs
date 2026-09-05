@@ -164,3 +164,49 @@ test("문서 활자는 전역 토큰을 직접 쓰지 않는다", () => {
     `문서 규칙이 전역 타입 토큰을 직접 쓰고 있어요:\n${offenders.join("\n")}`,
   );
 });
+
+/**
+ * 프로젝트 카드가 나열에서 결정으로 바뀐 뒤 지켜야 할 것.
+ *
+ * 짧은 불릿 열몇 개는 전부 같은 무게라 인과가 끊긴 채 놓인다. 면접관이 읽는
+ * 것은 나열이 아니라 결정이다. 여기 걸린 것은 그 구조가 조용히 되돌아가거나,
+ * 예전 결과가 화면에서 사라지는 것을 막는다.
+ */
+
+test("결정이 없으면 그 블록을 그리지 않는다", () => {
+  /* 근거에 "왜"가 없으면 초안이 네 값을 비운다. 비어 있는데 라벨만 그리면
+     채용 담당자에게 빈칸이 보인다. */
+  assert.match(preview, /\{project\.keyDecision\.headline && \(/u, "결정 블록에 조건이 없어요");
+  assert.ok(css.includes(".result-decision"), "결정 블록 규칙이 없어요");
+});
+
+test("예전에 저장된 결과도 그대로 그린다", () => {
+  /* challenges·solutions·impact는 이미 저장된 포트폴리오가 들고 있다. 이
+     경로를 지우면 그 사람들의 문서에서 문장이 사라진다. */
+  assert.match(preview, /storyColumns\(project\)/u, "예전 경로가 사라졌어요");
+  // 다만 결정이 있으면 같은 내용을 두 모양으로 두 번 보여주지 않는다.
+  assert.match(
+    preview,
+    /!project\.keyDecision\.headline && storyColumns\(project\)/u,
+    "결정과 예전 열이 함께 그려질 수 있어요",
+  );
+});
+
+test("결정이 인쇄에서 중간에 끊기지 않는다", () => {
+  // 문제와 결과가 다른 장에 놓이면 무슨 이야기인지 알 수 없다.
+  assert.match(printBlock(), /\.result-decision,/u, "결정에 break-inside 규칙이 없어요");
+});
+
+test("맥락 줄은 없는 값의 칸을 만들지 않는다", () => {
+  /* 기간을 계산할 수 없는 저장소가 있다. 빈칸이나 "미상"을 넣으면 사실이
+     아닌 값이 문서에 박힌다. */
+  assert.match(preview, /\.filter\(Boolean\)\s*\n\s*\.join\(" · "\)/u, "빈 값을 걸러내지 않아요");
+});
+
+test("한국어 표지에 대문자 변환을 쓰지 않는다", () => {
+  /* text-transform: uppercase는 한글에 아무 일도 하지 않고, 함께 붙는 자간만
+     남아 글자 사이가 뜬 것처럼 보인다. */
+  const rule = css.match(/\.result-highlight-caption\s*\{([^}]*)\}/u);
+  assert.ok(rule, ".result-highlight-caption 규칙이 없어요");
+  assert.doesNotMatch(rule[1], /text-transform/u, "한국어 표지에 대문자 변환이 걸렸어요");
+});

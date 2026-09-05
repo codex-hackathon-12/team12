@@ -2331,6 +2331,76 @@ a {
   font-weight: 650;
 }
 
+/* 핵심 결정. 프로젝트 카드의 본문이다.
+
+   짧은 불릿을 열 개 나열하면 전부 같은 무게라 인과가 끊긴다. 결정 하나를
+   문제 → 선택과 근거 → 결과로 이어 쓰고, 왼쪽 선 하나로 그 셋이 한 덩어리임을
+   보인다. 배경 대신 선을 쓰는 것은 인쇄 때문이다 — 배경 그래픽을 끄면
+   background는 사라지지만 border는 남는다. */
+.result-decision {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-4);
+  border-left: 2px solid #62a06f;
+}
+
+.result-decision h4 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin: 0;
+  font-size: var(--doc-sub);
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+}
+
+/* "핵심 결정"은 제목이 아니라 무엇을 읽는 중인지 알려주는 표지판이다. */
+.result-decision h4 span {
+  flex: none;
+  color: #4a7a55;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--doc-label);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.result-decision p {
+  max-width: 74ch;
+  margin: var(--space-2) 0 0;
+  color: #35453c;
+  font-size: var(--doc-body);
+  line-height: 1.7;
+}
+
+/* 결과는 앞의 두 문단이 이끌어낸 결말이다. 화살표가 그 관계를 대신 말한다. */
+.result-decision-outcome {
+  position: relative;
+  padding-left: var(--space-4);
+  font-weight: 620;
+}
+
+.result-decision-outcome::before {
+  position: absolute;
+  left: 0;
+  color: #4a7a55;
+  content: "→";
+  font-weight: 800;
+}
+
+/* 한국어 표지는 모노와 대문자 변환을 쓰지 않는다. 자간만 벌어지고 대문자
+   변환은 아무 일도 하지 않아, 글자 사이가 뜬 것처럼만 보인다.
+   문서 안의 다른 한국어 표지(언어 비율, 저장소에서 읽은 것)와 같은 규칙이다. */
+.result-highlight-caption {
+  margin: var(--space-3) 0 0;
+  color: #a9b5ad;
+  font-size: var(--doc-label);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.result-highlight-caption + .result-highlight-list { margin-top: var(--space-2); }
+
 .result-highlight-list {
   display: grid;
   gap: var(--space-1);
@@ -3349,6 +3419,7 @@ a {
   .result-language-list,
   .result-language-row,
   .result-highlight-list,
+  .result-decision,
   .result-story-list > div { break-inside: avoid; }
 
   /* 프로젝트와 역량은 중간에서 끊기면 읽기 어렵다. 통째로 유지한다.
