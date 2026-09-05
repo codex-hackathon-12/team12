@@ -7,11 +7,12 @@ import type {
   PortfolioContentDto,
   PortfolioQuestionDto,
   PortfolioShareDto,
+  PortfolioStatementResultDto,
 } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { useReturnFocus } from "@/hooks/useReturnFocus";
-import { FollowUpPanel } from "@/components/portfolio/FollowUpPanel";
+import { InlineFollowUp } from "@/components/portfolio/InlineFollowUp";
 import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { LABEL } from "@/lib/copy";
@@ -71,6 +72,16 @@ export default function PortfolioResultPage() {
   }
 
   if (!portfolio) return <LoadingState label="포트폴리오를 불러오고 있어요" />;
+
+  /* 문서의 프로젝트에는 저장소 이름이 없다. 화면에 필요한 것만 담아
+     repositoryUrl만 남기기 때문이다. 질문은 이름으로 오므로 여기서 잇는다. */
+  const repositoryNameByUrl = new Map(
+    portfolio.repositories.map((repository) => [repository.htmlUrl, repository.name]),
+  );
+  const openQuestions = (rewritten?.questions ?? portfolio.questions)
+    .filter((question) => !question.answer);
+  const applyResult = (result: PortfolioStatementResultDto) =>
+    setRewritten({ content: result.content, questions: result.questions });
 
   const sourceLabel = portfolio.repositories.length > 1
     ? `${portfolio.repository.fullName} 외 ${portfolio.repositories.length - 1}개`
@@ -252,12 +263,31 @@ export default function PortfolioResultPage() {
           )}
         </div>
       ) : null}
-      <FollowUpPanel
-        portfolioId={portfolio.id}
-        questions={rewritten?.questions ?? portfolio.questions}
-        onApplied={(result) => setRewritten({ content: result.content, questions: result.questions })}
+      {/*
+        되묻기는 문서 위가 아니라 채울 자리에서 묻는다. 답이 어디로 가는지
+        보이지 않으면 사용자는 무엇을 위해 쓰는지 모른 채 칸을 채워야 한다.
+
+        문서는 되묻기를 알지 못한다. 슬롯을 받을 뿐이고, 공개 페이지와 갤러리는
+        넘기지 않으므로 남에게 보내는 링크에 질문이 새어 나갈 통로가 없다.
+      */}
+      <PortfolioDocument
+        content={rewritten?.content ?? portfolio.content}
+        hasOpenQuestions={openQuestions.length > 0}
+        renderProjectSlot={(project) => {
+          const name = repositoryNameByUrl.get(project.repositoryUrl);
+          const list = name
+            ? openQuestions.filter((question) => question.repositoryName === name)
+            : [];
+          if (list.length === 0) return null;
+          return (
+            <InlineFollowUp
+              portfolioId={portfolio.id}
+              questions={list}
+              onApplied={applyResult}
+            />
+          );
+        }}
       />
-      <PortfolioDocument content={rewritten?.content ?? portfolio.content} />
       {actionError ? (
         <div className="page-container">
           <p className="inline-error" role="alert">{actionError}</p>

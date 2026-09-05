@@ -3232,34 +3232,57 @@ a {
   margin: 8mm;
 }
 
-/* 되묻기 — 초안이 비운 자리를 지원자에게 묻는 칸.
+/* 되묻기 — 문서 안, 채울 자리에서 묻는다.
 
-   문서 위에 둔다. 아래에 두면 답할 것이 있다는 사실 자체를 못 보고 나간다.
-   다만 문서가 이 화면의 본체라 카드 하나에 담아 밀어내는 높이를 줄인다. */
-.follow-up { padding-bottom: var(--space-4); }
+   문서 위에 모아두면 답이 어디로 가는지 보이지 않는다. 채울 자리에서 물으면
+   답의 범위가 저절로 정해지고, 반영된 뒤에는 그 자리에 결정이 들어차는 것을
+   눈으로 확인하게 된다.
+
+   화면 전용이다. 인쇄에서는 숨긴다 — 종이에 남으면 채용 담당자가 지원자에게
+   던지는 질문 목록이 된다. */
+.follow-up-slot { display: grid; gap: var(--space-3); margin: var(--space-3) 0 0; }
 
 .follow-up-card {
   display: grid;
-  gap: var(--space-4);
-  padding: var(--space-6);
-  border: 1px solid var(--ink);
-  /* 결과 문서(흰 종이)와 구분되는 바탕. 문서가 아니라 물어보는 칸이라는
-     신호가 있어야 인쇄물의 일부로 오해하지 않는다. */
+  gap: var(--space-3);
+  padding: var(--space-4);
+  /* 점선으로 "아직 채워지지 않은 자리"임을 말한다. 결정 블록의 실선과 대비된다. */
+  border: 1px dashed var(--ink);
   background: var(--lime-soft);
 }
 
-.follow-up-heading { display: grid; gap: var(--space-2); }
-.follow-up-heading h2 { margin: 0; font-size: var(--text-lg); line-height: 1.35; }
-.follow-up-heading p { margin: 0; max-width: 62ch; color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.7; }
+.follow-up-card header { display: grid; gap: 4px; }
 
-.follow-up-question { display: grid; gap: var(--space-2); }
-.follow-up-question > div { display: flex; justify-content: space-between; gap: var(--space-3); align-items: baseline; }
-.follow-up-question label { font-size: var(--text-base); font-weight: 650; line-height: 1.6; }
+.follow-up-eyebrow {
+  margin: 0;
+  color: #4a7a55;
+  font-size: var(--doc-label);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
 
-/* 어느 프로젝트의 무엇을 묻는지. 답을 어디에 쓸지 알아야 답의 범위가 정해진다. */
-.follow-up-target {
+.follow-up-lead { margin: 0; font-size: var(--text-base); font-weight: 650; line-height: 1.5; }
+
+/* 무엇에 대한 질문인지. 저장소에서 본 그대로라 지원자가 떠올릴 수 있다. */
+.follow-up-topic {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border-left: 2px solid #62a06f;
+  color: var(--ink-soft);
+  /* 대부분 한국어 문장이라 모노를 쓰지 않는다. 글자 사이만 벌어져 오히려
+     읽기 어려워진다. 안에 섞인 함수 이름은 그대로도 충분히 구별된다. */
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.follow-up-field { display: grid; gap: 6px; }
+.follow-up-field > div { display: flex; justify-content: space-between; gap: var(--space-3); align-items: baseline; }
+.follow-up-field label { font-size: var(--text-sm); font-weight: 650; line-height: 1.55; }
+.follow-up-field small { flex: none; font-size: var(--text-xs); }
+
+.follow-up-field-label {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   color: var(--ink-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--text-2xs);
@@ -3269,38 +3292,32 @@ a {
   text-transform: uppercase;
 }
 
-.follow-up-question textarea {
+.follow-up-field textarea {
   width: 100%;
-  /* 답 하나가 두세 문장이면 충분하다. 더 크게 잡으면 카드가 문서를 화면 밖으로
-     밀어내고, 빈 칸이 클수록 길게 써야 할 것처럼 보인다. */
-  min-height: 84px;
-  padding: var(--space-3);
+  /* 답 하나가 한두 문장이면 충분하다. 칸이 클수록 길게 써야 할 것처럼 보인다. */
+  min-height: 62px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--line-control);
   border-radius: 0;
   outline: 0;
   background: var(--paper);
-  font-size: var(--text-base);
-  line-height: 1.75;
+  font-size: var(--text-sm);
+  line-height: 1.7;
   resize: vertical;
   transition: border 140ms ease, box-shadow 140ms ease;
 }
 
-.follow-up-question textarea:focus { border-color: var(--ink); box-shadow: 4px 4px 0 var(--lime); }
-.follow-up-question small { flex: none; font-size: var(--text-xs); }
+.follow-up-field textarea:focus { border-color: var(--ink); box-shadow: 3px 3px 0 var(--lime); }
 
 .follow-up-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
-.follow-up-actions p { margin: 0; max-width: 46ch; color: var(--ink-soft); font-size: var(--text-xs); line-height: 1.6; }
+.follow-up-actions p { margin: 0; max-width: 42ch; color: var(--ink-soft); font-size: var(--text-xs); line-height: 1.6; }
 
-.follow-up-answered summary { cursor: pointer; font-size: var(--text-sm); font-weight: 650; }
-.follow-up-answered dl { display: grid; gap: var(--space-3); margin: var(--space-3) 0 0; }
-.follow-up-answered dt { color: var(--ink-soft); font-size: var(--text-xs); }
-.follow-up-answered dd { margin: 4px 0 0; font-size: var(--text-sm); line-height: 1.7; }
-
-.follow-up-result { margin: 0; font-size: var(--text-sm); font-weight: 650; }
+/* A4 보기에서 되묻기가 안 보이면 막다른 길이 된다. */
+.document-pending { margin: 0 0 var(--space-3); font-weight: 650; }
 
 @media (max-width: 720px) {
-  .follow-up-card { padding: var(--space-4); }
-  .follow-up-question > div { flex-direction: column; gap: 4px; }
+  .follow-up-card { padding: var(--space-3); }
+  .follow-up-field > div { flex-direction: column; gap: 4px; }
 }
 
 @media print {
@@ -3327,7 +3344,8 @@ a {
   .result-toolbar,
   /* 물어보는 칸은 화면에서만 의미가 있다. 종이에 찍히면 채용 담당자가
      지원자에게 던지는 질문 목록이 된다. */
-  .follow-up,
+  .follow-up-slot,
+  .document-pending,
   .result-portfolio-nav,
   .result-footer-actions,
   /* 공유 페이지의 안내와 인쇄 버튼은 종이에 남을 이유가 없다. */
