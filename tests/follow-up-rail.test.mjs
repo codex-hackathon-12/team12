@@ -163,28 +163,46 @@ test("한 번에 하나만 묻는다", () => {
   /* 질문을 전부 펼친 폼이었을 때는 열 개가 넘으면 사람이 닫아버릴 것 같아
      물을 것을 8개로 묶어뒀다. 그러다 보니 저장소가 다섯이면 프로젝트마다
      한두 개밖에 못 물었다 — 폼을 유지하는 대가로 물을 것을 버린 셈이다. */
-  assert.match(rail, /const current = queue\[cursor\] \?\? null;/u, "지금 물을 것을 하나로 좁히지 않아요");
-  assert.match(rail, /setCursor\(cursor \+ 1\)/u, "다음 질문으로 넘어가지 않아요");
+  /* 지금 물을 것은 하나다 — 고쳐 쓰는 중이면 그 질문, 아니면 첫 미답. */
+  assert.match(rail, /const current = editing/u, "지금 물을 것을 하나로 좁히지 않아요");
+  assert.match(rail, /const pendingIndex = timeline\.findIndex/u, "다음 질문을 찾지 않아요");
 });
 
 test("대화 순서를 열 때 한 번 정한다", () => {
-  /* 답할 때마다 목록을 다시 계산하면 방금 답한 질문이 빠지면서 커서가
-     가리키는 자리가 밀려, 다음 질문 하나가 통째로 건너뛰어진다. */
-  assert.match(rail, /useState\(\(\) => questions\.filter\(\(question\) => !question\.answer\)\)/u);
+  /* 답할 때마다 목록을 다시 계산하면 방금 답한 질문이 빠지면서 자리가 밀려,
+     다음 질문 하나가 통째로 건너뛰어진다. 답한 것도 함께 담아 고쳐 쓸 수
+     있게 한다. */
+  assert.match(rail, /useState\(\(\) => questions\)/u, "타임라인을 고정하지 않아요");
+});
+
+test("답을 다시 쓸 수 있다", () => {
+  /* 서버는 질문 id로 답을 덮어쓰므로 재답변이 원래 가능했는데, 화면에 통로가
+     없어 한 번 보내면 고칠 수 없었다. 답한 줄마다 통로를 둔다. */
+  assert.match(rail, /className="follow-up-redo"/u, "답을 고칠 통로가 없어요");
+  /* 건너뛰기와 클래스를 나눠 쓴다. 하나로 쓰면 "첫 번째 버튼"을 누르는 쪽이
+     어느 것을 누를지 알 수 없어진다. */
+  assert.doesNotMatch(rail, /className="follow-up-skip" type="button" onClick=\{onEdit\}/u);
+  assert.match(rail, /const beginEdit =/u, "고쳐 쓰기 진입이 없어요");
+  // 고쳐 쓰다 그만둘 길도 있어야 원래 자리로 돌아간다.
+  assert.match(rail, /고쳐 쓰기 취소/u, "고쳐 쓰기를 그만둘 길이 없어요");
+  // 답이 한 곳에 모여야 화면과 전송이 같은 값을 본다.
+  assert.match(rail, /const \[answers, setAnswers\]/u, "답의 단일 출처가 없어요");
+});
+
+test("보낸 뒤 실패해도 쓴 답을 지우지 않는다", () => {
+  /* 지우면 사용자가 방금 쓴 글을 잃는다. 남겨두면 "다시 답하기"로 그대로
+     다시 보낼 수 있다. */
+  assert.match(rail, /답은 화면에 남겨둔다/u);
 });
 
 test("결정 셋을 모아 한 번에 보낸다", () => {
-  /* 결정은 셋이 모여야 문서에 들어간다. 폼이었을 때는 "세 가지를 다
-     알려주셔야" 하고 되돌려 보내야 했던 일이 대화에서는 그냥 순서가 된다. */
-  assert.match(rail, /if \(!isGroupComplete\(current, cursor\)\) \{/u);
-  assert.match(rail, /pending\.current = \[\.\.\.pending\.current,/u, "모으지 않고 바로 보내요");
+  /* 결정은 셋이 모여야 문서에 들어간다. 한 조각만 보내면 서버는 나머지를
+     모르는 채 재작성해 반쪽짜리가 된다 — 고쳐 쓸 때도 마찬가지라, 묶음을
+     통째로 다시 보낸다. */
+  assert.match(rail, /const group = groupOf\(current\);/u);
+  assert.match(rail, /if \(batch\.length < group\.length\) return;/u, "덜 모인 채로 보내요");
   // 건너뛸 때도 묶음째. 셋 중 하나만 건너뛰면 나머지는 답해도 반영되지 않는다.
-  assert.match(rail, /while \(queue\[next\] && sameDecision\(current, queue\[next\]\)\) next \+= 1;/u);
-});
-
-test("보내지 못한 답을 잃지 않는다", () => {
-  // 실패했다고 모아둔 것을 버리면 결정 세 개를 처음부터 다시 답해야 한다.
-  assert.match(rail, /pending\.current = batch;/u, "실패 시 모아둔 답을 되돌리지 않아요");
+  assert.match(rail, /\.\.\.Object\.fromEntries\(group\.map/u, "건너뛰기가 묶음째가 아니에요");
 });
 
 test("한글을 쓰는 중에 Enter로 보내지 않는다", () => {
