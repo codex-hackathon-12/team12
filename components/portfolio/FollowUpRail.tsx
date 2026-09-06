@@ -39,11 +39,6 @@ const FIELD_LABEL: Record<PortfolioQuestionDto["field"], string> = {
   decisionOutcome: "결정 · 결과",
 };
 
-/** 대화에 쌓이는 줄. */
-type Turn =
-  | { kind: "answer"; id: string; text: string }
-  | { kind: "note"; id: string; text: string };
-
 export type RailProject = {
   /** 문서에서 이 프로젝트를 찾는 열쇠. */
   url: string;
@@ -92,38 +87,58 @@ export function FollowUpRail({
   onClose: () => void;
   onApplied: (result: PortfolioStatementResultDto) => void;
 }) {
-  /* 대화 순서를 열 때 한 번 정하고 그대로 쓴다.
-     답할 때마다 다시 계산하면 방금 답한 질문이 목록에서 빠지면서 커서가
-     가리키는 자리가 밀려, 다음 질문 하나가 통째로 건너뛰어진다. */
-  const [queue] = useState(() => questions.filter((question) => !question.answer));
-  const [history] = useState(() => questions.filter((question) => question.answer));
-  const [cursor, setCursor] = useState(0);
+  /* 대화 순서를 열 때 한 번 정하고 그대로 쓴다. 답한 것도 함께 담는다.
+     답할 때마다 다시 계산하면 방금 답한 질문이 목록에서 빠지면서 자리가
+     밀려, 다음 질문 하나가 통째로 건너뛰어진다. */
+  const [timeline] = useState(() => questions);
+  /* 화면에 보이는 답의 단일 출처. 서버가 준 답으로 씨를 뿌리고 이 자리에서
+     갱신한다. 고쳐 쓰기가 가능하려면 답이 한 곳에 모여 있어야 한다. */
+  const [answers, setAnswers] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      questions.filter((question) => question.answer).map((question) => [question.id, question.answer as string]),
+    ),
+  );
+  const [skipped, setSkipped] = useState<Record<string, true>>({});
+  /** 지금 고쳐 쓰는 중인 질문. 없으면 첫 미답을 묻는다. */
+  const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
-  const [turns, setTurns] = useState<Turn[]>([]);
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /* 아직 보내지 않고 모으는 중인 결정 답변. 셋이 차면 한 번에 보낸다. */
-  const pending = useRef<Array<{ questionId: string; answer: string }>>([]);
   const endRef = useRef<HTMLDivElement>(null);
+
+  const pendingIndex = timeline.findIndex(
+    (question) => !answers[question.id] && !skipped[question.id],
+  );
 
   // 새 줄이 쌓이면 마지막이 보이게 한다. 대화창의 기본 동작이다.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
-  }, [turns.length, cursor]);
+    if (!editing) endRef.current?.scrollIntoView({ block: "end" });
+  }, [pendingIndex, editing]);
 
   if (!open || questions.length === 0) return null;
 
-  const current = queue[cursor] ?? null;
-  const remaining = Math.max(queue.length - cursor, 0);
+  const current = editing
+    ? timeline.find((question) => question.id === editing) ?? null
+    : timeline[pendingIndex] ?? null;
+  const remaining = timeline.filter(
+    (question) => !answers[question.id] && !skipped[question.id],
+  ).length;
 
   const projectOf = (question: PortfolioQuestionDto) =>
     projects.find((project) => project.name === question.repositoryName) ?? null;
 
-  /** 이 질문이 결정 묶음의 마지막인지. 마지막이면 모아둔 것을 보낸다. */
-  const isGroupComplete = (question: PortfolioQuestionDto, index: number) => {
-    if (!question.topic) return true;
-    const next = queue[index + 1];
-    return !next || !sameDecision(question, next);
+  /** 같은 결정에 속한 질문 전부. 셋이 한 덩어리다. */
+  const groupOf = (question: PortfolioQuestionDto) =>
+    question.topic
+      ? timeline.filter((item) => sameDecision(question, item))
+      : [question];
+
+  const beginEdit = (question: PortfolioQuestionDto) => {
+    if (submitting) return;
+    setEditing(question.id);
+    setDraft(answers[question.id] ?? "");
+    setError(null);
   };
 
   const send = async () => {
@@ -134,32 +149,41 @@ export function FollowUpRail({
       return;
     }
 
-    setError(null);
+    const next = { ...answers, [current.id]: text };
+    setAnswers(next);
+    // 건너뛰었던 질문에 다시 답하면 건너뜀 표시를 지운다.
+    setSkipped((previous) => {
+      if (!previous[current.id]) return previous;
+      const rest = { ...previous };
+      delete rest[current.id];
+      return rest;
+    });
     setDraft("");
-    setTurns((previous) => [...previous, { kind: "answer", id: `${current.id}-said`, text }]);
-    pending.current = [...pending.current, { questionId: current.id, answer: text }];
+    setEditing(null);
+    setError(null);
 
-    /* 결정은 셋이 모여야 문서에 들어간다. 아직 모이는 중이면 다음 질문으로
-       넘어가기만 한다. */
-    if (!isGroupComplete(current, cursor)) {
-      setCursor(cursor + 1);
-      return;
-    }
+    /* 결정은 셋이 모여야 문서에 들어간다. 아직 다 안 모였으면 보내지 않고
+       다음 조각을 묻는다 — 폼이었을 때 "세 가지를 다 알려주셔야" 하고 되돌려
+       보내던 일이 대화에서는 순서가 된다.
 
-    const batch = pending.current;
-    pending.current = [];
+       고쳐 쓸 때도 같은 규칙이다. 한 조각만 보내면 서버는 나머지를 모르는
+       채 재작성해 반쪽짜리가 되므로, 묶음 셋을 모두 함께 보낸다. */
+    const group = groupOf(current);
+    const batch = group
+      .filter((question) => next[question.id])
+      .map((question) => ({ questionId: question.id, answer: next[question.id] }));
+    if (batch.length < group.length) return;
+
     setSubmitting(true);
     try {
       const result = await apiClient.applyPortfolioStatements(portfolioId, batch);
       onApplied(result);
-      setTurns((previous) => [...previous, {
-        kind: "note",
-        id: `${current.id}-note`,
-        text: result.updatedFields.length > 0
+      setNotes((previous) => ({
+        ...previous,
+        [current.id]: result.updatedFields.length > 0
           ? "문서의 그 자리를 채웠어요."
           : "쓸 내용을 찾지 못했어요. 조금 더 구체적으로 적어주시면 반영할 수 있어요.",
-      }]);
-      setCursor(cursor + 1);
+      }));
     } catch (caught) {
       /* 근거가 사라진 결과는 다시 시도해도 되지 않는다. 같은 문구로 뭉뚱그리면
          사용자가 될 때까지 누르게 된다. */
@@ -168,10 +192,9 @@ export function FollowUpRail({
           ? "이 포트폴리오는 생성 근거가 남아 있지 않아 다시 쓸 수 없어요. 새로 만들면 답변을 반영할 수 있어요."
           : "답변을 반영하지 못했어요. 잠시 후 다시 시도해주세요.",
       );
-      // 보내지 못한 답을 되돌린다. 다시 보낼 때 처음부터 묻지 않게.
-      pending.current = batch;
+      /* 답은 화면에 남겨둔다. 지우면 사용자가 방금 쓴 글을 잃고, 답이 남아
+         있으면 "다시 답하기"로 그대로 다시 보낼 수 있다. */
     } finally {
-      /* 실패로 이 자리에 머무는 경우가 있다. 되돌리지 않으면 전송이 영영 잠긴다. */
       setSubmitting(false);
     }
   };
@@ -179,17 +202,18 @@ export function FollowUpRail({
   /** 건너뛰기. 결정은 셋이 한 덩어리라 묶음째 넘긴다. */
   const skip = () => {
     if (!current || submitting) return;
-    let next = cursor + 1;
-    while (queue[next] && sameDecision(current, queue[next])) next += 1;
-    pending.current = [];
+    const group = groupOf(current);
+    setSkipped((previous) => ({
+      ...previous,
+      ...Object.fromEntries(group.map((question) => [question.id, true as const])),
+    }));
+    setNotes((previous) => ({
+      ...previous,
+      [current.id]: current.topic ? "이 결정은 건너뛸게요." : "이 질문은 건너뛸게요.",
+    }));
     setDraft("");
+    setEditing(null);
     setError(null);
-    setTurns((previous) => [...previous, {
-      kind: "note",
-      id: `${current.id}-skip`,
-      text: current.topic ? "이 결정은 건너뛸게요." : "이 질문은 건너뛸게요.",
-    }]);
-    setCursor(next);
   };
 
   return (
@@ -208,29 +232,34 @@ export function FollowUpRail({
           </p>
         ) : null}
 
-        {/* 지난 대화. 다시 열었을 때 무엇을 답했는지 이어 보인다. */}
-        {history.map((question) => (
-          <div className="follow-up-past" key={question.id}>
-            <Ask question={question} project={projectOf(question)} />
-            <Said profile={profile} text={question.answer ?? ""} />
-          </div>
-        ))}
-
-        {/* 이번에 답한 것. 물음과 답이 번갈아 쌓인다. */}
-        {queue.slice(0, cursor).map((question, index) => {
-          const said = turns.find((turn) => turn.id === `${question.id}-said`);
-          const note = turns.find((turn) => turn.id === `${question.id}-note` || turn.id === `${question.id}-skip`);
+        {/* 지나온 대화. 지난 방문에서 답한 것과 방금 답한 것을 한 흐름으로
+            보여준다 — 둘을 갈라두면 어느 쪽이 최신인지 알기 어렵다. */}
+        {timeline.map((question) => {
+          if (question.id === current?.id) return null;
+          const answer = answers[question.id];
+          const note = notes[question.id];
+          if (!answer && !note) return null;
           return (
-            <div key={`${question.id}-${index}`}>
+            <div key={question.id}>
               <Ask question={question} project={projectOf(question)} />
-              {said?.kind === "answer" ? <Said profile={profile} text={said.text} /> : null}
-              {note ? <p className="follow-up-note" role="status">{note.text}</p> : null}
+              {answer ? (
+                <Said
+                  profile={profile}
+                  text={answer}
+                  onEdit={submitting ? undefined : () => beginEdit(question)}
+                />
+              ) : null}
+              {note ? <p className="follow-up-note" role="status">{note}</p> : null}
             </div>
           );
         })}
 
         {current ? (
-          <Ask question={current} project={projectOf(current)} onSkip={submitting ? undefined : skip} />
+          <Ask
+            question={current}
+            project={projectOf(current)}
+            onSkip={submitting || editing ? undefined : skip}
+          />
         ) : (
           <p className="follow-up-note" role="status">
             물어볼 것이 더 없어요. 답해주신 내용은 문서에 들어가 있어요.
@@ -273,6 +302,20 @@ export function FollowUpRail({
           >
             ↑
           </button>
+          {/* 고쳐 쓰다 그만둘 길. 없으면 원래 자리로 돌아갈 방법이 없다. */}
+          {editing ? (
+            <button
+              className="follow-up-cancel"
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setDraft("");
+                setError(null);
+              }}
+            >
+              고쳐 쓰기 취소
+            </button>
+          ) : null}
         </div>
       ) : null}
     </aside>
@@ -327,8 +370,21 @@ function Ask({
   );
 }
 
-/** 답한 말풍선. 같은 행 구조에 아바타만 사용자다 — 노션에서 회신이 그렇듯. */
-function Said({ profile, text }: { profile: RailProfile; text: string }) {
+/**
+ * 답한 말풍선. 같은 행 구조에 아바타만 사용자다 — 노션에서 회신이 그렇듯.
+ *
+ * "다시 답하기"가 붙는다. 서버는 질문 id로 답을 덮어쓰므로 재답변이 원래
+ * 가능했는데, 화면에 통로가 없어 한 번 보내면 고칠 수 없었다.
+ */
+function Said({
+  profile,
+  text,
+  onEdit,
+}: {
+  profile: RailProfile;
+  text: string;
+  onEdit?: () => void;
+}) {
   const initial = profile.displayName.replace(/\s/gu, "").slice(0, 1) || "나";
   return (
     <div className="follow-up-ask follow-up-said">
@@ -338,7 +394,12 @@ function Said({ profile, text }: { profile: RailProfile; text: string }) {
         <span className="follow-up-avatar" aria-hidden="true">{initial}</span>
       )}
       <div>
-        <p className="follow-up-name">{profile.displayName}</p>
+        <p className="follow-up-name">
+          {profile.displayName}
+          {onEdit ? (
+            <button className="follow-up-redo" type="button" onClick={onEdit}>다시 답하기</button>
+          ) : null}
+        </p>
         <p className="follow-up-ask-text">{text}</p>
       </div>
     </div>

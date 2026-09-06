@@ -175,11 +175,7 @@ export default function PortfolioResultPage() {
   };
 
   return (
-    /* 대화창이 열리면 문서와 두 칸으로 나눈다. 자리를 나눠야 대화창이 문서
-       흐름 안에서 sticky로 따라올 수 있다. 겹쳐 띄우면 읽으면서 답할 수 없고,
-       고정으로 띄우면 페이지의 일부가 아니라 위에 얹힌 판이 된다. */
-    <div className={railOpen ? "result-page with-rail" : "result-page"}>
-      <div className="result-main">
+    <div className="result-page">
       <div className="page-container result-toolbar">
         <div>
           <span className="success-check" aria-hidden="true">✓</span>
@@ -336,6 +332,20 @@ export default function PortfolioResultPage() {
       <PortfolioDocument
         content={content}
         markedProjectUrls={railOpen ? markedUrls : undefined}
+        aside={(
+          <FollowUpRail
+            portfolioId={portfolio.id}
+            questions={railQuestions}
+            projects={railProjects}
+            profile={{
+              displayName: content.profile.displayName,
+              avatarUrl: content.profile.avatarUrl,
+            }}
+            open={railOpen}
+            onClose={() => setRailChoice(false)}
+            onApplied={applyResult}
+          />
+        )}
       />
       {actionError ? (
         <div className="page-container">
@@ -346,19 +356,6 @@ export default function PortfolioResultPage() {
         <Link className="text-link" href="/dashboard">← {LABEL.dashboard}로 돌아가기</Link>
         <p>인쇄 화면에서 “PDF로 저장”을 고르면 A4 포트폴리오로 남길 수 있어요.</p>
       </div>
-      </div>
-      <FollowUpRail
-        portfolioId={portfolio.id}
-        questions={railQuestions}
-        projects={railProjects}
-        profile={{
-          displayName: content.profile.displayName,
-          avatarUrl: content.profile.avatarUrl,
-        }}
-        open={railOpen}
-        onClose={() => setRailChoice(false)}
-        onApplied={applyResult}
-      />
     </div>
   );
 }
