@@ -14,6 +14,7 @@ const root = new URL("..", import.meta.url).pathname;
 const read = (path) => readFileSync(root + path, "utf8");
 
 const rail = read("components/portfolio/FollowUpRail.tsx");
+const more = read("components/portfolio/MoreToWrite.tsx");
 const documentView = read("components/portfolio/PortfolioDocument.tsx");
 const preview = read("components/portfolio/PortfolioPreview.tsx");
 const resultPage = read("app/(dashboard)/portfolios/[portfolioId]/page.tsx");
@@ -76,12 +77,12 @@ test("카드는 담기고, 안쪽은 칠하지 않는다", () => {
   /* 두 번 잘못 갔던 자리다. 슬래브(전부 칠함)도, 맨살 텍스트(아무것도 안
      담김)도 아니다. 노션 댓글처럼 카드 하나가 담고, 안의 말풍선·입력에는
      색을 채우지 않는다 — 누가 한 말인지는 아바타와 이름 줄이 말한다. */
-  const rail = css.match(/\.follow-up-rail \{([^}]*)\}/u);
-  assert.ok(rail, ".follow-up-rail 규칙이 없어요");
-  assert.match(rail[1], /border-radius: 12px/u, "노션처럼 둥글지 않아요");
-  assert.match(rail[1], /background: var\(--paper\)/u, "카드가 담기지 않아요");
+  const card = css.match(/\.follow-up-rail,\s*\n\.follow-up-more \{([^}]*)\}/u);
+  assert.ok(card, "카드 규칙이 없어요");
+  assert.match(card[1], /border-radius: 12px/u, "노션처럼 둥글지 않아요");
+  assert.match(card[1], /background: var\(--paper\)/u, "카드가 담기지 않아요");
   // 이 앱의 오프셋 하드 섀도가 아니라 노션의 부드러운 그림자다.
-  assert.match(rail[1], /box-shadow: 0 4px 24px/u, "그림자가 카드답지 않아요");
+  assert.match(card[1], /box-shadow: 0 4px 24px/u, "그림자가 카드답지 않아요");
 
   /* 카드 안에서 칠해도 되는 것은 아바타 원, 전송 버튼, 그리고 ::before로
      긋는 1px 스레드 선뿐이다 — 노션도 그 셋만 칠한다. 말풍선·입력·로그에
@@ -89,7 +90,12 @@ test("카드는 담기고, 안쪽은 칠하지 않는다", () => {
   const offenders = [];
   for (const match of css.matchAll(/(\.follow-up-[a-z-]+[^{}]*)\{([^}]*)\}/gu)) {
     const selector = match[1].trim();
-    if (/^\.follow-up-rail$|follow-up-avatar|follow-up-send|::/u.test(selector)) continue;
+    /* 칠해도 되는 것은 카드 자체(대화·더 쓸 자리), 아바타 원, 전송 버튼,
+       그리고 ::before로 긋는 스레드 선뿐이다. 카드 둘이 규칙을 함께 쓰므로
+       쉼표로 묶인 선택자는 조각마다 본다. */
+    const parts = selector.split(",").map((part) => part.trim());
+    const card = (part) => /^\.follow-up-(rail|more)$/u.test(part);
+    if (parts.every(card) || /follow-up-avatar|follow-up-send|::/u.test(selector)) continue;
     const fill = match[2].match(/background(?:-color)?:\s*([^;]+)/u);
     if (fill && !/transparent|none/u.test(fill[1])) offenders.push(`${selector} → ${fill[1].trim()}`);
   }
@@ -111,7 +117,7 @@ test("카드가 이력서 오른쪽에 선다", () => {
      1560px을 넘으면 카드가 이력서 오른쪽을 덮었다. 칸을 나누면 종이가 자기
      칸 밖으로 나갈 수 없어 겹칠 방법이 사라진다. */
   const grid = css.match(
-    /@media screen and \(min-width: (\d+)px\) \{\s*\.portfolio-canvas-wrap:has\(\.follow-up-rail\) \{([^}]*)\}/u,
+    /@media screen and \(min-width: (\d+)px\) \{\s*\.portfolio-canvas-wrap:has\(\.follow-up-column\) \{([^}]*)\}/u,
   );
   assert.ok(grid, "캔버스를 두 칸으로 나누는 규칙이 없어요");
   assert.match(grid[2], /grid-template-columns:\s*minmax\(0, 1fr\) 336px/u, "칸이 둘이 아니에요");
@@ -120,9 +126,9 @@ test("카드가 이력서 오른쪽에 선다", () => {
      나란히 설 수 없다. */
   assert.ok(Number(grid[1]) >= 1194, `분기점 ${grid[1]}px에서는 종이와 카드가 안 들어가요`);
 
-  const rule = css.match(/\.follow-up-rail \{([^}]*)\}/u);
-  assert.ok(rule, ".follow-up-rail 규칙이 없어요");
-  assert.doesNotMatch(rule[1], /position: (?:sticky|fixed|absolute)/u, "칸 안에 서지 않아요");
+  const column = css.match(/\.follow-up-column \{([^}]*)\}/u);
+  assert.ok(column, ".follow-up-column 규칙이 없어요");
+  assert.doesNotMatch(column[1], /position: (?:sticky|fixed|absolute)/u, "칸 안에 서지 않아요");
 });
 
 test("인쇄를 폭 질의에 맡기지 않는다", () => {
@@ -130,7 +136,7 @@ test("인쇄를 폭 질의에 맡기지 않는다", () => {
      걸리지 않지만, 그 우연에 기대면 안 된다 — 미리보기와 인쇄가 어긋났던
      사고가 정확히 그 우연에서 나왔다. 카드는 인쇄에서 display: none이어도
      DOM에 남으므로 `:has()`는 계속 맞고, 종이에 336px 칸이 생긴다. */
-  const rule = new RegExp(String.raw`@media ([^{]*)\{\s*\.portfolio-canvas-wrap:has\(\.follow-up-rail\)`, "u");
+  const rule = new RegExp(String.raw`@media ([^{]*)\{\s*\.portfolio-canvas-wrap:has\(\.follow-up-column\)`, "u");
   const found = css.match(rule);
   assert.ok(found, "캔버스를 나누는 질의를 못 찾았어요");
   assert.match(found[1], /screen and/u, "인쇄를 명시적으로 배제하지 않아요");
@@ -143,7 +149,7 @@ test("칸을 나눠도 문서가 접히지 않는다", () => {
      폭 2px에 높이 19000px짜리 띠로 접혔다. */
   assert.match(
     css,
-    /:has\(\.follow-up-rail\) > \.portfolio-preview \{[^}]*width: 100%/u,
+    /:has\(\.follow-up-column\) > \.portfolio-preview \{[^}]*width: 100%/u,
     "칸 안에서 문서 폭을 되돌리지 않아요",
   );
   assert.match(css, /container: result \/ inline-size/u,
@@ -154,7 +160,7 @@ test("나란히 설 수 없으면 문서 아래로 내려온다", () => {
   /* 카드를 줄여서 억지로 옆에 두는 길도 있지만 그러면 대화가 읽히지 않는다. */
   assert.match(
     css,
-    /@media \(max-width: 1199px\) \{[\s\S]*?\.follow-up-rail \{[^}]*margin: var\(--space-6\) auto 0/u,
+    /@media \(max-width: 1199px\) \{[\s\S]*?\.follow-up-column \{[^}]*margin: var\(--space-6\) auto 0/u,
     "좁은 화면 폴백이 없어요",
   );
 });
@@ -282,7 +288,7 @@ test("빈 자리를 직접 열 수 있다", () => {
      대해 결정 묶음을 안 내면 그 프로젝트의 핵심 결정은 영영 빈 채로 남았다.
      답변에 "추가해줘"라고 써도 답은 그 질문의 자리 하나에만 반영된다. */
   assert.match(rail, /requestPortfolioQuestions/u, "자리를 여는 통로가 없어요");
-  assert.match(rail, /follow-up-open/u, "빈 자리를 내미는 자리가 없어요");
+  assert.match(more, /follow-up-more/u, "빈 자리를 내미는 자리가 없어요");
   assert.match(resultPage, /openSlots/u, "어느 자리가 비었는지 안 넘겨요");
 
   /* 이미 질문이 있는 자리는 대화가 물을 테니 또 내밀지 않는다. */
@@ -309,11 +315,11 @@ test("어느 결정을 쓸지 고를 수 있다", () => {
      싶은 결정이 아닐 수 있는데 바꿀 방법이 없었다. */
   assert.match(rail, /getDecisionCandidates/u, "후보를 안 물어봐요");
   assert.match(rail, /다른 결정으로/u, "이미 쓰인 결정을 바꿀 길이 없어요");
-  assert.match(rail, /replace: choosing\.replace/u, "바꿔 쓰기가 서버에 안 전해져요");
+  assert.match(more, /replace: choosing\.replace/u, "바꿔 쓰기가 서버에 안 전해져요");
 
   /* 후보가 없어도 막지 않는다. 근거가 남아 있지 않은 오래된 포트폴리오가
      있고, 후보를 못 뽑는 것과 결정을 못 쓰는 것은 다른 일이다. */
-  assert.match(rail, /직접 쓸래요/u, "후보가 없으면 길이 막혀요");
+  assert.match(more, /직접 쓸래요/u, "후보가 없으면 길이 막혀요");
   assert.match(rail, /candidates: \[\]/u, "후보를 못 불러오면 화면이 멈춰요");
 });
 
@@ -371,7 +377,8 @@ test("닫은 대화를 다시 열 수 있다", () => {
 });
 
 test("패널이 종이에 찍히지 않는다", () => {
-  assert.match(printBlock(), /\.follow-up-rail,/u, "패널이 인쇄에서 숨겨지지 않아요");
+  // 카드 둘이 한 칸에 서므로 칸째 숨긴다.
+  assert.match(printBlock(), /\.follow-up-column,/u, "패널이 인쇄에서 숨겨지지 않아요");
 });
 
 test("진행 표시를 반드시 되돌린다", () => {
