@@ -169,30 +169,53 @@ async function collectCommitDiff(
   return { title: commit.title, files };
 }
 
+type DatedCommit = { commit?: { author?: { date?: string } | null } };
+
 /**
- * 최초 커밋 시각을 찾는다.
+ * 본인 첫 커밋 시각을 찾는다. 기여 기간의 시작점이다.
  *
- * 목록은 최신순이라 손에 있는 것은 최근 커밋뿐이다. 페이지네이션 헤더가
- * 마지막 페이지를 알려주므로 그 한 장만 더 받는다. 커밋이 한 페이지에 다
- * 들어가면 헤더가 없고, 그때는 이미 받은 목록의 끝이 최초 커밋이다.
+ * 목록은 최신순이라 손에 있는 것은 최근 커밋뿐이다. 커밋이 한 페이지에 다
+ * 들어가는 저장소는 이미 받은 본인 커밋의 끝이 곧 첫 커밋이다.
+ *
+ * 더 큰 저장소에서는 author 필터로 좁혀 다시 묻는다. 예전에는 저장소 전체의
+ * 마지막 페이지를 받아 그 끝 커밋의 날짜를 썼는데, 팀 저장소에서는 그게
+ * 남이 시작한 날짜다 — "본인 기여 기간"의 시작으로 남의 첫 커밋이 문서에
+ * 박히고 있었다. per_page=1이면 rel=last의 페이지 번호가 곧 본인 커밋
+ * 총수이므로, 그 페이지 하나를 더 받으면 본인 첫 커밋이 나온다.
+ *
+ * author 필터는 GitHub 계정에 연결된 커밋만 잡는다. 이메일로만 매칭된
+ * 커밋(연결 안 된 주소)은 필터에 안 걸리므로, 못 찾으면 손에 있는 본인
+ * 커밋의 끝으로 물러선다 — 기간이 짧게 잡힐지언정 남의 날짜는 아니다.
  */
-async function findFirstCommitDate(
+async function findFirstOwnCommitDate(
   accessToken: string,
   fullName: string,
+  login: string,
   linkHeader: string | null,
-  loaded: CommitEntry[],
+  loadedOwn: CommitEntry[],
 ): Promise<string | null> {
-  const lastPage = lastPageOf(linkHeader);
-  if (!lastPage) return loaded.at(-1)?.date ?? null;
+  const fallback = loadedOwn.at(-1)?.date ?? null;
+  if (!lastPageOf(linkHeader) || !login) return fallback;
+
+  const author = encodeURIComponent(login);
+  const probe = await requestGitHub(accessToken, `/repos/${fullName}/commits?author=${author}&per_page=1`);
+  if (!probe.ok) return fallback;
+
+  const total = lastPageOf(probe.headers.get("link"));
+  if (!total) {
+    // 본인 커밋이 1개뿐이거나 author 필터에 하나도 안 걸린 경우.
+    // probe 응답이 그 1개일 수 있으니 먼저 읽어 본다.
+    const single = await probe.json() as DatedCommit[];
+    return single.at(-1)?.commit?.author?.date ?? fallback;
+  }
 
   const response = await requestGitHub(
     accessToken,
-    `/repos/${fullName}/commits?per_page=${MAX_ACTIVITY_ITEMS}&page=${lastPage}`,
+    `/repos/${fullName}/commits?author=${author}&per_page=1&page=${total}`,
   );
-  if (!response.ok) return loaded.at(-1)?.date ?? null;
-
-  const commits = await response.json() as Array<{ commit?: { author?: { date?: string } | null } }>;
-  return commits.at(-1)?.commit?.author?.date ?? loaded.at(-1)?.date ?? null;
+  if (!response.ok) return fallback;
+  const commits = await response.json() as DatedCommit[];
+  return commits.at(-1)?.commit?.author?.date ?? fallback;
 }
 
 async function collectRepositoryEvidence(
@@ -285,9 +308,10 @@ async function collectRepositoryEvidence(
         .map((commit) => collectCommitDiff(accessToken, repository.fullName, commit)),
     ),
     ownCommitEntries.length > 0
-      ? findFirstCommitDate(
+      ? findFirstOwnCommitDate(
           accessToken,
           repository.fullName,
+          login,
           commitsResponse.headers.get("link"),
           ownCommitEntries,
         )

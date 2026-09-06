@@ -86,8 +86,14 @@ export default function PortfolioResultPage() {
   );
   const openQuestions = (rewritten?.questions ?? portfolio.questions)
     .filter((question) => !question.answer);
-  const applyResult = (result: PortfolioStatementResultDto) =>
+  const applyResult = (result: PortfolioStatementResultDto) => {
     setRewritten({ content: result.content, questions: result.questions });
+    /* 대화가 시작됐으면 사용자가 직접 닫기 전까지 열어 둔다. 이게 없으면
+       railOpen의 기본값이 "남은 질문이 있는가"에서 매번 다시 계산돼, 마지막
+       답이 반영되는 순간 패널이 대화 도중 사라진다 — 마무리 인사도, 무엇이
+       반영됐다는 알림도 못 본 채로. */
+    setRailChoice((choice) => choice ?? true);
+  };
 
   const content = rewritten?.content ?? portfolio.content;
   /* 대화창이 질문을 문서 순서로 묻도록 여기서 정렬한다. 목록 순서를 그대로
