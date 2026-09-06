@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   PORTFOLIO_ANSWER_MAX_LENGTH,
   type PortfolioQuestionDto,
+  type PortfolioQuestionSlot,
+  type PortfolioSkipReason,
   type PortfolioStatementResultDto,
 } from "@/contracts/api-contract";
 import { ApiClientError, apiClient } from "@/lib/api-client";
@@ -57,8 +59,10 @@ type TurnResult =
   /** 서버에 보내는 중. 모델 호출이라 몇 초씩 걸린다. */
   | { kind: "writing"; target: string }
   | { kind: "changed"; changes: RewriteChange[] }
-  /** 반영할 문장이 나오지 않았다. */
-  | { kind: "unchanged"; answerHadNumber: boolean }
+  /** 반영할 문장이 나오지 않았다. 이유는 서버가 알려준다. */
+  | { kind: "unchanged"; reason: PortfolioSkipReason }
+  /** 빈 자리를 여는 중. */
+  | { kind: "opening" }
   | { kind: "skipped"; decision: boolean };
 
 export type RailProject = {
@@ -66,6 +70,28 @@ export type RailProject = {
   url: string;
   name: string;
   title: string;
+  /**
+   * 아직 비어 있고 물어볼 질문도 없는 자리.
+   *
+   * 되묻기 질문은 포트폴리오를 만들 때 한 번 생긴다. 모델이 어떤 저장소에
+   * 대해 결정 묶음을 안 내면 그 프로젝트의 핵심 결정은 영영 빈 채로 남았다.
+   * 여기 담긴 자리를 지원자가 직접 연다.
+   */
+  openSlots: PortfolioQuestionSlot[];
+};
+
+const SLOT_ASK_LABEL: Record<PortfolioQuestionSlot, string> = {
+  keyDecision: "핵심 결정",
+  highlights: "강조",
+};
+
+/** 안 바뀐 이유를 사람 말로. 사용자를 탓하지 않고 무슨 일이 있었는지 말한다. */
+const SKIP_MESSAGE: Record<PortfolioSkipReason, string> = {
+  empty: "답에서 이 자리에 쓸 문장을 만들지 못했어요. 있었던 일을 조금 더 적어주시면 반영할 수 있어요.",
+  same: "이미 그렇게 쓰여 있어서 문서는 그대로예요.",
+  incomplete: "결정은 문제·선택·결과가 다 있어야 문서에 들어가요. 빠진 조각을 채워주세요.",
+  numbers: "저장소 근거에 없는 숫자가 있어 그 문장을 걷어냈어요. 숫자 없이 있었던 일로 다시 적어주시면 그대로 들어가요.",
+  unavailable: "이 자리를 반영하지 못했어요. 다시 답하기로 한 번 더 보내주세요.",
 };
 
 /** 답하는 사람. 말풍선의 아바타와 이름 줄에 쓴다. */
@@ -85,6 +111,23 @@ function findProjectBlock(url: string): HTMLElement | null {
   return [...candidates].find((element) => !element.closest(".portfolio-pages-measure")) ?? null;
 }
 
+/**
+ * 이번에 보낸 자리들의 사유 중 하나를 고른다.
+ *
+ * 결정은 세 조각을 함께 보내므로 사유도 셋이 오는데, 셋은 늘 같은 이유다 —
+ * 결정은 통째로 반영되거나 통째로 버려진다. 하나만 말하면 충분하다.
+ */
+function reasonFor(
+  result: PortfolioStatementResultDto,
+  batch: Array<{ questionId: string }>,
+): PortfolioSkipReason {
+  void batch;
+  /* 근거에 없는 숫자를 가장 앞에 둔다. 사용자가 스스로 알아낼 수 없는 유일한
+     이유이고, 무엇을 고쳐야 하는지도 그 문구만 정확히 말해준다. */
+  const numbers = result.skippedFields.find((field) => field.reason === "numbers");
+  return numbers?.reason ?? result.skippedFields[0]?.reason ?? "empty";
+}
+
 /** 같은 결정에 속한 질문인지. 셋이 모여야 문서에 들어간다. */
 function sameDecision(a: PortfolioQuestionDto, b: PortfolioQuestionDto): boolean {
   return Boolean(a.topic) && a.topic === b.topic && a.repositoryName === b.repositoryName;
@@ -98,6 +141,7 @@ export function FollowUpRail({
   open,
   onClose,
   onApplied,
+  onQuestionsAdded,
 }: {
   portfolioId: string;
   /** 답한 것과 아직 답하지 않은 것 모두. 답한 것은 지난 대화로 보여준다. */
@@ -116,11 +160,16 @@ export function FollowUpRail({
    * 결과인지도 호출한 쪽이 그대로 안다.
    */
   onApplied: (result: PortfolioStatementResultDto) => RewriteChange[];
+  /**
+   * 지원자가 연 자리의 질문. 화면의 질문 목록도 함께 갱신해야 툴바 개수와
+   * 문서 표시가 맞는다.
+   */
+  onQuestionsAdded: (questions: PortfolioQuestionDto[]) => void;
 }) {
   /* 대화 순서를 열 때 한 번 정하고 그대로 쓴다. 답한 것도 함께 담는다.
      답할 때마다 다시 계산하면 방금 답한 질문이 목록에서 빠지면서 자리가
      밀려, 다음 질문 하나가 통째로 건너뛰어진다. */
-  const [timeline] = useState(() => questions);
+  const [timeline, setTimeline] = useState(() => questions);
   /* 화면에 보이는 답의 단일 출처. 서버가 준 답으로 씨를 뿌리고 이 자리에서
      갱신한다. 고쳐 쓰기가 가능하려면 답이 한 곳에 모여 있어야 한다. */
   const [answers, setAnswers] = useState<Record<string, string>>(() =>
@@ -135,6 +184,8 @@ export function FollowUpRail({
   /** 턴마다의 진행과 결과. 답한 말풍선 아래에 그대로 붙는다. */
   const [results, setResults] = useState<Record<string, TurnResult>>({});
   const [submitting, setSubmitting] = useState(false);
+  /** 지금 여는 중인 자리. 두 번 눌러 두 벌이 생기는 것을 막는다. */
+  const [opening, setOpening] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -164,6 +215,17 @@ export function FollowUpRail({
 
   const projectOf = (question: PortfolioQuestionDto) =>
     projects.find((project) => project.name === question.repositoryName) ?? null;
+
+  /* 아직 질문이 없는 빈 자리만 남긴다. 이미 질문이 있으면 대화가 그것을
+     물을 테니 여기 또 내밀 이유가 없다. */
+  const asked = new Set(timeline.map((question) => `${question.repositoryName} ${question.field}`));
+  const openable = projects.flatMap((project) =>
+    project.openSlots
+      .filter((slot) => (slot === "keyDecision"
+        ? !asked.has(`${project.name} decisionProblem`)
+        : !asked.has(`${project.name} highlights`)))
+      .map((slot) => ({ project, slot })),
+  );
 
   /** 같은 결정에 속한 질문 전부. 셋이 한 덩어리다. */
   const groupOf = (question: PortfolioQuestionDto) =>
@@ -252,10 +314,10 @@ export function FollowUpRail({
         ...previous,
         [current.id]: changes.length > 0
           ? { kind: "changed", changes }
-          /* 답은 저장됐다. 문장이 안 나온 이유는 응답만으로 가릴 수 없다 —
-             모델이 못 살렸을 수도, 수치 검증이 근거에 없는 숫자를 지웠을
-             수도 있다. 사용자를 탓하는 대신 규칙을 말한다. */
-          : { kind: "unchanged", answerHadNumber: /\d/u.test(text) },
+          /* 이유는 서버가 안다. 예전에는 답에 숫자가 있으면 규칙을 덧붙이는
+             추측이었고, 실제 원인이 다른 것이었을 때 사용자는 될 때까지 같은
+             답을 고쳐 쓰게 됐다. */
+          : { kind: "unchanged", reason: reasonFor(result, batch) },
       }));
     } catch (caught) {
       /* 근거가 사라진 결과는 다시 시도해도 되지 않는다. 같은 문구로 뭉뚱그리면
@@ -275,6 +337,45 @@ export function FollowUpRail({
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  /**
+   * 초안이 비워둔 자리를 연다.
+   *
+   * 새로 생긴 질문을 **지금 묻는 자리에** 끼워 넣는다. 맨 뒤에 붙이면 남은
+   * 질문을 다 답해야 자기가 연 질문에 닿는데, 그 자리를 채우려고 누른
+   * 사람에게는 그게 곧 "안 열렸다"이다.
+   */
+  const openSlot = async (project: RailProject, slot: PortfolioQuestionSlot) => {
+    if (opening || submitting) return;
+    setOpening(`${project.name} ${slot}`);
+    setError(null);
+    try {
+      const all = await apiClient.requestPortfolioQuestions(portfolioId, {
+        repositoryName: project.name,
+        slot,
+      });
+      const known = new Set(timeline.map((question) => question.id));
+      const added = all.filter((question) => !known.has(question.id));
+      onQuestionsAdded(all);
+      if (added.length === 0) return;
+
+      setTimeline((previous) => {
+        const at = previous.findIndex(
+          (question) => !answers[question.id] && !skipped[question.id],
+        );
+        const cut = at === -1 ? previous.length : at;
+        return [...previous.slice(0, cut), ...added, ...previous.slice(cut)];
+      });
+    } catch (caught) {
+      setError(
+        caught instanceof ApiClientError && caught.code === "SLOT_ALREADY_FILLED"
+          ? "이 자리는 이미 채워져 있어요. 고치시려면 문서의 그 자리에 대한 질문에 다시 답해주세요."
+          : "질문을 열지 못했어요. 잠시 후 다시 시도해주세요.",
+      );
+    } finally {
+      setOpening(null);
     }
   };
 
@@ -357,6 +458,27 @@ export function FollowUpRail({
         {error ? <p className="inline-error" role="alert">{error}</p> : null}
         <div ref={endRef} />
       </div>
+
+      {/* 비어 있는데 물어볼 질문도 없는 자리. 여기가 없으면 초안이 비워둔
+          핵심 결정을 지원자가 채울 방법이 영영 없다 — 답변에 "추가해줘"라고
+          써도 답은 그 질문의 자리 하나에만 반영된다. */}
+      {openable.length > 0 ? (
+        <div className="follow-up-open">
+          <p>빈 자리 채우기</p>
+          <div>
+            {openable.map(({ project, slot }) => (
+              <button
+                key={`${project.name} ${slot}`}
+                type="button"
+                aria-disabled={opening !== null || submitting}
+                onClick={() => void openSlot(project, slot)}
+              >
+                {project.title} · {SLOT_ASK_LABEL[slot]}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* 회신 줄. 노션처럼 알약형 입력 안에 원형 전송 버튼을 둔다.
           아이콘이라 문구 스왑이 없어 전송 중에도 폭이 흔들리지 않는다. */}
@@ -501,13 +623,22 @@ function Applied({ result, onShow }: { result: TurnResult; onShow: (url: string)
     );
   }
 
-  if (result.kind === "unchanged") {
+  if (result.kind === "opening") {
     return (
       <p className="follow-up-status" role="status">
-        답은 저장했는데 문서에 넣을 문장이 나오지 않았어요.
-        {result.answerHadNumber
-          ? " 저장소 근거에 없는 숫자는 문서에 쓰지 않아요 — 숫자 없이 있었던 일로 다시 답해보실래요?"
-          : " 다시 답하기로 조금 더 적어주시면 반영할 수 있어요."}
+        <span className="loading-mark-inline" aria-hidden="true" />
+        질문을 여는 중…
+      </p>
+    );
+  }
+
+  if (result.kind === "unchanged") {
+    /* 답은 저장됐다. 안 바뀐 이유는 서버가 알려준 것을 그대로 옮긴다 —
+       예전에는 "조금 더 구체적으로 적어주시면"이라는 추측이었고, 실제 원인이
+       달랐을 때 사용자는 될 때까지 같은 답을 고쳐 쓰게 됐다. */
+    return (
+      <p className="follow-up-status" role="status">
+        답은 저장했어요. {SKIP_MESSAGE[result.reason]}
       </p>
     );
   }

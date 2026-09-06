@@ -25,7 +25,9 @@ import {
   type PortfolioListDto,
   type PortfolioAnswerInput,
   type PortfolioShareDto,
+  type PortfolioQuestionDto,
   type PortfolioStatementResultDto,
+  type RequestPortfolioQuestionsRequest,
   type PublicPortfolioDto,
   type RepositoryListDto,
   type RepositoryListQuery,
@@ -260,6 +262,15 @@ export class HttpApiClient implements ApiClient {
       await request<PortfolioStatementResultDto>(API_ROUTES.portfolioStatements(portfolioId), {
         method: "POST",
         body: JSON.stringify({ answers }),
+      })
+    ).data;
+  }
+
+  async requestPortfolioQuestions(portfolioId: string, body: RequestPortfolioQuestionsRequest) {
+    return (
+      await request<PortfolioQuestionDto[]>(API_ROUTES.portfolioQuestions(portfolioId), {
+        method: "POST",
+        body: JSON.stringify(body),
       })
     ).data;
   }

@@ -22,7 +22,9 @@ import type {
   PortfolioListDto,
   PortfolioAnswerInput,
   PortfolioShareDto,
+  PortfolioQuestionDto,
   PortfolioStatementResultDto,
+  RequestPortfolioQuestionsRequest,
   PublicPortfolioDto,
   RepositoryListDto,
   RepositoryListQuery,
@@ -64,6 +66,14 @@ export interface ApiClient {
     portfolioId: string,
     answers: PortfolioAnswerInput[],
   ): Promise<PortfolioStatementResultDto>;
+  /**
+   * 초안이 비워둔 자리에 대한 질문을 만든다. 그 포트폴리오의 질문 전체를
+   * 돌려준다. 모델을 부르지 않아 크레딧을 쓰지 않고 즉시 열린다.
+   */
+  requestPortfolioQuestions(
+    portfolioId: string,
+    request: RequestPortfolioQuestionsRequest,
+  ): Promise<PortfolioQuestionDto[]>;
   /** 인증 없이 조회하는 공개 포트폴리오. */
   getPublicPortfolio(slug: string): Promise<PublicPortfolioDto>;
   getCredits(): Promise<CreditSummaryDto>;

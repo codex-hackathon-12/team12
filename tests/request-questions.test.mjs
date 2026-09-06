@@ -14,6 +14,9 @@ import test from "node:test";
 const { isOpenSlot } = await import(
   new URL("../server/portfolio/request-questions.ts", import.meta.url)
 );
+const { buildRequestedQuestions } = await import(
+  new URL("../server/portfolio/questions.ts", import.meta.url)
+);
 
 const root = new URL("..", import.meta.url).pathname;
 const read = (path) => readFileSync(root + path, "utf8");
@@ -72,4 +75,22 @@ test("오류 코드 목록을 한 곳에서만 정한다", () => {
   const http = read("server/http.ts");
   assert.match(http, /import type \{ ApiErrorCode \} from "@\/contracts\/api-contract"/u);
   assert.doesNotMatch(http, /type ApiErrorCode =/u, "오류 코드 목록이 다시 복제됐어요");
+});
+
+test("목이 서버와 같은 질문을 낸다", () => {
+  /* 목은 서버 모듈을 가져올 수 없다 — 가져오면 서버 코드가 화면 번들에
+     실린다. 그래서 문구를 각자 적는데, 그러면 로컬에서 보고 고친 화면과
+     배포된 화면이 달라진다. 여기서 둘을 묶어둔다.
+
+     제목 자리는 목에서 템플릿이라 그 모양 그대로 넣어 비교한다. */
+  const mock = read("lib/api-client/adapters/mock/index.ts");
+  const made = [
+    ...buildRequestedQuestions("keyDecision", "ledger-sync", "${project.title}"),
+    ...buildRequestedQuestions("highlights", "ledger-sync", "${project.title}"),
+  ];
+
+  for (const item of made) {
+    assert.ok(mock.includes(item.question), `목에 없는 문구예요:\n  ${item.question}`);
+    if (item.topic) assert.ok(mock.includes(item.topic), `목의 topic이 달라요: ${item.topic}`);
+  }
 });
