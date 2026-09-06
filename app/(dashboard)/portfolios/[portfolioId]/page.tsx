@@ -6,9 +6,11 @@ import { useState } from "react";
 import type {
   PortfolioContentDto,
   PortfolioQuestionDto,
+  PortfolioQuestionSlot,
   PortfolioShareDto,
   PortfolioStatementResultDto,
 } from "@/contracts/api-contract";
+import { PORTFOLIO_HIGHLIGHT_SLOTS } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -118,7 +120,14 @@ export default function PortfolioResultPage() {
      쓰면 프로젝트를 오가며 물어 어느 이야기인지 좇기 어렵다. */
   const railProjects: RailProject[] = content.projects.flatMap((project) => {
     const name = repositoryNameByUrl.get(project.repositoryUrl);
-    return name ? [{ url: project.repositoryUrl, name, title: project.title }] : [];
+    if (!name) return [];
+    /* 아직 비어 있는 자리. 초안이 채우지 못한 곳을 지원자가 직접 열 수 있게
+       카드에 넘긴다. 채워진 자리를 열면 답해도 병합이 버려 아무것도 안
+       바뀌므로, 서버와 같은 판단을 화면도 한다. */
+    const openSlots: PortfolioQuestionSlot[] = [];
+    if (!project.keyDecision.headline.trim()) openSlots.push("keyDecision");
+    if (project.highlights.length < PORTFOLIO_HIGHLIGHT_SLOTS) openSlots.push("highlights");
+    return [{ url: project.repositoryUrl, name, title: project.title, openSlots }];
   });
   const order = new Map(railProjects.map((project, index) => [project.name, index]));
   const railQuestions = [...(rewritten?.questions ?? portfolio.questions)].sort(
@@ -363,6 +372,10 @@ export default function PortfolioResultPage() {
             open={railOpen}
             onClose={() => setRailChoice(false)}
             onApplied={applyResult}
+          onQuestionsAdded={(added) => setRewritten((previous) => ({
+            content: previous?.content ?? content,
+            questions: added,
+          }))}
           />
         )}
       />

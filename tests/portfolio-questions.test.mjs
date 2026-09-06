@@ -8,9 +8,12 @@ import test from "node:test";
  * 걸린 실패는 전부 "사용자가 답을 다 쓴 뒤에야 드러나는" 종류다.
  */
 
-const { selectFollowUpQuestions, MAX_QUESTIONS, MAX_SINGLE_QUESTIONS_PER_PROJECT } = await import(
-  new URL("../server/portfolio/questions.ts", import.meta.url)
-);
+const {
+  selectFollowUpQuestions,
+  buildRequestedQuestions,
+  MAX_QUESTIONS,
+  MAX_SINGLE_QUESTIONS_PER_PROJECT,
+} = await import(new URL("../server/portfolio/questions.ts", import.meta.url));
 
 function target(overrides = {}) {
   return {
@@ -156,4 +159,58 @@ test("답할 수 없는 질문을 걸러낸다", () => {
     [target()],
   );
   assert.deepEqual(results, []);
+});
+
+/**
+ * 지원자가 직접 연 자리.
+ *
+ * 모델이 결정 묶음을 안 내면 그 프로젝트의 핵심 결정은 영영 빈 채로 남았다.
+ * 여기 걸린 것은 그 통로가 열려 있는지, 그리고 열면서 앞에서 막아둔 실패를
+ * 되살리지 않는지를 지킨다.
+ */
+
+test("직접 연 결정은 세 조각이 함께 나온다", () => {
+  const made = buildRequestedQuestions("keyDecision", "portfolio-api", "포트폴리오 생성 API");
+  assert.deepEqual(
+    made.map((item) => item.field),
+    ["decisionProblem", "decisionApproach", "decisionOutcome"],
+    "결정이 세 조각으로 안 나와요",
+  );
+
+  /* 하나씩 열면 반쪽짜리 결정이 생기고, 그건 답해도 문서에 안 들어간다.
+     같은 topic을 공유해야 화면에서도 한 묶음으로 묶인다. */
+  const topics = new Set(made.map((item) => item.topic));
+  assert.equal(topics.size, 1, "조각마다 topic이 달라요");
+  assert.ok([...topics][0], "topic이 비어 있으면 묶이지 않아요");
+});
+
+test("어느 프로젝트를 묻는지 질문 안에서 완결된다", () => {
+  /* 대화가 프로젝트를 오간다. 제목이 없으면 "가장 판단이 필요했던 선택"이
+     어느 프로젝트 이야기인지 알 수 없다. */
+  const [first] = buildRequestedQuestions("keyDecision", "portfolio-api", "포트폴리오 생성 API");
+  assert.match(first.question, /포트폴리오 생성 API/u, "질문에 프로젝트가 안 보여요");
+
+  const [highlight] = buildRequestedQuestions("highlights", "portfolio-api", "포트폴리오 생성 API");
+  assert.match(highlight.question, /포트폴리오 생성 API/u);
+});
+
+test("강조는 낱개라 topic이 없다", () => {
+  const made = buildRequestedQuestions("highlights", "portfolio-api", "포트폴리오 생성 API");
+  assert.equal(made.length, 1);
+  assert.equal(made[0].field, "highlights");
+  // topic이 있으면 묶을 상대가 없는데도 결정처럼 묶이려 한다.
+  assert.equal(made[0].topic, null);
+});
+
+test("직접 연 질문도 답할 수 있는 길이다", () => {
+  /* 모델이 낸 질문에 걸리는 길이 제한과 같은 기준을 스스로도 지킨다.
+     너무 짧으면 무엇을 묻는지 모르고, 너무 길면 카드에서 읽히지 않는다. */
+  const made = [
+    ...buildRequestedQuestions("keyDecision", "a", "아주 긴 프로젝트 제목을 가진 서비스"),
+    ...buildRequestedQuestions("highlights", "a", "아주 긴 프로젝트 제목을 가진 서비스"),
+  ];
+  for (const item of made) {
+    assert.ok(item.question.length >= 8, `너무 짧아요: ${item.question}`);
+    assert.ok(item.question.length <= 120, `너무 길어요(${item.question.length}자): ${item.question}`);
+  }
 });

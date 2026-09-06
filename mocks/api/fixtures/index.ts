@@ -138,6 +138,28 @@ export const mockRepositories = [
     pushedAt: "2026-07-28T17:31:00.000Z",
     syncedAt: now,
   },
+  /* 결과 문서의 세 번째 프로젝트가 가리키는 저장소. 이게 없어서 문서에는
+     Ledger Sync가 보이는데 되묻기 패널은 그 프로젝트를 찾지 못했다 —
+     질문도 표시도 그 프로젝트에는 붙을 수 없었다. */
+  {
+    id: "repo_ledger",
+    githubRepositoryId: "883725",
+    owner: {
+      username: "frontend-builder",
+      avatarUrl: "https://avatars.githubusercontent.com/u/9919",
+    },
+    name: "ledger-sync",
+    fullName: "frontend-builder/ledger-sync",
+    description: "여러 은행 API에서 거래 내역을 모아 하나의 장부로 맞추는 배치",
+    htmlUrl: "https://github.com/frontend-builder/ledger-sync",
+    defaultBranch: "main",
+    primaryLanguage: "TypeScript",
+    visibility: "private",
+    starCount: 4,
+    forkCount: 0,
+    pushedAt: "2026-02-19T11:05:00.000Z",
+    syncedAt: now,
+  },
 ] satisfies GitRepositoryDto[];
 
 export const mockPortfolioContent = {
@@ -329,7 +351,9 @@ export const mockPortfolio = {
   createdAt: "2026-08-16T04:03:00.000Z",
   generationJobId: "job_demo",
   repository: mockRepositories[0],
-  repositories: [mockRepositories[0], mockRepositories[1]],
+  /* 문서의 프로젝트 셋과 같은 저장소 셋이다. 예전에는 둘만 담아서, 세 번째
+     프로젝트는 문서에 그려지는데 이름으로 이을 수 없었다. */
+  repositories: [mockRepositories[0], mockRepositories[1], mockRepositories[4]],
   style: "default",
   content: mockPortfolioContent,
   questions: mockPortfolioQuestions,

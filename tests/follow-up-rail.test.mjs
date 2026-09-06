@@ -277,6 +277,44 @@ test("문서 표시가 종이에 찍히지 않는다", () => {
   assert.match(print, /\.result-block-changed,?[\s\S]{0,80}outline: 0/u, "표시가 남아 있어요");
 });
 
+test("빈 자리를 직접 열 수 있다", () => {
+  /* 되묻기 질문은 포트폴리오를 만들 때 한 번 생긴다. 모델이 어떤 저장소에
+     대해 결정 묶음을 안 내면 그 프로젝트의 핵심 결정은 영영 빈 채로 남았다.
+     답변에 "추가해줘"라고 써도 답은 그 질문의 자리 하나에만 반영된다. */
+  assert.match(rail, /requestPortfolioQuestions/u, "자리를 여는 통로가 없어요");
+  assert.match(rail, /follow-up-open/u, "빈 자리를 내미는 자리가 없어요");
+  assert.match(resultPage, /openSlots/u, "어느 자리가 비었는지 안 넘겨요");
+
+  /* 이미 질문이 있는 자리는 대화가 물을 테니 또 내밀지 않는다. */
+  assert.match(rail, /const asked = new Set\(timeline\.map/u, "이미 물은 자리를 걸러내지 않아요");
+});
+
+test("연 질문이 지금 자리에 들어간다", () => {
+  /* 맨 뒤에 붙이면 남은 질문을 다 답해야 자기가 연 질문에 닿는다. 그 자리를
+     채우려고 누른 사람에게는 그게 곧 "안 열렸다"이다. */
+  assert.match(rail, /setTimeline\(\(previous\) => \{/u, "대화 순서에 못 끼워 넣어요");
+  assert.match(rail, /previous\.slice\(0, cut\), \.\.\.added/u, "새 질문을 맨 뒤에 붙여요");
+});
+
+test("한 프로젝트의 상한을 계약에서 가져온다", () => {
+  /* 화면은 이 수보다 적을 때만 "강조 더 쓰기"를 내밀고 서버는 같은 조건으로
+     자리를 열어준다. 두 곳에 따로 적으면 상한을 바꿀 때 한쪽만 남아 버튼이
+     안 뜨거나 눌러도 거절당한다. */
+  assert.match(resultPage, /PORTFOLIO_HIGHLIGHT_SLOTS/u);
+  assert.doesNotMatch(resultPage, /highlights\.length < \d/u, "숫자를 직접 적었어요");
+});
+
+test("안 바뀐 이유를 추측하지 않는다", () => {
+  /* 예전에는 답에 숫자가 있으면 규칙을 덧붙이는 추측이었다. 실제 원인이
+     달랐을 때 사용자는 될 때까지 같은 답을 고쳐 쓰게 된다. */
+  assert.doesNotMatch(rail, /answerHadNumber/u, "추측이 남아 있어요");
+  assert.match(rail, /SKIP_MESSAGE\[result\.reason\]/u, "서버가 준 이유를 안 써요");
+  // 사유마다 문구가 다 있어야 한다. 하나라도 빠지면 그 경우에 빈칸이 나온다.
+  for (const reason of ["empty", "same", "incomplete", "numbers", "unavailable"]) {
+    assert.match(rail, new RegExp(`${reason}:`, "u"), `${reason} 문구가 없어요`);
+  }
+});
+
 test("한글을 쓰는 중에 Enter로 보내지 않는다", () => {
   /* 조합 중의 Enter는 글자를 확정하는 키다. 그때 보내면 쓰던 글자가 잘린
      채로 나간다. */

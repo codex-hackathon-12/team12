@@ -1,4 +1,8 @@
-import type { PortfolioContentDto, PortfolioStatementField } from "@/contracts/api-contract";
+import type {
+  PortfolioContentDto,
+  PortfolioSkipReason,
+  PortfolioStatementField,
+} from "@/contracts/api-contract";
 import { CONTENT_LIMITS, TEXT_LIMITS, clampText, clampTextArray } from "@/server/portfolio/content-limits";
 
 /**
@@ -58,10 +62,20 @@ export type ProjectRewrite = {
   };
 };
 
+/**
+ * 답했는데 바뀌지 않은 자리와 그 이유.
+ *
+ * 왜 버렸는지는 여기서만 알 수 있다. 화면에 넘기지 않으면 안내가 "조금 더
+ * 구체적으로 적어주시면"이라는 추측이 되고, 실제 원인이 다른 것이었을 때
+ * 사용자는 될 때까지 같은 답을 고쳐 쓰게 된다.
+ */
+export type RewriteSkip = RewriteSlot & { reason: PortfolioSkipReason };
+
 export type RewriteResult = {
   content: PortfolioContentDto;
   /** 실제로 값이 바뀐 자리. 모델이 빈 값이나 같은 값을 돌려준 자리는 빠진다. */
   updatedFields: RewriteSlot[];
+  skippedFields: RewriteSkip[];
 };
 
 function cleanHighlights(value: unknown): string[] {
@@ -125,33 +139,63 @@ export function applyRewrite(
   const byName = new Map(rewrites.map((rewrite) => [rewrite.repositoryName, rewrite]));
   const projects = [...content.projects];
   const updatedFields: RewriteSlot[] = [];
+  const skippedFields: RewriteSkip[] = [];
+  const skip = (slot: RewriteSlot, reason: PortfolioSkipReason) => {
+    skippedFields.push({ ...slot, reason });
+  };
 
   /* 답이 있는 자리만 돈다. 모델 응답을 순회하지 않는 것이 핵심이다.
      응답을 순회하면 요청하지 않은 자리가 섞여 들어올 통로가 생긴다. */
   for (const slot of slots) {
     const rewrite = byName.get(slot.repositoryName);
-    if (!rewrite) continue;
+    if (!rewrite) {
+      skip(slot, "unavailable");
+      continue;
+    }
 
     const index = findProjectIndex(content, slot.repositoryName, urlByName);
-    if (index === -1) continue;
+    if (index === -1) {
+      skip(slot, "unavailable");
+      continue;
+    }
 
     const project = projects[index];
 
     if (slot.field === "role") {
       const role = typeof rewrite.role === "string" ? clampText(rewrite.role.trim(), 60) : "";
       // 빈 값은 "근거가 없어 못 썼다"는 뜻이다. 기존 표현을 지우지 않는다.
-      if (!role || role === project.role) continue;
+      if (!role) {
+        skip(slot, "empty");
+        continue;
+      }
+      if (role === project.role) {
+        skip(slot, "same");
+        continue;
+      }
       projects[index] = { ...project, role };
     } else if (slot.field === "highlights") {
       const value = cleanHighlights(rewrite.highlights);
-      if (value.length === 0 || sameArray(value, project.highlights)) continue;
+      if (value.length === 0) {
+        skip(slot, "empty");
+        continue;
+      }
+      if (sameArray(value, project.highlights)) {
+        skip(slot, "same");
+        continue;
+      }
       projects[index] = { ...project, highlights: value };
     } else {
       /* 결정 세 조각은 하나의 값이다. 슬롯이 셋이어도 결정은 한 번만 쓴다 —
          같은 값을 세 번 덮어쓰면 두 번째부터는 "바뀐 것"으로 세어져, 화면이
          실제보다 많이 바뀌었다고 말하게 된다. */
       const decision = cleanDecision(rewrite.keyDecision);
-      if (!decision) continue;
+      /* 네 값 중 하나라도 비면 결정을 통째로 버린다. 답한 사람에게는
+         "셋이 다 있어야 한다"가 아니라 "아무 일도 안 일어났다"로 보이므로
+         사유를 남긴다. */
+      if (!decision) {
+        skip(slot, "incomplete");
+        continue;
+      }
       if (projects[index].keyDecision.headline !== decision.headline
         || projects[index].keyDecision.problem !== decision.problem
         || projects[index].keyDecision.approach !== decision.approach
@@ -163,6 +207,7 @@ export function applyRewrite(
         updatedFields.push(slot);
         continue;
       } else {
+        skip(slot, "same");
         continue;
       }
     }
@@ -171,9 +216,9 @@ export function applyRewrite(
   }
 
   if (updatedFields.length === 0) {
-    return { content, updatedFields };
+    return { content, updatedFields, skippedFields };
   }
 
   // 프로젝트 배열 외에는 원본을 그대로 넘긴다. 참조까지 같다.
-  return { content: { ...content, projects }, updatedFields };
+  return { content: { ...content, projects }, updatedFields, skippedFields };
 }

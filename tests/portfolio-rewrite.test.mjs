@@ -217,3 +217,70 @@ test("근거에 없는 저장소 이름은 무시한다", () => {
   assert.deepEqual(updatedFields, []);
   assert.equal(after, before);
 });
+
+/**
+ * 안 바뀐 이유.
+ *
+ * 서버는 왜 버렸는지 알고 있었지만 화면에 넘기지 않았다. 그래서 안내가
+ * "조금 더 구체적으로 적어주시면"이라는 추측으로 남았고, 사용자는 원인을
+ * 모른 채 같은 답을 고쳐 쓰게 됐다.
+ */
+
+test("빈 값과 같은 값은 이유가 다르다", () => {
+  const base = content();
+  const empty = applyRewrite(base, [rewrite({ role: "" })], [{ repositoryName: "portfolio-api", field: "role" }], URL_BY_NAME);
+  assert.deepEqual(empty.skippedFields, [
+    { repositoryName: "portfolio-api", field: "role", reason: "empty" },
+  ]);
+
+  const same = applyRewrite(
+    base,
+    [rewrite({ role: base.projects[0].role })],
+    [{ repositoryName: "portfolio-api", field: "role" }],
+    URL_BY_NAME,
+  );
+  assert.deepEqual(same.skippedFields, [
+    { repositoryName: "portfolio-api", field: "role", reason: "same" },
+  ]);
+});
+
+test("반쪽짜리 결정은 incomplete로 남는다", () => {
+  /* 네 값 중 하나가 비면 결정을 통째로 버린다. 답한 사람에게는 "셋이 다
+     있어야 한다"가 아니라 "아무 일도 안 일어났다"로 보인다. */
+  const result = applyRewrite(
+    content(),
+    [rewrite({ keyDecision: { ...FILLED_DECISION, outcome: "" } })],
+    DECISION_SLOTS,
+    URL_BY_NAME,
+  );
+  assert.deepEqual(result.updatedFields, []);
+  assert.deepEqual(
+    result.skippedFields.map((item) => item.reason),
+    ["incomplete", "incomplete", "incomplete"],
+  );
+});
+
+test("모델이 안 돌려준 저장소는 unavailable이다", () => {
+  const result = applyRewrite(
+    content(),
+    [],
+    [{ repositoryName: "portfolio-api", field: "role" }],
+    URL_BY_NAME,
+  );
+  assert.deepEqual(result.skippedFields, [
+    { repositoryName: "portfolio-api", field: "role", reason: "unavailable" },
+  ]);
+});
+
+test("바뀐 자리는 이유 목록에 들어가지 않는다", () => {
+  /* 둘이 겹치면 화면이 "바뀌었어요"와 "안 바뀌었어요"를 같은 자리에 대해
+     동시에 말하게 된다. */
+  const result = applyRewrite(
+    content(),
+    [rewrite({ role: "백엔드 리드" })],
+    [{ repositoryName: "portfolio-api", field: "role" }],
+    URL_BY_NAME,
+  );
+  assert.deepEqual(result.updatedFields, [{ repositoryName: "portfolio-api", field: "role" }]);
+  assert.deepEqual(result.skippedFields, []);
+});

@@ -7,8 +7,11 @@ import type {
   PortfolioContentDto,
   PortfolioQuestionDto,
   RepositoryListQuery,
+  RequestPortfolioQuestionsRequest,
 } from "@/contracts/api-contract";
+import { PORTFOLIO_HIGHLIGHT_SLOTS, type ApiErrorCode } from "@/contracts/api-contract";
 import type { ApiClient } from "@/lib/api-client/client";
+import { ApiClientError } from "@/lib/api-client/adapters/http";
 import {
   mockAnnouncementDetails,
   mockAnnouncements,
@@ -31,6 +34,12 @@ import { successfulGenerationScenario } from "@/mocks/api/scenarios/generation";
 
 const wait = (duration = 280) =>
   new Promise<void>((resolve) => setTimeout(resolve, duration));
+
+/* 목도 서버와 같은 모양으로 실패한다. 화면이 `caught.code`로 갈라지므로
+   평범한 Error를 던지면 그 분기가 로컬에서 한 번도 안 돌아본다. */
+function mockError(code: ApiErrorCode, message: string, status: number): ApiClientError {
+  return new ApiClientError(message, status, { error: { code, message } });
+}
 
 /**
  * 목은 여태 한 번도 실패하지 않았다. 로컬 개발이 목으로 도는 탓에 화면의 실패
@@ -236,12 +245,78 @@ export class MockApiClient implements ApiClient {
     };
   }
 
+  /* 생성 때 만들어진 질문에 "직접 연 자리"가 뒤에 붙는다. 고정 목록만 보면
+     새 질문이 어디에도 나타나지 않아 그 경로를 로컬에서 한 번도 못 본다. */
+  private opened: PortfolioQuestionDto[] = [];
+
+  private allQuestions(): PortfolioQuestionDto[] {
+    return [...mockPortfolioQuestions, ...this.opened];
+  }
+
   /** 답한 것은 답한 채로 돌려준다. */
   private questions(): PortfolioQuestionDto[] {
-    return mockPortfolioQuestions.map((question) => ({
+    return this.allQuestions().map((question) => ({
       ...question,
       answer: this.answers.get(question.id) ?? null,
     }));
+  }
+
+  /**
+   * 초안이 비워둔 자리를 연다.
+   *
+   * 문구는 서버의 `buildRequestedQuestions`와 같은 뜻으로 여기 따로 적는다.
+   * 목이 서버 모듈을 가져오면 서버 코드가 화면 번들에 실린다 — 문구가 맞는지는
+   * 서버 쪽 단위 테스트가 지킨다.
+   */
+  async requestPortfolioQuestions(portfolioId: string, body: RequestPortfolioQuestionsRequest) {
+    await maybeFail("requestPortfolioQuestions");
+    await wait(320);
+    void portfolioId;
+
+    const project = this.contentWithAnswers().projects.find(
+      (item) => (item.repositoryUrl.split("/").pop() ?? "") === body.repositoryName,
+    );
+    if (!project) throw mockError("NOT_FOUND", "프로젝트를 찾을 수 없습니다.", 404);
+
+    /* 채워진 자리를 열면 답해도 병합이 버려 아무것도 안 바뀐다. 서버와 같은
+       판단을 목도 해야 화면의 그 경로가 로컬에서 돈다. */
+    const open = body.slot === "keyDecision"
+      ? project.keyDecision.headline.trim().length === 0
+      : project.highlights.length < PORTFOLIO_HIGHLIGHT_SLOTS;
+    if (!open) throw mockError("SLOT_ALREADY_FILLED", "이 자리는 이미 채워져 있어요.", 409);
+
+    const asked = body.slot === "highlights"
+      ? [{
+          field: "highlights" as const,
+          topic: null,
+          question: `${project.title}에서 더 남기고 싶은 것이 있나요? 있었던 일을 그대로 적어주세요.`,
+        }]
+      : [
+          {
+            field: "decisionProblem" as const,
+            topic: "직접 고르신 결정",
+            question: `${project.title}에서 가장 판단이 필요했던 선택 하나를 떠올려 주세요. 그전에는 어떤 문제가 있었나요?`,
+          },
+          { field: "decisionApproach" as const, topic: "직접 고르신 결정", question: "무엇을 골랐고, 왜 그것이었나요?" },
+          { field: "decisionOutcome" as const, topic: "직접 고르신 결정", question: "그래서 무엇이 달라졌나요?" },
+        ];
+
+    /* 같은 자리를 두 번 눌러도 질문이 겹치지 않는다. 서버는 유니크 인덱스가
+       막는 것을 목은 여기서 막는다. */
+    for (const item of asked) {
+      const already = this.allQuestions().some(
+        (question) => question.repositoryName === body.repositoryName && question.field === item.field,
+      );
+      if (already) continue;
+      this.opened.push({
+        id: `question_opened_${body.repositoryName}_${item.field}`,
+        repositoryName: body.repositoryName,
+        ...item,
+        answer: null,
+      });
+    }
+
+    return this.questions();
   }
 
   /**
@@ -258,7 +333,7 @@ export class MockApiClient implements ApiClient {
        못 보게 된다 — 서버에서는 실제로 일어날 수 있는 일이다. */
     const projects = mockPortfolioContent.projects.map((project) => {
       const name = project.repositoryUrl.split("/").pop() ?? "";
-      const mine = mockPortfolioQuestions.filter((question) => question.repositoryName === name);
+      const mine = this.allQuestions().filter((question) => question.repositoryName === name);
       const answerFor = (field: string) =>
         mine.filter((question) => question.field === field)
           .map((question) => this.answers.get(question.id))
@@ -299,7 +374,7 @@ export class MockApiClient implements ApiClient {
     const before = JSON.stringify(this.contentWithAnswers());
     const updatedFields = [];
     for (const entry of answers) {
-      const question = mockPortfolioQuestions.find((item) => item.id === entry.questionId);
+      const question = this.allQuestions().find((item) => item.id === entry.questionId);
       if (!question || !entry.answer.trim()) continue;
       this.answers.set(question.id, entry.answer.trim());
       updatedFields.push({ repositoryName: question.repositoryName, field: question.field });
@@ -313,6 +388,7 @@ export class MockApiClient implements ApiClient {
       content,
       questions: this.questions(),
       updatedFields: JSON.stringify(content) === before ? [] : updatedFields,
+      skippedFields: [],
     };
   }
 
