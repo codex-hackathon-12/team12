@@ -313,6 +313,7 @@ export class MockApiClient implements ApiClient {
       content,
       questions: this.questions(),
       updatedFields: JSON.stringify(content) === before ? [] : updatedFields,
+      skippedFields: [],
     };
   }
 

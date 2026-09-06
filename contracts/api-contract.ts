@@ -36,6 +36,8 @@ export const API_ROUTES = {
     `${API_PREFIX}/portfolios/${portfolioId}/share`,
   portfolioStatements: (portfolioId: string) =>
     `${API_PREFIX}/portfolios/${portfolioId}/statements`,
+  portfolioQuestions: (portfolioId: string) =>
+    `${API_PREFIX}/portfolios/${portfolioId}/questions`,
   publicPortfolio: (slug: string) =>
     `${API_PREFIX}/public/portfolios/${slug}`,
   credits: `${API_PREFIX}/credits`,
@@ -74,6 +76,8 @@ export type ApiErrorCode =
   | "JOB_NOT_RETRYABLE"
   /** 생성 근거가 남아 있지 않아 되묻기 답변을 반영할 수 없다. 재시도해도 같다. */
   | "EVIDENCE_UNAVAILABLE"
+  /** 이미 채워진 자리를 열려 했다. 물어도 답이 반영될 곳이 없다. */
+  | "SLOT_ALREADY_FILLED"
   | "ACCOUNT_DELETION_IN_PROGRESS"
   | "MOCK_PAYMENT_FAILED"
   | "TOO_MANY_REPOSITORIES"
@@ -473,6 +477,26 @@ export interface AnswerPortfolioQuestionsRequest {
 }
 
 /**
+ * 지원자가 직접 열 수 있는 빈 자리.
+ *
+ * 되묻기 질문은 포트폴리오를 만들 때 초안과 함께 한 번 생긴다. 그래서 모델이
+ * 어떤 저장소에 대해 결정 묶음을 내지 않으면 — 셋 중 하나만 내도 묶음째
+ * 버려지므로 — 그 프로젝트의 핵심 결정은 영영 빈 채로 남았다. 생성 지침은
+ * "비워두면 나중에 지원자에게 직접 물어볼 수 있다"고 적어놓았는데, 물어볼
+ * 통로가 그 모델 호출 안에만 있었다.
+ *
+ * 자리 단위로 연다. `keyDecision`은 세 조각이 한 결정을 이루므로 하나의
+ * 선택지다 — 조각을 따로 열면 반쪽짜리 결정이 다시 생긴다.
+ */
+export type PortfolioQuestionSlot = "keyDecision" | "highlights";
+
+export interface RequestPortfolioQuestionsRequest {
+  /** 어느 프로젝트의 자리인지. 저장소 이름으로 가리킨다. */
+  repositoryName: string;
+  slot: PortfolioQuestionSlot;
+}
+
+/**
  * 답변 반영 결과.
  *
  * 전체 재생성이 아니다. 마음에 들던 문장까지 바뀌면 답할 이유가 없어지므로,
@@ -484,10 +508,37 @@ export interface PortfolioRewrittenFieldDto {
   field: PortfolioStatementField;
 }
 
+/**
+ * 답한 자리인데 문서가 바뀌지 않은 이유.
+ *
+ * 서버는 왜 버렸는지 알고 있었지만 화면에 넘기지 않았다. 그래서 안내가
+ * "조금 더 구체적으로 적어주시면"이라는 추측으로 남았고, 실제 원인이
+ * 수치 검증이었을 때 사용자는 자기 답의 어디가 문제인지 알 방법이 없었다.
+ */
+export type PortfolioSkipReason =
+  /** 모델이 빈 값을 돌려줬다. 근거가 없어 못 썼다는 뜻이다. */
+  | "empty"
+  /** 이미 그렇게 쓰여 있다. */
+  | "same"
+  /** 결정 네 값 중 하나가 비어 반영하지 않았다. 셋이 다 있어야 한다. */
+  | "incomplete"
+  /** 근거 어디에도 없는 수치가 들어 있어 문장을 걷어냈다. */
+  | "numbers"
+  /** 모델 응답에 그 저장소가 없었다. */
+  | "unavailable";
+
+export interface PortfolioSkippedFieldDto {
+  repositoryName: string | null;
+  field: PortfolioStatementField;
+  reason: PortfolioSkipReason;
+}
+
 export interface PortfolioStatementResultDto {
   content: PortfolioContentDto;
   questions: PortfolioQuestionDto[];
   updatedFields: PortfolioRewrittenFieldDto[];
+  /** 답했지만 문서가 바뀌지 않은 자리와 그 이유. */
+  skippedFields: PortfolioSkippedFieldDto[];
 }
 
 /**

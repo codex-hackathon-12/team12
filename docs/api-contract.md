@@ -675,7 +675,8 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
     ],
     "updatedFields": [
       { "repositoryName": "portfolio-api", "field": "impact" }
-    ]
+    ],
+    "skippedFields": []
   }
 }
 ```
@@ -692,12 +693,58 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 `VALIDATION_ERROR`를 반환하며 조용히 자르지 않는다. 빈 답변은 그 질문을
 건너뛴 것으로 보고 반영하지 않는다.
 
+`skippedFields`는 답했지만 문서가 바뀌지 않은 자리와 그 이유다. 서버는 왜
+버렸는지 알고 있는데 넘기지 않아서, 화면의 안내가 "조금 더 구체적으로
+적어주시면"이라는 추측으로 남아 있었다. 사유는 다음과 같다.
+
+| `reason` | 뜻 |
+| --- | --- |
+| `empty` | 모델이 빈 값을 돌려줬다. 근거가 없어 못 썼다는 뜻이다 |
+| `same` | 이미 그렇게 쓰여 있다 |
+| `incomplete` | 결정 네 값 중 하나가 비어 반영하지 않았다 |
+| `numbers` | 근거 어디에도 없는 수치가 들어 있어 문장을 걷어냈다 |
+| `unavailable` | 모델 응답에 그 저장소가 없었다 |
+
 | 상태 | 코드 | 상황 |
 | --- | --- | --- |
 | 400 | `VALIDATION_ERROR` | 답변이 없거나 상한을 넘음 |
 | 404 | `NOT_FOUND` | 다른 사용자의 포트폴리오이거나 없는 질문 id |
 | 409 | `EVIDENCE_UNAVAILABLE` | 생성 근거가 남아 있지 않아 다시 쓸 수 없음 |
 | 502 | `GENERATION_FAILED` | 모델 호출 실패 |
+
+### 8.4 빈 자리 열기
+
+`POST /api/v1/portfolios/{portfolioId}/questions`
+
+되묻기 질문은 포트폴리오를 만들 때 초안과 함께 한 번 생긴다. 결정 질문은
+`decisionProblem`·`decisionApproach`·`decisionOutcome` 셋이 같은 `topic`으로
+다 와야 살아남으므로, 모델이 어떤 저장소에 대해 묶음을 내지 않으면 그
+프로젝트의 핵심 결정은 영영 빈 채로 남았다. 지원자가 그 자리를 직접 연다.
+
+모델을 부르지 않고 크레딧도 쓰지 않는다. 생성 근거를 읽지 않으므로 근거가
+남아 있지 않은 오래된 포트폴리오에서도 질문을 열 수 있다.
+
+요청:
+
+```json
+{ "repositoryName": "portfolio-api", "slot": "keyDecision" }
+```
+
+`slot`은 `keyDecision` 또는 `highlights`다. 결정은 세 조각이 한 결정을
+이루므로 자리 하나로 다룬다 — 조각을 따로 열면 반쪽짜리 결정이 다시 생긴다.
+
+응답은 그 포트폴리오의 질문 전체(`PortfolioQuestionDto[]`)다. 같은 자리를 두
+번 열어도 질문이 겹치지 않는다. `portfolio_statements`의 유니크 인덱스가
+`(portfolio_id, repository_name, field)`라 이미 있는 행은 그대로 둔다.
+
+이미 채워져 있는 자리는 열지 않는다. 채워진 자리를 물으면 지원자가 답해도
+병합 단계가 버려 아무것도 바뀌지 않기 때문이다.
+
+| 상태 | 코드 | 상황 |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | `repositoryName`이나 `slot`이 없거나 값이 올바르지 않음 |
+| 404 | `NOT_FOUND` | 다른 사용자의 포트폴리오이거나 그 저장소의 프로젝트가 없음 |
+| 409 | `SLOT_ALREADY_FILLED` | 그 자리가 이미 채워져 있음 |
 
 ### 8.4 포트폴리오 삭제
 

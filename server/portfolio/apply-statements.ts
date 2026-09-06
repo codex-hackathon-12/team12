@@ -193,5 +193,7 @@ export async function applyPortfolioStatements(
     content: result.content,
     questions: await listPortfolioQuestions(portfolioId),
     updatedFields: result.updatedFields,
+    // 사유는 뒤따르는 커밋에서 채운다. 계약이 먼저 서야 화면이 붙을 수 있다.
+    skippedFields: [],
   };
 }
