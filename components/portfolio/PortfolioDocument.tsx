@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { PortfolioPreview } from "@/components/portfolio/PortfolioPreview";
 import type { PortfolioContentDto } from "@/contracts/api-contract";
+import type { ReactNode } from "react";
 import { documentSummary } from "@/lib/copy";
 
 /**
@@ -30,6 +31,7 @@ export function PortfolioDocument({
   content,
   printClassName = "button primary",
   markedProjectUrls,
+  aside,
 }: {
   content: PortfolioContentDto;
   /** 공개 페이지는 다른 버튼 위계를 쓴다. */
@@ -42,6 +44,16 @@ export function PortfolioDocument({
    * 카드가 끼어 나눔이 어긋나는 탓에 A4 보기에서 되묻기를 아예 숨겼다.
    */
   markedProjectUrls?: readonly string[];
+  /**
+   * 문서 옆 여백에 띄울 화면 전용 요소. 결과 화면만 넘긴다.
+   *
+   * 캔버스 안에 두는 이유는 자리 때문이다. 캔버스 위쪽 여백이 곧 A4 종이의
+   * 윗변이라, 여기 절대 배치하면 계산 없이 이력서와 같은 높이에서 시작한다.
+   *
+   * 문서는 무엇이 들어오는지 알 필요가 없다. 공개 페이지와 갤러리는 넘기지
+   * 않으므로 남에게 보내는 링크에 새어 나갈 통로가 없다.
+   */
+  aside?: ReactNode;
 }) {
   const wideEnough = useMediaQuery(QUERY);
   const [prefersPaged, setPrefersPaged] = useState(true);
@@ -99,6 +111,9 @@ export function PortfolioDocument({
           onPageCount={handlePageCount}
           markedProjectUrls={markedProjectUrls}
         />
+        {/* 미리보기 뒤에 둔다. 절대 배치일 때는 순서가 상관없지만, 좁은
+            화면에서 흐름으로 돌아가면 문서 아래에 놓여야 한다. */}
+        {aside}
       </div>
     </div>
   );

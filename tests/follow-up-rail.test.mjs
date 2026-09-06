@@ -96,14 +96,44 @@ test("카드는 담기고, 안쪽은 칠하지 않는다", () => {
   assert.deepEqual(offenders, [], `말풍선 안쪽에 배경이 있어요:\n${offenders.join("\n")}`);
 });
 
-test("패널이 문서 흐름을 따라 내려온다", () => {
-  /* fixed로 띄우면 페이지 밖의 물건이 된다. 문서와 자리를 나눠 갖고
-     스크롤에는 sticky로 따라와야 페이지의 일부로 읽힌다. */
+test("카드만을 위한 사이드바를 만들지 않는다", () => {
+  /* 예전에는 그리드 컬럼(396px)을 하나 만들어 카드를 담았다. 그러면 카드가
+     아니라 툴바·공유 줄·꼬리말까지 전부 왼쪽으로 밀려 "질문 창 전용
+     사이드바"가 생긴 꼴이 됐다. 카드는 회색 여백에 겹쳐 뜬다. */
+  assert.doesNotMatch(css, /\.result-page\.with-rail/u, "카드 전용 컬럼이 되살아났어요");
+  assert.doesNotMatch(css, /--rail-width/u, "컬럼 폭 변수가 남아 있어요");
+
   const rule = css.match(/\.follow-up-rail \{([^}]*)\}/u);
-  assert.match(rule[1], /position: sticky/u, "sticky가 아니에요");
-  assert.doesNotMatch(rule[1], /position: fixed/u);
-  // 내용이 짧으면 그만큼만 차지한다. 화면 높이를 채우면 다시 판이 된다.
-  assert.match(rule[1], /max-height:/u, "높이 상한이 없어요");
+  assert.ok(rule, ".follow-up-rail 규칙이 없어요");
+  assert.match(rule[1], /position: absolute/u, "여백에 겹쳐 뜨지 않아요");
+  assert.doesNotMatch(rule[1], /position: (?:sticky|fixed)/u);
+});
+
+test("카드가 이력서 윗변에서 시작한다", () => {
+  /* 캔버스가 기준 상자이고 그 위쪽 여백이 곧 A4 종이 윗변이다. 같은 값을
+     써야 계산 없이 맞는다 — 헤더 아래에서 시작하면 이력서보다 한참 위에
+     떠 있게 된다. */
+  const canvas = css.match(/\.portfolio-canvas-wrap \{([^}]*)\}/u);
+  assert.ok(canvas, ".portfolio-canvas-wrap 규칙이 없어요");
+  assert.match(canvas[1], /position: relative/u, "캔버스가 기준 상자가 아니에요");
+  const pad = canvas[1].match(/padding:\s*(\d+)px/u);
+  assert.ok(pad, "캔버스 위쪽 여백을 못 읽었어요");
+
+  const rail = css.match(/\.follow-up-rail \{([^}]*)\}/u)[1];
+  const top = rail.match(/top:\s*(\d+)px/u);
+  assert.ok(top, "카드의 top이 없어요");
+  assert.equal(top[1], pad[1], `카드 top(${top?.[1]})이 캔버스 여백(${pad[1]})과 달라요`);
+});
+
+test("여백이 모자라면 문서 아래로 내려온다", () => {
+  /* 종이 오른쪽 여백은 화면 폭 W에 대해 W/2 - 397이다. 카드 336에 여백과
+     간격을 더하면 1560px은 되어야 겹치지 않는다. 억지로 옆에 두면 카드가
+     이력서를 덮는다. */
+  assert.match(
+    css,
+    /@media \(max-width: 1559px\) \{[\s\S]*?\.follow-up-rail \{[^}]*position: static/u,
+    "좁은 화면 폴백이 없어요",
+  );
 });
 
 test("말풍선이 노션 댓글의 행 구조를 갖는다", () => {
@@ -161,23 +191,6 @@ test("한글을 쓰는 중에 Enter로 보내지 않는다", () => {
   /* 조합 중의 Enter는 글자를 확정하는 키다. 그때 보내면 쓰던 글자가 잘린
      채로 나간다. */
   assert.match(rail, /!event\.nativeEvent\.isComposing/u, "조합 중 Enter를 걸러내지 않아요");
-});
-
-test("패널이 문서를 가리지 않는다", () => {
-  /* 겹치면 읽으면서 답할 수 없다. 문서와 두 칸으로 나눠 갖는다. 캔버스
-     여백이 100vw를 쓰면 패널이 차지한 폭을 몰라 문서가 가운데를 벗어난다. */
-  assert.match(
-    css,
-    /\.result-page\.with-rail \{[^}]*grid-template-columns: minmax\(0, 1fr\) var\(--rail-width\)/u,
-    "문서와 자리를 나누지 않아요",
-  );
-  assert.match(css, /\.portfolio-canvas-wrap \{[\s\S]*?calc\(\(100% - 1360px\) \/ 2\)/u, "캔버스가 패널 폭을 몰라요");
-});
-
-test("좁은 화면에서는 문서 아래로 내려온다", () => {
-  // 옆에 둘 자리가 없는 폭에서 옆에 붙이면 문서와 대화가 서로를 밀어낸다.
-  assert.match(css, /@media \(max-width: 1100px\) \{[\s\S]*?\.result-page\.with-rail \{ display: block;/u);
-  assert.match(css, /@media \(max-width: 1100px\) \{[\s\S]*?position: static/u, "좁은 화면에서 여전히 붙어 있어요");
 });
 
 test("닫은 대화를 다시 열 수 있다", () => {
