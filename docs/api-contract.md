@@ -727,10 +727,24 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 요청:
 
 ```json
-{ "repositoryName": "portfolio-api", "slot": "keyDecision" }
+{
+  "repositoryName": "portfolio-api",
+  "slot": "keyDecision",
+  "topic": "재시도 처리를 withRetry로 감싼 커밋",
+  "replace": false
+}
 ```
 
-`slot`은 `keyDecision` 또는 `highlights`다. 결정은 세 조각이 한 결정을
+`slot`은 `keyDecision` 또는 `highlights`다.
+
+`topic`은 어떤 결정에 대해 물을지 짚는 한 줄이다. 비워두면 "가장 판단이
+필요했던 선택"을 두루 묻고, 채워 보내면 그 줄이 질문에 붙어 지원자가 "아,
+그거" 하고 떠올릴 수 있게 된다. 후보는 8.5에서 얻는다.
+
+`replace`가 참이면 **이미 채워진 결정도 연다.** 초안은 저장소에서 결정 하나를
+스스로 골라 쓰는데 그게 지원자가 말하고 싶은 결정이 아닐 수 있고, 바꿀 방법이
+없었다. 문서의 기존 결정은 새 답이 셋 다 모일 때까지 그대로 남으므로, 바꾸다
+말아도 잃는 것이 없다. 기존 질문의 답은 다른 결정에 대한 것이므로 비운다. 결정은 세 조각이 한 결정을
 이루므로 자리 하나로 다룬다 — 조각을 따로 열면 반쪽짜리 결정이 다시 생긴다.
 
 응답은 그 포트폴리오의 질문 전체(`PortfolioQuestionDto[]`)다. 같은 자리를 두
@@ -744,7 +758,41 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 | --- | --- | --- |
 | 400 | `VALIDATION_ERROR` | `repositoryName`이나 `slot`이 없거나 값이 올바르지 않음 |
 | 404 | `NOT_FOUND` | 다른 사용자의 포트폴리오이거나 그 저장소의 프로젝트가 없음 |
-| 409 | `SLOT_ALREADY_FILLED` | 그 자리가 이미 채워져 있음 |
+| 409 | `SLOT_ALREADY_FILLED` | 그 자리가 이미 채워져 있음(`replace`가 참이면 나지 않음) |
+
+### 8.5 결정 후보
+
+`GET /api/v1/portfolios/{portfolioId}/decision-candidates?repositoryName={name}`
+
+초안이 결정을 고르는 일은 모델이 한다. 그런데 무엇이 말할 만한 결정인지는
+만든 사람이 안다. 저장소에 남아 있는 본인 PR과 커밋 제목을 그대로 돌려주고
+지원자가 고르게 한다.
+
+모델을 부르지 않는다. 제목을 다듬지도 않는다 — 생성 지침이 말하는 topic이
+원래 "커밋 제목, 함수 이름, 파일 경로처럼 지원자가 '아, 그거' 하고 떠올릴 수
+있는 것"이라 원문이 이 자리에 맞는 모양이다.
+
+응답:
+
+```json
+{
+  "data": [
+    { "topic": "재시도 처리를 withRetry로 감싼 PR", "source": "pullRequest", "hasContext": true },
+    { "topic": "생성 흐름을 세 단계로 나눔", "source": "commit", "hasContext": true }
+  ]
+}
+```
+
+본문이 있는 것(`hasContext`)을 앞에 둔다. 본문은 "왜"가 적히는 자리라 지원자가
+그 결정을 설명하기 쉽다. 병합 커밋과 잡일 커밋은 걸러낸다.
+
+생성 근거가 남아 있지 않으면 빈 배열이다. 그때는 두루 묻는 질문으로 연다 —
+`404`나 `409`로 막지 않는다. 후보가 없다고 결정을 못 쓸 이유는 없다.
+
+| 상태 | 코드 | 상황 |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | `repositoryName`이 없음 |
+| 404 | `NOT_FOUND` | 다른 사용자의 포트폴리오이거나 그 저장소의 프로젝트가 없음 |
 
 ### 8.4 포트폴리오 삭제
 
