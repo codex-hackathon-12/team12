@@ -49,6 +49,7 @@ export function PortfolioPreview({
   paginated = false,
   onPageCount,
   markedProjectUrls,
+  changedProjectUrls,
 }: {
   content: PortfolioContentDto;
   /** A4 낱장으로 나눠 인쇄 미리보기처럼 보여준다. */
@@ -65,6 +66,8 @@ export function PortfolioPreview({
    * 블록 높이가 달라져 A4 나눔이 인쇄와 어긋난다.
    */
   markedProjectUrls?: readonly string[];
+  /** 방금 되묻기로 바뀐 프로젝트. 문서 어디가 바뀌었는지 짚는다. */
+  changedProjectUrls?: readonly string[];
 }) {
   const initials =
     content.profile.displayName.replace(/\s/gu, "").slice(0, 2).toUpperCase() ||
@@ -189,13 +192,16 @@ export function PortfolioPreview({
   ) });
 
   content.projects.forEach((project) => {
-    const marked = markedProjectUrls?.includes(project.repositoryUrl) ?? false;
+    const marks = [
+      markedProjectUrls?.includes(project.repositoryUrl) ? "result-block-marked" : "",
+      changedProjectUrls?.includes(project.repositoryUrl) ? "result-block-changed" : "",
+    ].filter(Boolean).join(" ");
     blocks.push({ key: `project-${project.id}`, kind: "project", node: (
       /* data 속성은 옆 패널이 이 프로젝트를 찾아 스크롤하고 잠깐 강조하는 데
          쓴다. A4 보기에서는 숨은 측정 사본에도 같은 속성이 생기므로, 찾는
          쪽이 `.portfolio-pages-measure` 안을 건너뛴다. */
       <div
-        className={marked ? "result-block result-block-marked" : "result-block"}
+        className={marks ? `result-block ${marks}` : "result-block"}
         data-project-url={project.repositoryUrl}
       >
             <article className="result-project-card">

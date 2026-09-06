@@ -149,8 +149,10 @@ test("포커스 표시는 한 곳에서 그리고, 위임할 때만 예외를 �
 test("움직임을 줄이는 설정을 존중한다", () => {
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/u);
   // 자동으로 시작해 5초 넘게 움직이는 내용에는 멈출 방법이 있어야 한다(2.2.2).
-  /* 로딩 스피너는 "필수 예외"에 해당하므로 제외하고 본다. */
-  const withoutSpinner = css.replace(/\.loading-mark[^}]*\}/gu, "");
+  /* 진행 중임을 알리는 회전 표시는 "필수 예외"에 해당하므로 제외하고 본다.
+     `.loading-mark`와 `.loading-mark-inline`이 같은 이름을 나눠 갖는 이유가
+     이것이다 — 예외인 것들이 한 이름으로 묶여 있어야 여기서 한 번에 걸린다. */
+  const withoutSpinner = css.replace(/\.loading-mark[\w-]*[^}]*\}/gu, "");
   assert.ok(
     !/animation:[^;]*infinite/u.test(withoutSpinner),
     "생성 화면 같은 곳에 무한 반복 애니메이션이 남아 있어요",

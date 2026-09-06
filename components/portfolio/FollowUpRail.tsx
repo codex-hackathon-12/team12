@@ -8,6 +8,7 @@ import {
   type PortfolioStatementResultDto,
 } from "@/contracts/api-contract";
 import { ApiClientError, apiClient } from "@/lib/api-client";
+import { SLOT_LABEL, type RewriteChange } from "@/lib/rewrite-summary";
 
 /**
  * 문서 옆의 댓글 스레드. 노션 댓글이 원형이다.
@@ -38,6 +39,27 @@ const FIELD_LABEL: Record<PortfolioQuestionDto["field"], string> = {
   decisionApproach: "결정 · 선택",
   decisionOutcome: "결정 · 결과",
 };
+
+/**
+ * 한 턴이 어떻게 됐는지.
+ *
+ * 예전에는 문자열 한 줄이었다("문서의 그 자리를 채웠어요"). 그래서 답을
+ * 보내고 나면 **무엇이 어떻게 됐는지 알 방법이 없었다.** 게다가 이 줄은
+ * 성공했을 때만 붙어서, 결정 조각을 모으는 동안과 보내는 동안은 화면이
+ * 아무 말도 하지 않았다 — 답을 두 번 연속 쓰고도 아무 반응이 없다.
+ *
+ * 턴마다 지금 어느 상태인지를 담는다. 상태가 있으면 화면이 매 순간 무언가를
+ * 말할 수 있다.
+ */
+type TurnResult =
+  /** 결정 조각을 받았지만 아직 셋이 아니다. 서버에 가지도 않는 구간이다. */
+  | { kind: "collecting"; got: number; total: number }
+  /** 서버에 보내는 중. 모델 호출이라 몇 초씩 걸린다. */
+  | { kind: "writing"; target: string }
+  | { kind: "changed"; changes: RewriteChange[] }
+  /** 반영할 문장이 나오지 않았다. */
+  | { kind: "unchanged"; answerHadNumber: boolean }
+  | { kind: "skipped"; decision: boolean };
 
 export type RailProject = {
   /** 문서에서 이 프로젝트를 찾는 열쇠. */
@@ -85,7 +107,15 @@ export function FollowUpRail({
   profile: RailProfile;
   open: boolean;
   onClose: () => void;
-  onApplied: (result: PortfolioStatementResultDto) => void;
+  /**
+   * 반영된 결과를 넘기고, **무엇이 바뀌었는지 돌려받는다.**
+   *
+   * 이전 `content`를 아는 곳은 문서를 들고 있는 화면뿐이다. 카드는 보내고,
+   * 화면은 문서를 갈아끼우며 무엇이 움직였는지 답한다 — 상태를 한 번 더
+   * 왕복시키거나 이펙트로 이전 값을 복사해두는 것보다 짧고, 어느 턴의
+   * 결과인지도 호출한 쪽이 그대로 안다.
+   */
+  onApplied: (result: PortfolioStatementResultDto) => RewriteChange[];
 }) {
   /* 대화 순서를 열 때 한 번 정하고 그대로 쓴다. 답한 것도 함께 담는다.
      답할 때마다 다시 계산하면 방금 답한 질문이 목록에서 빠지면서 자리가
@@ -102,7 +132,8 @@ export function FollowUpRail({
   /** 지금 고쳐 쓰는 중인 질문. 없으면 첫 미답을 묻는다. */
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
-  const [notes, setNotes] = useState<Record<string, string>>({});
+  /** 턴마다의 진행과 결과. 답한 말풍선 아래에 그대로 붙는다. */
+  const [results, setResults] = useState<Record<string, TurnResult>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -124,6 +155,12 @@ export function FollowUpRail({
   const remaining = timeline.filter(
     (question) => !answers[question.id] && !skipped[question.id],
   ).length;
+  /* 이번 대화에서 문서가 몇 곳 바뀌었는지. 같은 자리를 두 번 고쳐도 한 곳이다. */
+  const changedSlots = new Set(
+    Object.values(results).flatMap((result) =>
+      result.kind === "changed" ? result.changes.map((change) => `${change.projectUrl} ${change.slot}`) : [],
+    ),
+  ).size;
 
   const projectOf = (question: PortfolioQuestionDto) =>
     projects.find((project) => project.name === question.repositoryName) ?? null;
@@ -133,6 +170,23 @@ export function FollowUpRail({
     question.topic
       ? timeline.filter((item) => sameDecision(question, item))
       : [question];
+
+  /** 결정 묶음에서 지금 몇 번째를 묻고 있는지. 낱개 질문은 없다. */
+  const stepOf = (question: PortfolioQuestionDto) => {
+    const group = groupOf(question);
+    if (group.length < 2) return null;
+    return { index: group.indexOf(question) + 1, total: group.length };
+  };
+
+  /** 질문이 채우는 자리를 사람 말로. "folio · 핵심 결정" */
+  const targetOf = (question: PortfolioQuestionDto) => {
+    const project = projectOf(question);
+    return project ? `${project.title} · ${FIELD_LABEL[question.field]}` : FIELD_LABEL[question.field];
+  };
+
+  /** 문서의 그 블록으로 데려간다. 이름 줄 꼬리가 쓰는 통로와 같다. */
+  const showBlock = (url: string) =>
+    findProjectBlock(url)?.scrollIntoView({ behavior: "smooth", block: "center" });
 
   const beginEdit = (question: PortfolioQuestionDto) => {
     if (submitting) return;
@@ -172,17 +226,36 @@ export function FollowUpRail({
     const batch = group
       .filter((question) => next[question.id])
       .map((question) => ({ questionId: question.id, answer: next[question.id] }));
-    if (batch.length < group.length) return;
+    if (batch.length < group.length) {
+      /* 여기가 예전에 아무 말도 없던 구간이다. 답을 받아 뒀지만 서버에 가지도
+         않으므로, 사용자 눈에는 두 번 연속으로 답했는데 문서도 안 바뀌고
+         설명도 없는 것으로 보였다. 진행을 말해준다.
+
+         묶음 안의 지난 진행은 지운다. 진행 줄이 여럿 남으면
+         나란히 남으면 어느 쪽이 지금인지 알 수 없다. */
+      setResults((previous) => {
+        const rest = { ...previous };
+        for (const question of group) {
+          if (rest[question.id]?.kind === "collecting") delete rest[question.id];
+        }
+        return { ...rest, [current.id]: { kind: "collecting", got: batch.length, total: group.length } };
+      });
+      return;
+    }
 
     setSubmitting(true);
+    setResults((previous) => ({ ...previous, [current.id]: { kind: "writing", target: targetOf(current) } }));
     try {
       const result = await apiClient.applyPortfolioStatements(portfolioId, batch);
-      onApplied(result);
-      setNotes((previous) => ({
+      const changes = onApplied(result);
+      setResults((previous) => ({
         ...previous,
-        [current.id]: result.updatedFields.length > 0
-          ? "문서의 그 자리를 채웠어요."
-          : "쓸 내용을 찾지 못했어요. 조금 더 구체적으로 적어주시면 반영할 수 있어요.",
+        [current.id]: changes.length > 0
+          ? { kind: "changed", changes }
+          /* 답은 저장됐다. 문장이 안 나온 이유는 응답만으로 가릴 수 없다 —
+             모델이 못 살렸을 수도, 수치 검증이 근거에 없는 숫자를 지웠을
+             수도 있다. 사용자를 탓하는 대신 규칙을 말한다. */
+          : { kind: "unchanged", answerHadNumber: /\d/u.test(text) },
       }));
     } catch (caught) {
       /* 근거가 사라진 결과는 다시 시도해도 되지 않는다. 같은 문구로 뭉뚱그리면
@@ -194,6 +267,12 @@ export function FollowUpRail({
       );
       /* 답은 화면에 남겨둔다. 지우면 사용자가 방금 쓴 글을 잃고, 답이 남아
          있으면 "다시 답하기"로 그대로 다시 보낼 수 있다. */
+      // "쓰는 중"을 남겨두면 화면이 거짓말을 한다. 오류 줄이 대신 말한다.
+      setResults((previous) => {
+        const rest = { ...previous };
+        delete rest[current.id];
+        return rest;
+      });
     } finally {
       setSubmitting(false);
     }
@@ -207,9 +286,9 @@ export function FollowUpRail({
       ...previous,
       ...Object.fromEntries(group.map((question) => [question.id, true as const])),
     }));
-    setNotes((previous) => ({
+    setResults((previous) => ({
       ...previous,
-      [current.id]: current.topic ? "이 결정은 건너뛸게요." : "이 질문은 건너뛸게요.",
+      [current.id]: { kind: "skipped", decision: Boolean(current.topic) },
     }));
     setDraft("");
     setEditing(null);
@@ -220,7 +299,12 @@ export function FollowUpRail({
     <aside className="follow-up-rail" aria-label="더 알려주기">
       {/* 노션 카드에는 큰 머리가 없다. 남은 개수와 닫기만 얇게. */}
       <header className="follow-up-rail-head">
-        <span>{remaining > 0 ? `답할 것 ${remaining}개` : "다 채웠어요"}</span>
+        {/* 남은 것과 함께 이번 대화의 성과를 적는다. 답이 문서에 쌓이고
+            있다는 것을 남은 개수만으로는 알 수 없다. */}
+        <span>
+          {remaining > 0 ? `답할 것 ${remaining}개` : "다 채웠어요"}
+          {changedSlots > 0 ? ` · 문서 ${changedSlots}곳 바뀜` : ""}
+        </span>
         <button className="text-link" type="button" onClick={onClose}>닫기</button>
       </header>
 
@@ -235,10 +319,13 @@ export function FollowUpRail({
         {/* 지나온 대화. 지난 방문에서 답한 것과 방금 답한 것을 한 흐름으로
             보여준다 — 둘을 갈라두면 어느 쪽이 최신인지 알기 어렵다. */}
         {timeline.map((question) => {
-          if (question.id === current?.id) return null;
           const answer = answers[question.id];
-          const note = notes[question.id];
-          if (!answer && !note) return null;
+          const result = results[question.id];
+          /* 지금 묻는 질문은 아래에서 그린다. 고쳐 쓰는 중이라면 지난 결과가
+             남아 있는데, 그것까지 여기 띄우면 아직 안 보낸 답의 결과가 이미
+             난 것처럼 보인다. */
+          if (question.id === current?.id) return null;
+          if (!answer && !result) return null;
           return (
             <div key={question.id}>
               <Ask question={question} project={projectOf(question)} />
@@ -249,7 +336,7 @@ export function FollowUpRail({
                   onEdit={submitting ? undefined : () => beginEdit(question)}
                 />
               ) : null}
-              {note ? <p className="follow-up-note" role="status">{note}</p> : null}
+              {result ? <Applied result={result} onShow={showBlock} /> : null}
             </div>
           );
         })}
@@ -258,6 +345,7 @@ export function FollowUpRail({
           <Ask
             question={current}
             project={projectOf(current)}
+            step={stepOf(current)}
             onSkip={submitting || editing ? undefined : skip}
           />
         ) : (
@@ -331,10 +419,13 @@ export function FollowUpRail({
 function Ask({
   question,
   project,
+  step,
   onSkip,
 }: {
   question: PortfolioQuestionDto;
   project: RailProject | null;
+  /** 결정 묶음의 몇 번째인지. 낱개 질문은 null이다. */
+  step?: { index: number; total: number } | null;
   /** 지금 물어보는 중인 질문에만 붙는다. */
   onSkip?: () => void;
 }) {
@@ -357,6 +448,9 @@ function Ask({
               {project.title} · {FIELD_LABEL[question.field]}
             </button>
           ) : null}
+          {/* 결정은 셋이 모여야 문서에 들어간다. 몇 번째인지 안 적으면 왜
+              비슷한 질문이 계속 오는지, 언제 끝나는지 알 수 없다. */}
+          {step ? <span className="follow-up-step">{step.index}/{step.total}</span> : null}
           {onSkip ? (
             <button className="follow-up-skip" type="button" onClick={onSkip}>건너뛰기</button>
           ) : null}
@@ -366,6 +460,86 @@ function Ask({
         {question.topic ? <p className="follow-up-topic">{question.topic}</p> : null}
         <p className="follow-up-ask-text">{question.question}</p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * 답을 보낸 뒤 무슨 일이 일어났는지.
+ *
+ * 예전에는 "문서의 그 자리를 채웠어요" 한 줄이 전부였다. 어느 프로젝트의
+ * 어느 문단이 무엇에서 무엇으로 바뀌었는지는 어디에도 없었고, 바뀐 문장이
+ * 화면 밖이나 다른 A4 장에 있으면 아무 일도 안 일어난 것처럼 보였다.
+ *
+ * 이전과 지금을 나란히 둔다. 문서로 가지 않아도 그 자리에서 견줄 수 있다.
+ * 자동으로 문서를 스크롤하지는 않는다 — 이 카드가 문서와 함께 움직이므로
+ * 자동으로 뛰면 대화가 화면 밖으로 밀려난다.
+ */
+function Applied({ result, onShow }: { result: TurnResult; onShow: (url: string) => void }) {
+  if (result.kind === "collecting") {
+    return (
+      <p className="follow-up-status" role="status">
+        {result.total}개 중 {result.got}개 받았어요. 셋이 모이면 문서에 써요.
+      </p>
+    );
+  }
+
+  if (result.kind === "writing") {
+    return (
+      <p className="follow-up-status" role="status">
+        <span className="loading-mark-inline" aria-hidden="true" />
+        {result.target}에 쓰는 중…
+      </p>
+    );
+  }
+
+  if (result.kind === "skipped") {
+    return (
+      <p className="follow-up-status" role="status">
+        {result.decision ? "이 결정은 건너뛸게요." : "이 질문은 건너뛸게요."}
+      </p>
+    );
+  }
+
+  if (result.kind === "unchanged") {
+    return (
+      <p className="follow-up-status" role="status">
+        답은 저장했는데 문서에 넣을 문장이 나오지 않았어요.
+        {result.answerHadNumber
+          ? " 저장소 근거에 없는 숫자는 문서에 쓰지 않아요 — 숫자 없이 있었던 일로 다시 답해보실래요?"
+          : " 다시 답하기로 조금 더 적어주시면 반영할 수 있어요."}
+      </p>
+    );
+  }
+
+  return (
+    <div className="follow-up-changes">
+      <p className="follow-up-status">문서가 바뀌었어요</p>
+      {result.changes.map((change) => (
+        <div className="follow-up-change" key={`${change.projectUrl} ${change.slot}`}>
+          <p className="follow-up-change-head">
+            <span>{change.projectTitle} · {SLOT_LABEL[change.slot]}</span>
+            <button className="follow-up-change-show" type="button" onClick={() => onShow(change.projectUrl)}>
+              문서에서 보기
+            </button>
+          </p>
+          {/* 이름과 값이라 목록으로 둔다. 강조점은 기존 항목 뒤에 붙는
+              자리라 "이전"이 비어 있는데, 그걸 "비어 있었어요"로 읽으면
+              멀쩡히 있던 문장을 없던 것으로 만든다. */}
+          <dl>
+            {change.mode === "replaced" ? (
+              <>
+                <dt>이전</dt>
+                <dd className="follow-up-change-old">{change.before.join(" ")}</dd>
+              </>
+            ) : null}
+            <dt>{change.mode === "added" ? "추가" : "지금"}</dt>
+            {/* 줄마다 따로 둔다. 결정은 표제와 세 문장이고 강조는 여러
+                항목이라, 이어 붙이면 한 덩어리 글이 되어 안 읽힌다. */}
+            <dd>{change.after.map((line) => <span key={line}>{line}</span>)}</dd>
+          </dl>
+        </div>
+      ))}
     </div>
   );
 }

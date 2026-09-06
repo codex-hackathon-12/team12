@@ -97,41 +97,64 @@ test("카드는 담기고, 안쪽은 칠하지 않는다", () => {
 });
 
 test("카드만을 위한 사이드바를 만들지 않는다", () => {
-  /* 예전에는 그리드 컬럼(396px)을 하나 만들어 카드를 담았다. 그러면 카드가
-     아니라 툴바·공유 줄·꼬리말까지 전부 왼쪽으로 밀려 "질문 창 전용
-     사이드바"가 생긴 꼴이 됐다. 카드는 회색 여백에 겹쳐 뜬다. */
+  /* 예전에는 그리드 컬럼(396px)을 `.result-page`에 만들어 카드를 담았다.
+     그러면 카드가 아니라 툴바·공유 줄·꼬리말까지 전부 왼쪽으로 밀려 "질문 창
+     전용 사이드바"가 생긴 꼴이 됐다. 나뉘는 것은 회색 캔버스 안뿐이다. */
   assert.doesNotMatch(css, /\.result-page\.with-rail/u, "카드 전용 컬럼이 되살아났어요");
   assert.doesNotMatch(css, /--rail-width/u, "컬럼 폭 변수가 남아 있어요");
+  assert.doesNotMatch(resultPage, /result-main/u, "문서를 감싸는 래퍼가 되살아났어요");
+});
+
+test("카드가 이력서 오른쪽에 선다", () => {
+  /* 절대 배치로 회색 여백에 겹쳐 띄우던 때는 A4 보기에서만 맞는 계산이었다.
+     읽기 보기의 문서는 `.portfolio-preview`의 1120px이라 훨씬 넓어서, 폭이
+     1560px을 넘으면 카드가 이력서 오른쪽을 덮었다. 칸을 나누면 종이가 자기
+     칸 밖으로 나갈 수 없어 겹칠 방법이 사라진다. */
+  const grid = css.match(
+    /@media screen and \(min-width: (\d+)px\) \{\s*\.portfolio-canvas-wrap:has\(\.follow-up-rail\) \{([^}]*)\}/u,
+  );
+  assert.ok(grid, "캔버스를 두 칸으로 나누는 규칙이 없어요");
+  assert.match(grid[2], /grid-template-columns:\s*minmax\(0, 1fr\) 336px/u, "칸이 둘이 아니에요");
+
+  /* 종이 794 + 간격 16 + 카드 336 + 캔버스 좌우 24×2 = 1194. 이보다 좁으면
+     나란히 설 수 없다. */
+  assert.ok(Number(grid[1]) >= 1194, `분기점 ${grid[1]}px에서는 종이와 카드가 안 들어가요`);
 
   const rule = css.match(/\.follow-up-rail \{([^}]*)\}/u);
   assert.ok(rule, ".follow-up-rail 규칙이 없어요");
-  assert.match(rule[1], /position: absolute/u, "여백에 겹쳐 뜨지 않아요");
-  assert.doesNotMatch(rule[1], /position: (?:sticky|fixed)/u);
+  assert.doesNotMatch(rule[1], /position: (?:sticky|fixed|absolute)/u, "칸 안에 서지 않아요");
 });
 
-test("카드가 이력서 윗변에서 시작한다", () => {
-  /* 캔버스가 기준 상자이고 그 위쪽 여백이 곧 A4 종이 윗변이다. 같은 값을
-     써야 계산 없이 맞는다 — 헤더 아래에서 시작하면 이력서보다 한참 위에
-     떠 있게 된다. */
-  const canvas = css.match(/\.portfolio-canvas-wrap \{([^}]*)\}/u);
-  assert.ok(canvas, ".portfolio-canvas-wrap 규칙이 없어요");
-  assert.match(canvas[1], /position: relative/u, "캔버스가 기준 상자가 아니에요");
-  const pad = canvas[1].match(/padding:\s*(\d+)px/u);
-  assert.ok(pad, "캔버스 위쪽 여백을 못 읽었어요");
-
-  const rail = css.match(/\.follow-up-rail \{([^}]*)\}/u)[1];
-  const top = rail.match(/top:\s*(\d+)px/u);
-  assert.ok(top, "카드의 top이 없어요");
-  assert.equal(top[1], pad[1], `카드 top(${top?.[1]})이 캔버스 여백(${pad[1]})과 달라요`);
+test("인쇄를 폭 질의에 맡기지 않는다", () => {
+  /* 인쇄할 때 크롬은 종이 폭(794px)으로 다시 배치해서 min-width 질의가 어차피
+     걸리지 않지만, 그 우연에 기대면 안 된다 — 미리보기와 인쇄가 어긋났던
+     사고가 정확히 그 우연에서 나왔다. 카드는 인쇄에서 display: none이어도
+     DOM에 남으므로 `:has()`는 계속 맞고, 종이에 336px 칸이 생긴다. */
+  const rule = new RegExp(String.raw`@media ([^{]*)\{\s*\.portfolio-canvas-wrap:has\(\.follow-up-rail\)`, "u");
+  const found = css.match(rule);
+  assert.ok(found, "캔버스를 나누는 질의를 못 찾았어요");
+  assert.match(found[1], /screen and/u, "인쇄를 명시적으로 배제하지 않아요");
 });
 
-test("여백이 모자라면 문서 아래로 내려온다", () => {
-  /* 종이 오른쪽 여백은 화면 폭 W에 대해 W/2 - 397이다. 카드 336에 여백과
-     간격을 더하면 1560px은 되어야 겹치지 않는다. 억지로 옆에 두면 카드가
-     이력서를 덮는다. */
+test("칸을 나눠도 문서가 접히지 않는다", () => {
+  /* 읽기 보기의 문서는 `margin: 0 auto`로 가운데 정렬하는데, 자동 여백은
+     그리드의 stretch를 이겨서 칸 안에서 fit-content로 줄어든다. 그리고 이
+     문서는 컨테이너 질의로 크기가 갇혀 있어 fit-content가 0이다 — 실제로
+     폭 2px에 높이 19000px짜리 띠로 접혔다. */
   assert.match(
     css,
-    /@media \(max-width: 1559px\) \{[\s\S]*?\.follow-up-rail \{[^}]*position: static/u,
+    /:has\(\.follow-up-rail\) > \.portfolio-preview \{[^}]*width: 100%/u,
+    "칸 안에서 문서 폭을 되돌리지 않아요",
+  );
+  assert.match(css, /container: result \/ inline-size/u,
+    "컨테이너 선언이 사라졌다면 위 규칙의 이유도 다시 봐야 해요");
+});
+
+test("나란히 설 수 없으면 문서 아래로 내려온다", () => {
+  /* 카드를 줄여서 억지로 옆에 두는 길도 있지만 그러면 대화가 읽히지 않는다. */
+  assert.match(
+    css,
+    /@media \(max-width: 1199px\) \{[\s\S]*?\.follow-up-rail \{[^}]*margin: var\(--space-6\) auto 0/u,
     "좁은 화면 폴백이 없어요",
   );
 });
@@ -200,9 +223,58 @@ test("결정 셋을 모아 한 번에 보낸다", () => {
      모르는 채 재작성해 반쪽짜리가 된다 — 고쳐 쓸 때도 마찬가지라, 묶음을
      통째로 다시 보낸다. */
   assert.match(rail, /const group = groupOf\(current\);/u);
-  assert.match(rail, /if \(batch\.length < group\.length\) return;/u, "덜 모인 채로 보내요");
+  assert.match(rail, /if \(batch\.length < group\.length\) \{/u, "덜 모인 채로 보내요");
+  /* 덜 모였을 때도 화면은 무언가를 말해야 한다. 예전에는 여기서 그냥 돌아가
+     아무 표시가 없었고, 사용자 눈에는 두 번 연속으로 답했는데 문서도 안
+     바뀌고 설명도 없는 구간이 됐다. */
+  assert.match(rail, /kind: "collecting"/u, "모으는 중을 말해주지 않아요");
   // 건너뛸 때도 묶음째. 셋 중 하나만 건너뛰면 나머지는 답해도 반영되지 않는다.
   assert.match(rail, /\.\.\.Object\.fromEntries\(group\.map/u, "건너뛰기가 묶음째가 아니에요");
+});
+
+test("답이 어디로 갔는지 말해준다", () => {
+  /* 예전에는 성공했을 때 "문서의 그 자리를 채웠어요" 한 줄이 전부였다. 어느
+     프로젝트의 어느 문단이 무엇에서 무엇으로 바뀌었는지는 어디에도 없었고,
+     바뀐 문장이 화면 밖이나 다른 A4 장에 있으면 아무 일도 안 일어난 것처럼
+     보였다. */
+  assert.match(rail, /summarizeRewrite|RewriteChange/u, "무엇이 바뀌었는지 받지 않아요");
+  assert.match(rail, /이전/u, "바뀌기 전 문장을 안 보여줘요");
+  assert.match(rail, /문서에서 보기/u, "문서로 가는 길이 없어요");
+
+  /* 이전 content를 아는 곳은 문서를 들고 있는 화면뿐이다. 카드는 보내고,
+     화면이 무엇이 움직였는지 답한다. */
+  assert.match(rail, /onApplied: \(result: PortfolioStatementResultDto\) => RewriteChange\[\]/u);
+  assert.match(resultPage, /summarizeRewrite\(content, result\.content/u, "문서를 갈아끼운 뒤에 견주면 이전 값이 없어요");
+});
+
+test("보내는 동안과 못 바꿨을 때도 말해준다", () => {
+  assert.match(rail, /kind: "writing"/u, "보내는 동안 아무 표시가 없어요");
+  assert.match(rail, /loading-mark-inline/u, "진행 표시가 없어요");
+  /* 못 바꾼 이유는 응답만으로 가릴 수 없다. 사용자를 탓하는 대신 규칙을
+     말한다 — 수치 검증이 근거 없는 숫자를 지웠을 수도 있다. */
+  assert.match(rail, /kind: "unchanged"/u);
+  assert.doesNotMatch(rail, /조금 더 구체적으로 적어주시면 반영할 수 있어요/u, "사용자를 탓하는 문구가 남아 있어요");
+});
+
+test("바뀐 곳을 문서에도 짚는다", () => {
+  assert.match(preview, /changedProjectUrls/u, "문서가 바뀐 곳을 안 받아요");
+  assert.match(resultPage, /changedProjectUrls=\{/u, "결과 화면이 안 넘겨요");
+  const rule = css.match(/\.result-block-changed \{([^}]*)\}/u);
+  assert.ok(rule, ".result-block-changed 규칙이 없어요");
+  // 자리를 차지하면 A4 나눔이 인쇄와 어긋난다. marked와 같은 이유다.
+  assert.match(rule[1], /outline:/u);
+  assert.doesNotMatch(rule[1], /border:|padding:/u, "표시가 자리를 차지해요");
+});
+
+test("문서 표시가 종이에 찍히지 않는다", () => {
+  /* 주석에는 "인쇄에서 지운다"고 적혀 있었는데 규칙이 없었다. 패널을 열어둔
+     채 인쇄하면 답할 것이 남은 프로젝트마다 점선 상자가 PDF에 찍혔다 —
+     채용 담당자에게 보내는 파일에. */
+  const print = printBlock();
+  for (const mark of ["result-block-marked", "result-block-changed"]) {
+    assert.match(print, new RegExp(`\\.${mark}`, "u"), `${mark}가 인쇄에서 안 지워져요`);
+  }
+  assert.match(print, /\.result-block-changed,?[\s\S]{0,80}outline: 0/u, "표시가 남아 있어요");
 });
 
 test("한글을 쓰는 중에 Enter로 보내지 않는다", () => {

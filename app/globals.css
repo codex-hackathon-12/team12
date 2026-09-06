@@ -2071,9 +2071,9 @@ a {
 }
 
 .portfolio-canvas-wrap {
-  /* 되묻기 카드가 이 상자를 기준으로 자리를 잡는다. 위쪽 여백(42px)이 곧 A4
-     종이의 윗변이라, 카드가 계산 없이 이력서와 같은 높이에서 시작한다. */
-  position: relative;
+  /* 되묻기 카드가 이 상자 안에서 종이 옆 칸을 받는다. 위쪽 여백(42px)이 곧 A4
+     종이의 윗변이라, 카드가 계산 없이 이력서와 같은 높이에서 시작한다.
+     두 칸으로 나누는 규칙은 되묻기 블록에 있다. */
   padding: 42px max(24px, calc((100% - 1360px) / 2));
   background: #d9d8cf;
 }
@@ -3304,32 +3304,56 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   margin: 8mm;
 }
 
-/* 되묻기 — 문서 옆 여백에 뜨는 노션 댓글 카드.
+/* 되묻기 — 이력서 오른쪽에 서는 노션 댓글 카드.
 
-   예전에는 이 카드만을 위한 그리드 컬럼(396px)을 만들었다. 그러면 카드가
-   아니라 툴바·공유 줄·꼬리말까지 전부 왼쪽으로 밀려 "질문 창 전용 사이드바"가
-   생긴 꼴이 됐고, 카드는 헤더 바로 아래에서 시작해 이력서보다 한참 위에 떠
-   있었다.
+   자리를 세 번 옮겼다. 처음에는 이 카드만을 위한 그리드 컬럼(396px)을 `.result-page`에
+   만들어 툴바·공유 줄·꼬리말까지 전부 왼쪽으로 밀었고, 다음에는 캔버스 회색
+   여백에 절대 배치로 겹쳐 띄웠다. 뒤엣것은 A4 보기에서만 맞는 계산이었다 —
+   읽기 보기의 문서는 `.portfolio-preview`의 1120px이라 훨씬 넓어서, 폭이
+   1560px을 넘으면 카드가 이력서 오른쪽을 132px 덮었다. 같은 규칙이 두 보기에
+   서로 다른 뜻이 됐다.
 
-   컬럼을 없애고 캔버스의 회색 여백에 겹쳐 띄운다. 캔버스가 기준 상자라
-   `top`이 캔버스 위쪽 여백과 같은 값이면 곧 A4 종이 윗변이다 — 계산이 아니라
-   같은 값을 써서 맞춘다.
+   캔버스 안을 두 칸으로 나눈다. 종이가 자기 칸 밖으로 나갈 수 없으므로 겹칠
+   방법이 없어진다 — 계산으로 피하는 대신 구조로 막는다. 밀리는 것은 회색
+   캔버스 안의 종이뿐이고 툴바·공유 줄·꼬리말은 제 폭 그대로다. 구글 docs가
+   댓글을 열 때 하는 일과 같다.
 
    sticky를 쓰지 않는다. 문서와 함께 스크롤되어 그 자리에 머문다. */
 .follow-up-rail {
-  position: absolute;
-  z-index: 1;
-  top: 42px;
-  right: 16px;
   display: flex;
   flex-direction: column;
-  width: 336px;
   /* 대화가 길어져도 화면을 넘지 않게. 넘치면 로그만 안쪽에서 스크롤된다. */
   max-height: calc(100vh - var(--header-height) - var(--space-12));
   border: 1px solid var(--line-dark);
   border-radius: 12px;
   background: var(--paper);
   box-shadow: 0 4px 24px rgb(23 35 29 / 10%);
+}
+
+/* 종이 794 + 간격 16 + 카드 336 + 캔버스 좌우 24×2 = 1194. 그 아래에서는
+   물리적으로 옆에 설 수 없어 문서 아래로 내려간다(그 규칙은 아래에 있다).
+
+   `screen and`를 붙인다. 인쇄할 때 크롬은 종이 폭(794px)으로 다시 배치해서
+   이 질의가 어차피 걸리지 않지만, 그 우연에 기대지 않는다 — 미리보기와 인쇄가
+   어긋났던 사고가 정확히 그 우연에서 나왔다. 카드는 인쇄에서 display: none
+   이어도 DOM에 남으므로 `:has()`는 계속 맞는다.
+
+   위 여백(42px)이 종이 윗변이자 카드 윗변이다. `align-items: start`면 "이력서와
+   같이 시작"이 계산 없이 배치에서 따라온다. */
+@media screen and (min-width: 1200px) {
+  .portfolio-canvas-wrap:has(.follow-up-rail) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 336px;
+    gap: var(--space-4);
+    align-items: start;
+  }
+
+  /* 읽기 보기의 문서는 `margin: 0 auto`로 가운데 정렬한다. 그런데 자동 여백은
+     그리드의 stretch를 이겨서 칸 안에서 fit-content로 줄어들고, 이 문서는
+     컨테이너 질의(`container: result / inline-size`)로 크기가 갇혀 있어
+     fit-content가 0이다 — 폭 2px에 높이 19000px짜리 띠로 접힌다. 폭을 명시해
+     stretch를 되돌린다. 가운데 정렬은 자동 여백이 그대로 한다. */
+  .portfolio-canvas-wrap:has(.follow-up-rail) > .portfolio-preview { width: 100%; }
 }
 
 /* 남은 개수와 닫기만 얇게. 노션 카드에는 큰 머리가 없다. */
@@ -3465,6 +3489,109 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 
 .follow-up-note { margin: 0; padding-left: 32px; color: var(--ink-muted); font-size: var(--text-2xs); line-height: 1.6; }
 
+/* 진행과 결과. 아바타 폭(24px)에 간격 8px을 더한 32px 들여쓰기로 말풍선 본문과
+   같은 기준선에 선다 — 누가 한 말이 아니라 화면이 알려주는 것이라 아바타가
+   없다. */
+.follow-up-status {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin: 0;
+  padding-left: 32px;
+  color: var(--ink-soft);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+/* 보내는 동안 도는 표시. 버튼이 흐려지는 것 말고는 아무 표시가 없어서, 모델
+   호출이 몇 초씩 걸리는 동안 멈춘 화면처럼 보였다.
+
+   `.loading-mark`의 작은 판이다. 이름을 나눠 갖는 이유는 이것이 같은 것이기
+   때문이다 — 진행 중임을 알리는 표시라 움직임을 줄이는 설정의 "필수 예외"에
+   함께 든다. 면을 칠하지 않고 테두리로 그리는 것도 같다. */
+.loading-mark-inline {
+  flex: none;
+  align-self: center;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--line-dark);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.follow-up-changes { display: grid; gap: var(--space-3); }
+
+/* 왼쪽 선 하나로 묶는다. 면을 칠하면 카드 안에 또 카드가 생겨 폼처럼 보인다 —
+   이 카드에서 칠해도 되는 것은 아바타 원과 전송 버튼뿐이다. */
+.follow-up-change {
+  margin-left: 32px;
+  padding-left: var(--space-3);
+  border-left: 2px solid #b7d08a;
+}
+
+.follow-up-change-head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 var(--space-2);
+  color: var(--ink-soft);
+  font-size: var(--text-2xs);
+  font-weight: 650;
+}
+
+.follow-up-change-show {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  font-weight: 550;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.follow-up-change-show:hover { color: var(--ink); }
+
+/* 이름과 값. 이름은 좁은 고정 열이라 이전과 지금의 첫 글자가 같은 자리에서
+   시작하고, 그래야 두 문장을 눈으로 겹쳐 볼 수 있다. */
+.follow-up-change dl {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 2px var(--space-2);
+  margin: 0;
+}
+
+.follow-up-change dt { color: var(--ink-muted); font-size: var(--text-2xs); font-weight: 650; }
+.follow-up-change dd { margin: 0; font-size: var(--text-xs); line-height: 1.6; }
+
+/* 결정은 표제와 세 문장, 강조는 여러 항목이라 줄마다 쌓는다. */
+.follow-up-change dd span { display: block; }
+.follow-up-change dd span + span { margin-top: 3px; }
+/* 결정은 표제 + 세 문장이다. 첫 줄이 표제라 그것만 무게를 준다. */
+.follow-up-change dd span:first-child { font-weight: 600; }
+
+/* 이전 문장은 참고용이라 두 줄에서 자른다. 전체는 문서에서 본다. */
+.follow-up-change-old {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* 결정 묶음의 몇 번째인지. 셋이 모여야 문서에 들어가는 이유가 여기서 읽힌다. */
+.follow-up-step {
+  flex: none;
+  color: var(--ink-muted);
+  font-size: var(--text-2xs);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 회신 줄. 알약형 입력 안에 원형 전송 버튼 — 노션의 "회신…" 그대로. */
 .follow-up-composer {
   display: grid;
@@ -3514,16 +3641,10 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 
 .follow-up-send[aria-disabled="true"] { opacity: 0.35; cursor: default; }
 
-/* 카드가 들어갈 여백이 없으면 문서 아래로 내려온다.
-
-   캔버스는 1360px 띠를 중앙 정렬하고 그 안에서 A4(794px)가 다시 중앙에 온다.
-   그래서 종이 오른쪽 여백은 화면 폭 W에 대해 `W/2 - 397`이고, 카드 336에
-   여백 16과 간격을 더하면 W가 1560px은 되어야 겹치지 않는다. 그 아래에서
-   억지로 옆에 두면 카드가 이력서를 덮는다. */
-@media (max-width: 1559px) {
+/* 종이와 카드가 나란히 설 수 없는 폭에서는 문서 아래로 내려온다. 카드를
+   줄여서 억지로 옆에 두는 길도 있지만, 그러면 대화가 읽히지 않는다. */
+@media (max-width: 1199px) {
   .follow-up-rail {
-    position: static;
-    width: auto;
     max-width: 560px;
     max-height: none;
     margin: var(--space-6) auto 0;
@@ -3537,6 +3658,9 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
    달라져 A4 나눔이 인쇄와 어긋난다 — 그것 때문에 예전에 A4 보기에서 되묻기를
    숨겼다. 표시는 화면에서만 의미가 있으므로 인쇄에서 지운다. */
 .result-block-marked { outline: 2px dashed rgb(98 160 111 / 45%); outline-offset: var(--space-2); }
+/* 방금 바뀐 곳. 답할 것이 남은 표시(점선)보다 뒤에 둬서, 한 프로젝트가 둘
+   다일 때 방금 바뀐 쪽이 이긴다 — 지금 눈이 찾는 것은 그쪽이다. */
+.result-block-changed { outline: 2px solid #7ea24a; outline-offset: var(--space-2); }
 .result-block-active { outline-color: #4a7a55; outline-style: solid; }
 
 
@@ -3558,6 +3682,14 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   }
   .portfolio-page-inner { max-width: none; padding: 0; }
   .portfolio-page-number { display: none !important; }
+
+  /* 문서 표시는 화면에서만 의미가 있다. 주석에는 "인쇄에서 지운다"고
+     적혀 있었는데 규칙이 없었다 — 패널을 열어둔 채 인쇄하면 답할 것이 남은
+     프로젝트마다 초록 점선 상자가 PDF에 찍혔다. 채용 담당자에게 보내는
+     파일에. */
+  .result-block-marked,
+  .result-block-changed,
+  .result-block-active { outline: 0 !important; }
 
   .site-header,
   .mobile-nav,
