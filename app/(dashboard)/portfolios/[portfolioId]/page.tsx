@@ -351,6 +351,10 @@ export default function PortfolioResultPage() {
         portfolioId={portfolio.id}
         questions={railQuestions}
         projects={railProjects}
+        profile={{
+          displayName: content.profile.displayName,
+          avatarUrl: content.profile.avatarUrl,
+        }}
         open={railOpen}
         onClose={() => setRailChoice(false)}
         onApplied={applyResult}
