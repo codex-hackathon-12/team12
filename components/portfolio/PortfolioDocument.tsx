@@ -31,6 +31,7 @@ export function PortfolioDocument({
   content,
   printClassName = "button primary",
   markedProjectUrls,
+  changedProjectUrls,
   aside,
 }: {
   content: PortfolioContentDto;
@@ -45,10 +46,18 @@ export function PortfolioDocument({
    */
   markedProjectUrls?: readonly string[];
   /**
-   * 문서 옆 여백에 띄울 화면 전용 요소. 결과 화면만 넘긴다.
+   * 방금 되묻기로 바뀐 프로젝트의 저장소 URL. 결과 화면만 넘긴다.
    *
-   * 캔버스 안에 두는 이유는 자리 때문이다. 캔버스 위쪽 여백이 곧 A4 종이의
-   * 윗변이라, 여기 절대 배치하면 계산 없이 이력서와 같은 높이에서 시작한다.
+   * 대화 카드가 "이전 → 지금"을 말해주지만 그것이 문서 어디인지까지는
+   * 말해주지 못한다. 표시는 `markedProjectUrls`와 같은 이유로 outline이다.
+   */
+  changedProjectUrls?: readonly string[];
+  /**
+   * 문서 옆에 세울 화면 전용 요소. 결과 화면만 넘긴다.
+   *
+   * 캔버스 안에 두는 이유는 자리 때문이다. 캔버스가 종이와 이것을 두 칸으로
+   * 나눠 담고, 위쪽 여백이 곧 A4 종이의 윗변이라 계산 없이 이력서와 같은
+   * 높이에서 시작한다.
    *
    * 문서는 무엇이 들어오는지 알 필요가 없다. 공개 페이지와 갤러리는 넘기지
    * 않으므로 남에게 보내는 링크에 새어 나갈 통로가 없다.
@@ -110,9 +119,10 @@ export function PortfolioDocument({
           paginated={paginated}
           onPageCount={handlePageCount}
           markedProjectUrls={markedProjectUrls}
+          changedProjectUrls={changedProjectUrls}
         />
-        {/* 미리보기 뒤에 둔다. 절대 배치일 때는 순서가 상관없지만, 좁은
-            화면에서 흐름으로 돌아가면 문서 아래에 놓여야 한다. */}
+        {/* 미리보기 뒤에 둔다. 나란히 설 때는 순서가 곧 왼쪽·오른쪽이고,
+            좁은 화면에서 한 줄로 돌아가면 문서 아래에 놓인다. */}
         {aside}
       </div>
     </div>

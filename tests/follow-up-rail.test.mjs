@@ -223,9 +223,58 @@ test("결정 셋을 모아 한 번에 보낸다", () => {
      모르는 채 재작성해 반쪽짜리가 된다 — 고쳐 쓸 때도 마찬가지라, 묶음을
      통째로 다시 보낸다. */
   assert.match(rail, /const group = groupOf\(current\);/u);
-  assert.match(rail, /if \(batch\.length < group\.length\) return;/u, "덜 모인 채로 보내요");
+  assert.match(rail, /if \(batch\.length < group\.length\) \{/u, "덜 모인 채로 보내요");
+  /* 덜 모였을 때도 화면은 무언가를 말해야 한다. 예전에는 여기서 그냥 돌아가
+     아무 표시가 없었고, 사용자 눈에는 두 번 연속으로 답했는데 문서도 안
+     바뀌고 설명도 없는 구간이 됐다. */
+  assert.match(rail, /kind: "collecting"/u, "모으는 중을 말해주지 않아요");
   // 건너뛸 때도 묶음째. 셋 중 하나만 건너뛰면 나머지는 답해도 반영되지 않는다.
   assert.match(rail, /\.\.\.Object\.fromEntries\(group\.map/u, "건너뛰기가 묶음째가 아니에요");
+});
+
+test("답이 어디로 갔는지 말해준다", () => {
+  /* 예전에는 성공했을 때 "문서의 그 자리를 채웠어요" 한 줄이 전부였다. 어느
+     프로젝트의 어느 문단이 무엇에서 무엇으로 바뀌었는지는 어디에도 없었고,
+     바뀐 문장이 화면 밖이나 다른 A4 장에 있으면 아무 일도 안 일어난 것처럼
+     보였다. */
+  assert.match(rail, /summarizeRewrite|RewriteChange/u, "무엇이 바뀌었는지 받지 않아요");
+  assert.match(rail, /이전/u, "바뀌기 전 문장을 안 보여줘요");
+  assert.match(rail, /문서에서 보기/u, "문서로 가는 길이 없어요");
+
+  /* 이전 content를 아는 곳은 문서를 들고 있는 화면뿐이다. 카드는 보내고,
+     화면이 무엇이 움직였는지 답한다. */
+  assert.match(rail, /onApplied: \(result: PortfolioStatementResultDto\) => RewriteChange\[\]/u);
+  assert.match(resultPage, /summarizeRewrite\(content, result\.content/u, "문서를 갈아끼운 뒤에 견주면 이전 값이 없어요");
+});
+
+test("보내는 동안과 못 바꿨을 때도 말해준다", () => {
+  assert.match(rail, /kind: "writing"/u, "보내는 동안 아무 표시가 없어요");
+  assert.match(rail, /loading-mark-inline/u, "진행 표시가 없어요");
+  /* 못 바꾼 이유는 응답만으로 가릴 수 없다. 사용자를 탓하는 대신 규칙을
+     말한다 — 수치 검증이 근거 없는 숫자를 지웠을 수도 있다. */
+  assert.match(rail, /kind: "unchanged"/u);
+  assert.doesNotMatch(rail, /조금 더 구체적으로 적어주시면 반영할 수 있어요/u, "사용자를 탓하는 문구가 남아 있어요");
+});
+
+test("바뀐 곳을 문서에도 짚는다", () => {
+  assert.match(preview, /changedProjectUrls/u, "문서가 바뀐 곳을 안 받아요");
+  assert.match(resultPage, /changedProjectUrls=\{/u, "결과 화면이 안 넘겨요");
+  const rule = css.match(/\.result-block-changed \{([^}]*)\}/u);
+  assert.ok(rule, ".result-block-changed 규칙이 없어요");
+  // 자리를 차지하면 A4 나눔이 인쇄와 어긋난다. marked와 같은 이유다.
+  assert.match(rule[1], /outline:/u);
+  assert.doesNotMatch(rule[1], /border:|padding:/u, "표시가 자리를 차지해요");
+});
+
+test("문서 표시가 종이에 찍히지 않는다", () => {
+  /* 주석에는 "인쇄에서 지운다"고 적혀 있었는데 규칙이 없었다. 패널을 열어둔
+     채 인쇄하면 답할 것이 남은 프로젝트마다 점선 상자가 PDF에 찍혔다 —
+     채용 담당자에게 보내는 파일에. */
+  const print = printBlock();
+  for (const mark of ["result-block-marked", "result-block-changed"]) {
+    assert.match(print, new RegExp(`\\.${mark}`, "u"), `${mark}가 인쇄에서 안 지워져요`);
+  }
+  assert.match(print, /\.result-block-changed,?[\s\S]{0,80}outline: 0/u, "표시가 남아 있어요");
 });
 
 test("한글을 쓰는 중에 Enter로 보내지 않는다", () => {

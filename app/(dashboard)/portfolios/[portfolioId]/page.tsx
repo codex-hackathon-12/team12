@@ -14,6 +14,7 @@ import { useAsyncData } from "@/hooks/useAsyncData";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { FollowUpRail, type RailProject } from "@/components/portfolio/FollowUpRail";
+import { summarizeRewrite, type RewriteChange } from "@/lib/rewrite-summary";
 import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { LABEL } from "@/lib/copy";
@@ -46,6 +47,9 @@ export default function PortfolioResultPage() {
      "옆에 자리가 있다고 보고 열었는데 아래에 붙는" 구간이 생긴다. */
   const roomForRail = useMediaQuery("(min-width: 1200px)");
   const [railChoice, setRailChoice] = useState<boolean | null>(null);
+  /* 마지막으로 반영된 자리. 문서에 "방금 바뀐 곳" 표시를 남기는 데 쓴다.
+     반영할 때마다 갈아치우므로 늘 가장 최근 것만 표시된다. */
+  const [changedUrls, setChangedUrls] = useState<readonly string[]>([]);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   /* 공개 상태는 서버 응답이 출발점이고, 전환에 성공했을 때만 덮어쓴다.
@@ -88,15 +92,25 @@ export default function PortfolioResultPage() {
   const repositoryNameByUrl = new Map(
     portfolio.repositories.map((repository) => [repository.htmlUrl, repository.name]),
   );
+  /* 되묻기 결과는 저장소 이름으로 오고 문서는 URL로 산다. 반대 방향도 필요하다. */
+  const urlByName = new Map(
+    portfolio.repositories.map((repository) => [repository.name, repository.htmlUrl]),
+  );
   const openQuestions = (rewritten?.questions ?? portfolio.questions)
     .filter((question) => !question.answer);
-  const applyResult = (result: PortfolioStatementResultDto) => {
+  const applyResult = (result: PortfolioStatementResultDto): RewriteChange[] => {
+    /* 문서를 갈아끼우기 **전에** 견준다. 이전 값을 아는 것은 지금 이 순간의
+       `content`뿐이고, 서버는 무엇이 바뀌었는지(`updatedFields`)만 알려줄 뿐
+       바뀌기 전 문장은 돌려주지 않는다. */
+    const changes = summarizeRewrite(content, result.content, result.updatedFields, urlByName);
+    setChangedUrls(changes.map((change) => change.projectUrl));
     setRewritten({ content: result.content, questions: result.questions });
     /* 대화가 시작됐으면 사용자가 직접 닫기 전까지 열어 둔다. 이게 없으면
        railOpen의 기본값이 "남은 질문이 있는가"에서 매번 다시 계산돼, 마지막
        답이 반영되는 순간 패널이 대화 도중 사라진다 — 마무리 인사도, 무엇이
        반영됐다는 알림도 못 본 채로. */
     setRailChoice((choice) => choice ?? true);
+    return changes;
   };
 
   const content = rewritten?.content ?? portfolio.content;
@@ -336,6 +350,7 @@ export default function PortfolioResultPage() {
       <PortfolioDocument
         content={content}
         markedProjectUrls={railOpen ? markedUrls : undefined}
+        changedProjectUrls={railOpen ? changedUrls : undefined}
         aside={(
           <FollowUpRail
             portfolioId={portfolio.id}

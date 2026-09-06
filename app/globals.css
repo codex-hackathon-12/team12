@@ -3489,6 +3489,109 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 
 .follow-up-note { margin: 0; padding-left: 32px; color: var(--ink-muted); font-size: var(--text-2xs); line-height: 1.6; }
 
+/* 진행과 결과. 아바타 폭(24px)에 간격 8px을 더한 32px 들여쓰기로 말풍선 본문과
+   같은 기준선에 선다 — 누가 한 말이 아니라 화면이 알려주는 것이라 아바타가
+   없다. */
+.follow-up-status {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin: 0;
+  padding-left: 32px;
+  color: var(--ink-soft);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+/* 보내는 동안 도는 표시. 버튼이 흐려지는 것 말고는 아무 표시가 없어서, 모델
+   호출이 몇 초씩 걸리는 동안 멈춘 화면처럼 보였다.
+
+   `.loading-mark`의 작은 판이다. 이름을 나눠 갖는 이유는 이것이 같은 것이기
+   때문이다 — 진행 중임을 알리는 표시라 움직임을 줄이는 설정의 "필수 예외"에
+   함께 든다. 면을 칠하지 않고 테두리로 그리는 것도 같다. */
+.loading-mark-inline {
+  flex: none;
+  align-self: center;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--line-dark);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.follow-up-changes { display: grid; gap: var(--space-3); }
+
+/* 왼쪽 선 하나로 묶는다. 면을 칠하면 카드 안에 또 카드가 생겨 폼처럼 보인다 —
+   이 카드에서 칠해도 되는 것은 아바타 원과 전송 버튼뿐이다. */
+.follow-up-change {
+  margin-left: 32px;
+  padding-left: var(--space-3);
+  border-left: 2px solid #b7d08a;
+}
+
+.follow-up-change-head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 var(--space-2);
+  color: var(--ink-soft);
+  font-size: var(--text-2xs);
+  font-weight: 650;
+}
+
+.follow-up-change-show {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  font-weight: 550;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.follow-up-change-show:hover { color: var(--ink); }
+
+/* 이름과 값. 이름은 좁은 고정 열이라 이전과 지금의 첫 글자가 같은 자리에서
+   시작하고, 그래야 두 문장을 눈으로 겹쳐 볼 수 있다. */
+.follow-up-change dl {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 2px var(--space-2);
+  margin: 0;
+}
+
+.follow-up-change dt { color: var(--ink-muted); font-size: var(--text-2xs); font-weight: 650; }
+.follow-up-change dd { margin: 0; font-size: var(--text-xs); line-height: 1.6; }
+
+/* 결정은 표제와 세 문장, 강조는 여러 항목이라 줄마다 쌓는다. */
+.follow-up-change dd span { display: block; }
+.follow-up-change dd span + span { margin-top: 3px; }
+/* 결정은 표제 + 세 문장이다. 첫 줄이 표제라 그것만 무게를 준다. */
+.follow-up-change dd span:first-child { font-weight: 600; }
+
+/* 이전 문장은 참고용이라 두 줄에서 자른다. 전체는 문서에서 본다. */
+.follow-up-change-old {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* 결정 묶음의 몇 번째인지. 셋이 모여야 문서에 들어가는 이유가 여기서 읽힌다. */
+.follow-up-step {
+  flex: none;
+  color: var(--ink-muted);
+  font-size: var(--text-2xs);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 회신 줄. 알약형 입력 안에 원형 전송 버튼 — 노션의 "회신…" 그대로. */
 .follow-up-composer {
   display: grid;
@@ -3555,6 +3658,9 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
    달라져 A4 나눔이 인쇄와 어긋난다 — 그것 때문에 예전에 A4 보기에서 되묻기를
    숨겼다. 표시는 화면에서만 의미가 있으므로 인쇄에서 지운다. */
 .result-block-marked { outline: 2px dashed rgb(98 160 111 / 45%); outline-offset: var(--space-2); }
+/* 방금 바뀐 곳. 답할 것이 남은 표시(점선)보다 뒤에 둬서, 한 프로젝트가 둘
+   다일 때 방금 바뀐 쪽이 이긴다 — 지금 눈이 찾는 것은 그쪽이다. */
+.result-block-changed { outline: 2px solid #7ea24a; outline-offset: var(--space-2); }
 .result-block-active { outline-color: #4a7a55; outline-style: solid; }
 
 
@@ -3576,6 +3682,14 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   }
   .portfolio-page-inner { max-width: none; padding: 0; }
   .portfolio-page-number { display: none !important; }
+
+  /* 문서 표시는 화면에서만 의미가 있다. 주석에는 "인쇄에서 지운다"고
+     적혀 있었는데 규칙이 없었다 — 패널을 열어둔 채 인쇄하면 답할 것이 남은
+     프로젝트마다 초록 점선 상자가 PDF에 찍혔다. 채용 담당자에게 보내는
+     파일에. */
+  .result-block-marked,
+  .result-block-changed,
+  .result-block-active { outline: 0 !important; }
 
   .site-header,
   .mobile-nav,
