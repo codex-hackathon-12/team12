@@ -4,13 +4,13 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
   PORTFOLIO_ANSWER_MAX_LENGTH,
-  type PortfolioDecisionCandidateDto,
   type PortfolioQuestionDto,
   type PortfolioQuestionSlot,
   type PortfolioSkipReason,
   type PortfolioStatementResultDto,
 } from "@/contracts/api-contract";
 import { ApiClientError, apiClient } from "@/lib/api-client";
+import { MoreToWrite, type DecisionChoice, type WriteAction } from "@/components/portfolio/MoreToWrite";
 import { SLOT_LABEL, type RewriteChange } from "@/lib/rewrite-summary";
 
 /**
@@ -86,11 +86,6 @@ export type RailProject = {
    * 결정이 아닐 수 있으므로 "다른 결정으로"를 내민다.
    */
   hasDecision: boolean;
-};
-
-const SLOT_ASK_LABEL: Record<PortfolioQuestionSlot, string> = {
-  keyDecision: "핵심 결정",
-  highlights: "강조",
 };
 
 /** 안 바뀐 이유를 사람 말로. 사용자를 탓하지 않고 무슨 일이 있었는지 말한다. */
@@ -200,9 +195,7 @@ export function FollowUpRail({
    * 무엇이 말할 만한 결정인지는 만든 사람이 안다. 저장소에 남아 있는 본인
    * PR과 커밋 제목을 보여주고 고르게 한다.
    */
-  const [choosing, setChoosing] = useState<
-    { project: RailProject; replace: boolean; candidates: PortfolioDecisionCandidateDto[] | null } | null
-  >(null);
+  const [choosing, setChoosing] = useState<DecisionChoice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -248,7 +241,7 @@ export function FollowUpRail({
   const replaceable = projects
     .filter((project) => project.hasDecision)
     .map((project) => ({ project, slot: "keyDecision" as const, replace: true }));
-  const actions = [...openable, ...replaceable];
+  const actions: WriteAction[] = [...openable, ...replaceable];
 
   /** 같은 결정에 속한 질문 전부. 셋이 한 덩어리다. */
   const groupOf = (question: PortfolioQuestionDto) =>
@@ -484,7 +477,11 @@ export function FollowUpRail({
   };
 
   return (
-    <aside className="follow-up-rail" aria-label="더 알려주기">
+    /* 카드 둘이 한 칸에 세로로 선다. 대화가 길어지면 대화 카드만 안쪽에서
+       스크롤되고 "더 쓸 자리"는 늘 보인다 — 그 카드가 화면 밖으로 밀리면
+       초안이 비워둔 자리를 채울 길이 다시 없어진다. */
+    <div className="follow-up-column">
+      <aside className="follow-up-rail" aria-label="더 알려주기">
       {/* 노션 카드에는 큰 머리가 없다. 남은 개수와 닫기만 얇게. */}
       <header className="follow-up-rail-head">
         {/* 남은 것과 함께 이번 대화의 성과를 적는다. 답이 문서에 쌓이고
@@ -546,70 +543,6 @@ export function FollowUpRail({
         <div ref={endRef} />
       </div>
 
-      {/* 비어 있는데 물어볼 질문도 없는 자리. 여기가 없으면 초안이 비워둔
-          핵심 결정을 지원자가 채울 방법이 영영 없다 — 답변에 "추가해줘"라고
-          써도 답은 그 질문의 자리 하나에만 반영된다. */}
-      {choosing ? (
-        <div className="follow-up-open">
-          <p>{choosing.project.title} · 어느 결정을 쓸까요?</p>
-          {choosing.candidates === null ? (
-            <p className="follow-up-status">
-              <span className="loading-mark-inline" aria-hidden="true" />
-              저장소를 읽는 중…
-            </p>
-          ) : (
-            <ul className="follow-up-candidates">
-              {/* 저장소에서 본 그대로다. 다듬으면 본인이 못 알아본다. */}
-              {choosing.candidates.map((candidate) => (
-                <li key={candidate.topic}>
-                  <button
-                    type="button"
-                    aria-disabled={opening !== null}
-                    onClick={() => void openSlot(choosing.project, "keyDecision", {
-                      topic: candidate.topic,
-                      replace: choosing.replace,
-                    })}
-                  >
-                    <span>{candidate.topic}</span>
-                    <em>{candidate.source === "pullRequest" ? "PR" : "커밋"}</em>
-                  </button>
-                </li>
-              ))}
-              <li>
-                <button
-                  type="button"
-                  aria-disabled={opening !== null}
-                  onClick={() => void openSlot(choosing.project, "keyDecision", { replace: choosing.replace })}
-                >
-                  <span>직접 쓸래요</span>
-                </button>
-              </li>
-            </ul>
-          )}
-          <button className="follow-up-cancel" type="button" onClick={() => setChoosing(null)}>
-            그만두기
-          </button>
-        </div>
-      ) : actions.length > 0 ? (
-        <div className="follow-up-open">
-          <p>더 쓸 자리</p>
-          <div>
-            {actions.map(({ project, slot, replace }) => (
-              <button
-                key={`${project.name} ${slot} ${replace}`}
-                type="button"
-                aria-disabled={opening !== null || submitting}
-                onClick={() => (slot === "keyDecision"
-                  ? void chooseDecision(project, replace)
-                  : void openSlot(project, slot))}
-              >
-                {project.title} · {replace ? "다른 결정으로" : SLOT_ASK_LABEL[slot]}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       {/* 회신 줄. 노션처럼 알약형 입력 안에 원형 전송 버튼을 둔다.
           아이콘이라 문구 스왑이 없어 전송 중에도 폭이 흔들리지 않는다. */}
       {current ? (
@@ -658,7 +591,20 @@ export function FollowUpRail({
           ) : null}
         </div>
       ) : null}
-    </aside>
+      </aside>
+
+      {/* 무엇을 더 쓸지 고르는 일은 오간 대화를 읽는 일과 다르다. 한 카드가
+          둘을 다 하면 대화 중간에 조작 줄이 끼어들어 어디까지가 대화인지
+          흐려진다. */}
+      <MoreToWrite
+        actions={actions}
+        choosing={choosing}
+        busy={opening !== null || submitting}
+        onChoose={(project, replace) => void chooseDecision(project, replace)}
+        onOpen={(project, slot, options) => void openSlot(project, slot, options)}
+        onCancel={() => setChoosing(null)}
+      />
+    </div>
   );
 }
 

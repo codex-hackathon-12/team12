@@ -3319,16 +3319,65 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
    댓글을 열 때 하는 일과 같다.
 
    sticky를 쓰지 않는다. 문서와 함께 스크롤되어 그 자리에 머문다. */
-.follow-up-rail {
+/* 카드 둘이 한 칸에 세로로 선다. 대화가 길어져도 화면을 넘지 않게 칸에
+   높이를 걸고, 대화 카드만 줄어들게 한다 — "더 쓸 자리"가 화면 밖으로 밀리면
+   초안이 비워둔 자리를 채울 길이 다시 없어진다. */
+.follow-up-column {
   display: flex;
   flex-direction: column;
-  /* 대화가 길어져도 화면을 넘지 않게. 넘치면 로그만 안쪽에서 스크롤된다. */
+  gap: var(--space-4);
   max-height: calc(100vh - var(--header-height) - var(--space-12));
+}
+
+.follow-up-rail,
+.follow-up-more {
   border: 1px solid var(--line-dark);
   border-radius: 12px;
   background: var(--paper);
   box-shadow: 0 4px 24px rgb(23 35 29 / 10%);
 }
+
+.follow-up-rail {
+  display: flex;
+  flex-direction: column;
+  /* 넘치면 로그만 안쪽에서 스크롤된다. */
+  min-height: 0;
+}
+
+/* 무엇을 더 쓸지 고르는 카드. 대화와 하는 일이 다르므로 상자를 나눈다 —
+   한 카드가 둘을 다 하면 대화 중간에 조작 줄이 끼어들어 어디까지가 대화인지
+   흐려진다. */
+.follow-up-more {
+  display: grid;
+  flex: none;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+}
+
+.follow-up-more-head {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--text-2xs);
+  font-weight: 650;
+}
+
+.follow-up-more-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.follow-up-more button {
+  padding: 5px var(--space-3);
+  border: 1px solid var(--line-dark);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+
+.follow-up-more button:hover { border-color: var(--ink); color: var(--ink); }
+.follow-up-more button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
 
 /* 종이 794 + 간격 16 + 카드 336 + 캔버스 좌우 24×2 = 1194. 그 아래에서는
    물리적으로 옆에 설 수 없어 문서 아래로 내려간다(그 규칙은 아래에 있다).
@@ -3341,7 +3390,7 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
    위 여백(42px)이 종이 윗변이자 카드 윗변이다. `align-items: start`면 "이력서와
    같이 시작"이 계산 없이 배치에서 따라온다. */
 @media screen and (min-width: 1200px) {
-  .portfolio-canvas-wrap:has(.follow-up-rail) {
+  .portfolio-canvas-wrap:has(.follow-up-column) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 336px;
     gap: var(--space-4);
@@ -3353,7 +3402,7 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
      컨테이너 질의(`container: result / inline-size`)로 크기가 갇혀 있어
      fit-content가 0이다 — 폭 2px에 높이 19000px짜리 띠로 접힌다. 폭을 명시해
      stretch를 되돌린다. 가운데 정렬은 자동 여백이 그대로 한다. */
-  .portfolio-canvas-wrap:has(.follow-up-rail) > .portfolio-preview { width: 100%; }
+  .portfolio-canvas-wrap:has(.follow-up-column) > .portfolio-preview { width: 100%; }
 }
 
 /* 남은 개수와 닫기만 얇게. 노션 카드에는 큰 머리가 없다. */
@@ -3583,44 +3632,6 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   -webkit-line-clamp: 2;
 }
 
-/* 빈 자리 채우기. 로그와 회신 줄 사이에 둔다 — 대화가 끝난 뒤에만 보이면
-   "물어볼 것이 더 없어요" 아래에 묻혀서, 정작 채우고 싶은 사람이 못 찾는다.
-
-   면을 칠하지 않는다. 이 카드에서 칠해도 되는 것은 아바타 원과 전송
-   버튼뿐이고, 칩에 색이 붙는 순간 다시 폼처럼 보인다. */
-.follow-up-open {
-  display: grid;
-  flex: none;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border-top: 1px solid var(--line);
-}
-
-.follow-up-open > p {
-  margin: 0;
-  color: var(--ink-muted);
-  font-size: var(--text-2xs);
-  font-weight: 650;
-}
-
-.follow-up-open > div { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-
-.follow-up-open button {
-  padding: 5px var(--space-3);
-  border: 1px solid var(--line-dark);
-  border-radius: 999px;
-  background: none;
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 140ms ease, color 140ms ease;
-}
-
-.follow-up-open button:hover { border-color: var(--ink); color: var(--ink); }
-.follow-up-open button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
-
 /* 저장소에서 찾은 결정 후보. 제목이 길어 칩으로는 읽히지 않는다 — 한 줄에
    하나씩 세로로 쌓고 왼쪽 정렬한다. */
 .follow-up-candidates { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
@@ -3647,7 +3658,7 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   font-weight: 650;
 }
 
-.follow-up-open .follow-up-cancel { justify-self: start; }
+.follow-up-more .follow-up-cancel { justify-self: start; }
 
 /* 결정 묶음의 몇 번째인지. 셋이 모여야 문서에 들어가는 이유가 여기서 읽힌다. */
 .follow-up-step {
@@ -3710,7 +3721,8 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 /* 종이와 카드가 나란히 설 수 없는 폭에서는 문서 아래로 내려온다. 카드를
    줄여서 억지로 옆에 두는 길도 있지만, 그러면 대화가 읽히지 않는다. */
 @media (max-width: 1199px) {
-  .follow-up-rail {
+  .follow-up-column {
+    width: 100%;
     max-width: 560px;
     max-height: none;
     margin: var(--space-6) auto 0;
@@ -3762,7 +3774,7 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   .result-toolbar,
   /* 물어보는 칸은 화면에서만 의미가 있다. 종이에 찍히면 채용 담당자가
      지원자에게 던지는 질문 목록이 된다. */
-  .follow-up-rail,
+  .follow-up-column,
   .result-portfolio-nav,
   .result-footer-actions,
   /* 공유 페이지의 안내와 인쇄 버튼은 종이에 남을 이유가 없다. */
