@@ -72,15 +72,30 @@ test("남에게 보내는 문서에는 되묻기가 새어 나가지 않는다",
   assert.match(resultPage, /markedProjectUrls=\{/u, "결과 화면이 표시를 안 넘겨요");
 });
 
-test("패널이 화면 끝에 붙지 않는다", () => {
-  /* 처음에는 오른쪽 끝에 붙은 전체 높이 슬래브였다. 위는 헤더, 아래는 뷰포트
-     바닥까지 꽉 차서 화면의 일부가 아니라 잘려나간 조각처럼 보였다.
-     이 앱이 쓰는 카드 모양(테두리 + 오프셋 그림자)을 그대로 쓴다. */
+test("패널에 배경을 깔지 않는다", () => {
+  /* 여기까지 두 번 잘못 만들었다. 화면 끝에 붙은 전체 높이 슬래브였다가,
+     테두리와 그림자를 두른 카드였다. 둘 다 화면 위에 얹힌 판이지 페이지의
+     일부가 아니었다.
+
+     물음과 답이 여백에 적혀 있는 것으로 읽혀야 한다. 어디에도 색을 채우지
+     않고, 누가 한 말인지는 어느 쪽에 붙었는지와 선 하나로 갈린다. */
+  const offenders = [];
+  for (const match of css.matchAll(/(\.follow-up-[a-z-]+)[^{}]*\{([^}]*)\}/gu)) {
+    const [, selector, body] = match;
+    const fill = body.match(/background(?:-color)?:\s*([^;]+)/u);
+    if (fill && !/transparent|none/u.test(fill[1])) offenders.push(`${selector} → ${fill[1].trim()}`);
+  }
+  assert.deepEqual(offenders, [], `배경이 남아 있어요:\n${offenders.join("\n")}`);
+});
+
+test("패널이 문서 흐름을 따라 내려온다", () => {
+  /* fixed로 띄우면 페이지 밖의 물건이 된다. 문서와 자리를 나눠 갖고
+     스크롤에는 sticky로 따라와야 페이지의 일부로 읽힌다. */
   const rule = css.match(/\.follow-up-rail \{([^}]*)\}/u);
   assert.ok(rule, ".follow-up-rail 규칙이 없어요");
-  assert.doesNotMatch(rule[1], /right: 0;|bottom: 0;/u, "패널이 화면 끝에 붙어 있어요");
-  assert.match(rule[1], /box-shadow: 7px 8px 0 var\(--ink\)/u, "이 앱의 카드 모양이 아니에요");
-  // 내용이 짧으면 카드도 짧다. 바닥까지 늘리면 다시 슬래브가 된다.
+  assert.match(rule[1], /position: sticky/u, "sticky가 아니에요");
+  assert.doesNotMatch(rule[1], /position: fixed/u);
+  // 내용이 짧으면 그만큼만 차지한다. 화면 높이를 채우면 다시 판이 된다.
   assert.match(rule[1], /max-height:/u, "높이 상한이 없어요");
 });
 
@@ -134,15 +149,30 @@ test("묻는 쪽과 답한 쪽이 모양으로 갈린다", () => {
 });
 
 test("패널이 문서를 가리지 않는다", () => {
-  /* 겹치면 읽으면서 답할 수 없다. 문서를 패널 폭만큼 밀어낸다. 캔버스 여백이
-     100vw를 쓰면 패널이 차지한 폭을 몰라 문서가 가운데를 벗어난다. */
-  assert.match(css, /\.result-page \{ --rail-width: 0px; padding-right: var\(--rail-width\); \}/u);
+  /* 겹치면 읽으면서 답할 수 없다. 문서와 두 칸으로 나눠 갖는다. 캔버스
+     여백이 100vw를 쓰면 패널이 차지한 폭을 몰라 문서가 가운데를 벗어난다. */
+  assert.match(
+    css,
+    /\.result-page\.with-rail \{[^}]*grid-template-columns: minmax\(0, 1fr\) var\(--rail-width\)/u,
+    "문서와 자리를 나누지 않아요",
+  );
   assert.match(css, /\.portfolio-canvas-wrap \{[\s\S]*?calc\(\(100% - 1360px\) \/ 2\)/u, "캔버스가 패널 폭을 몰라요");
 });
 
-test("좁은 화면에서는 아래에서 올라온다", () => {
-  // 옆에 둘 자리가 없는 폭에서 패널이 문서를 덮으면 읽을 수가 없다.
-  assert.match(css, /@media \(max-width: 1100px\) \{[\s\S]*?\.result-page\.with-rail \{ --rail-width: 0px; \}/u);
+test("좁은 화면에서는 문서 아래로 내려온다", () => {
+  // 옆에 둘 자리가 없는 폭에서 옆에 붙이면 문서와 대화가 서로를 밀어낸다.
+  assert.match(css, /@media \(max-width: 1100px\) \{[\s\S]*?\.result-page\.with-rail \{ display: block;/u);
+  assert.match(css, /@media \(max-width: 1100px\) \{[\s\S]*?position: static/u, "좁은 화면에서 여전히 붙어 있어요");
+});
+
+test("닫은 대화를 다시 열 수 있다", () => {
+  /* 예전에는 "답할 것 N개"라고만 적어 개수를 알리는 배지처럼 보였다. 누를 수
+     있는 것으로 읽히지 않아 한 번 닫으면 다시 못 여는 화면이 됐다. */
+  assert.match(resultPage, /aria-expanded=\{railOpen\}/u, "여닫는 버튼이 상태를 알리지 않아요");
+  assert.match(resultPage, /질문 \$\{openQuestions\.length\}개 답하기/u, "무엇을 하는 버튼인지 동사로 적지 않았어요");
+  // 답을 다 한 뒤에도 무엇을 답했는지 다시 볼 수 있어야 한다.
+  assert.match(resultPage, /답한 질문 보기/u);
+  assert.match(resultPage, /railQuestions\.length > 0 \? \(/u, "답을 다 하면 버튼이 사라져요");
 });
 
 test("패널이 종이에 찍히지 않는다", () => {

@@ -104,7 +104,22 @@ export default function PortfolioResultPage() {
     .filter((project) => openQuestions.some((question) => question.repositoryName === project.name))
     .map((project) => project.url);
 
-  const railOpen = (railChoice ?? roomForRail) && openQuestions.length > 0;
+  /* 처음에는 답할 것이 있고 옆에 자리가 있을 때만 연다. 사용자가 한 번
+     정하면 그 선택을 따른다 — 닫은 것도 선택이다. */
+  const railOpen = (railChoice ?? (roomForRail && openQuestions.length > 0))
+    && railQuestions.length > 0;
+
+  const railToggleLabel = railOpen
+    ? "질문 닫기"
+    : openQuestions.length > 0
+      ? `질문 ${openQuestions.length}개 답하기`
+      : "답한 질문 보기";
+  /* 두 문구의 폭이 달라 그대로 바꾸면 옆 버튼들이 밀린다. */
+  const railToggleLabels = [
+    "질문 닫기",
+    `질문 ${openQuestions.length}개 답하기`,
+    "답한 질문 보기",
+  ];
 
   const sourceLabel = portfolio.repositories.length > 1
     ? `${portfolio.repository.fullName} 외 ${portfolio.repositories.length - 1}개`
@@ -154,7 +169,11 @@ export default function PortfolioResultPage() {
   };
 
   return (
+    /* 대화창이 열리면 문서와 두 칸으로 나눈다. 자리를 나눠야 대화창이 문서
+       흐름 안에서 sticky로 따라올 수 있다. 겹쳐 띄우면 읽으면서 답할 수 없고,
+       고정으로 띄우면 페이지의 일부가 아니라 위에 얹힌 판이 된다. */
     <div className={railOpen ? "result-page with-rail" : "result-page"}>
+      <div className="result-main">
       <div className="page-container result-toolbar">
         <div>
           <span className="success-check" aria-hidden="true">✓</span>
@@ -223,16 +242,21 @@ export default function PortfolioResultPage() {
                   />
                 </button>
               )}
-              {/* 답할 것이 있으면 문서를 읽다가도 바로 열 수 있어야 한다.
-                  숫자를 함께 보여야 열어볼 이유가 생긴다. */}
-              {openQuestions.length > 0 ? (
+              {/* 닫은 대화를 다시 여는 자리. 예전에는 "답할 것 N개"라고만 적어
+                  개수를 알리는 배지처럼 보였고, 누를 수 있는 것으로 읽히지
+                  않아 한 번 닫으면 다시 못 여는 화면이 됐다. 무엇을 하는
+                  버튼인지 동사로 적는다.
+
+                  답을 다 한 뒤에도 남긴다. 무엇을 답했는지 다시 보는 길이
+                  없으면 대화가 사라진 것처럼 보인다. */}
+              {railQuestions.length > 0 ? (
                 <button
                   className="button secondary"
                   type="button"
                   aria-expanded={railOpen}
                   onClick={() => setRailChoice(!railOpen)}
                 >
-                  답할 것 {openQuestions.length}개
+                  <SteadyLabel states={railToggleLabels} value={railToggleLabel} />
                 </button>
               ) : null}
               {/* 파괴적이지 않은 이동은 공유 다음. 삭제는 마지막. */}
@@ -312,6 +336,11 @@ export default function PortfolioResultPage() {
           <p className="inline-error" role="alert">{actionError}</p>
         </div>
       ) : null}
+      <div className="page-container result-footer-actions">
+        <Link className="text-link" href="/dashboard">← {LABEL.dashboard}로 돌아가기</Link>
+        <p>인쇄 화면에서 “PDF로 저장”을 고르면 A4 포트폴리오로 남길 수 있어요.</p>
+      </div>
+      </div>
       <FollowUpRail
         portfolioId={portfolio.id}
         questions={railQuestions}
@@ -320,10 +349,6 @@ export default function PortfolioResultPage() {
         onClose={() => setRailChoice(false)}
         onApplied={applyResult}
       />
-      <div className="page-container result-footer-actions">
-        <Link className="text-link" href="/dashboard">← {LABEL.dashboard}로 돌아가기</Link>
-        <p>인쇄 화면에서 “PDF로 저장”을 고르면 A4 포트폴리오로 남길 수 있어요.</p>
-      </div>
     </div>
   );
 }

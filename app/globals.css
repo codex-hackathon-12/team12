@@ -3303,46 +3303,47 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   margin: 8mm;
 }
 
-/* 되묻기 — 문서 옆에 떠 있는 카드.
+/* 되묻기 — 문서 옆을 따라 내려오는 대화.
 
-   처음에는 화면 오른쪽 끝에 붙은 전체 높이 슬래브였다. 위는 헤더, 아래는
-   뷰포트 바닥까지 꽉 차고 안쪽은 전부 같은 간격이라, 어디까지가 한 프로젝트
-   이야기인지 눈으로 갈리지 않았다.
+   여기까지 두 번 잘못 만들었다. 처음에는 화면 끝에 붙은 전체 높이 슬래브,
+   그다음에는 테두리와 그림자를 두른 카드였다. 둘 다 화면 위에 얹힌 판이지
+   페이지의 일부가 아니었다.
 
-   이 앱이 쓰는 카드 모양을 그대로 쓴다 — 1px 테두리에 오프셋 그림자, 각진
-   모서리. 크레딧 잔액 카드나 선택한 저장소 칸과 같은 꼴이다.
+   배경을 두지 않는다. 판 하나가 문서 옆에 떠 있는 것이 아니라, 물음과 답이
+   여백에 적혀 있는 것으로 읽혀야 한다. 말풍선에도 색을 채우지 않는다 —
+   누가 한 말인지는 어느 쪽에 붙었는지와 선 하나로 갈린다.
 
-   패널이 문서를 밀어낸다(--rail-width). 겹치면 읽으면서 답할 수 없다. */
-.result-page { --rail-width: 0px; padding-right: var(--rail-width); }
-.result-page.with-rail { --rail-width: 396px; }
+   자리는 문서와 나눠 갖고(그리드), 스크롤에는 sticky로 따라온다. 겹쳐 띄우면
+   읽으면서 답할 수 없고, 고정으로 띄우면 페이지 밖의 물건이 된다. */
+.result-page { --rail-width: 0px; }
 
-.follow-up-rail {
-  position: fixed;
-  z-index: 40;
-  top: calc(var(--header-height) + var(--space-4));
-  right: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  /* 내용이 짧으면 카드도 짧다. 바닥까지 늘리면 다시 슬래브가 된다. */
-  max-height: calc(100vh - var(--header-height) - var(--space-8));
-  width: calc(var(--rail-width) - var(--space-12));
-  border: 1px solid var(--ink);
-  background: var(--paper);
-  box-shadow: 7px 8px 0 var(--ink);
+.result-page.with-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--rail-width);
+  align-items: start;
+  --rail-width: 372px;
 }
 
-/* 머리는 고정하고 아래를 선으로 끊는다. 개수와 닫기가 여기 산다. */
-/* 머리는 고정하고 아래를 선으로 끊는다. 몇 개 남았는지가 늘 같은 자리에
-   있어야 답하면서 진행을 볼 수 있다. */
+.result-main { min-width: 0; }
+
+.follow-up-rail {
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-4));
+  display: flex;
+  flex-direction: column;
+  /* 내용이 짧으면 그만큼만 차지한다. 화면 높이를 채우면 다시 판이 된다. */
+  max-height: calc(100vh - var(--header-height) - var(--space-8));
+  padding-right: var(--space-6);
+}
+
 .follow-up-rail-head {
   display: flex;
   flex: none;
   gap: var(--space-3);
   align-items: flex-start;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-4) var(--space-3);
-  border-bottom: 1px solid var(--ink);
-  background: var(--surface);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
 }
 
 .follow-up-rail-head > div { display: grid; gap: 2px; }
@@ -3354,21 +3355,20 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   align-content: start;
   gap: var(--space-4);
   min-height: 0;
-  padding: var(--space-4);
+  padding: var(--space-4) 0;
   overflow-y: auto;
 }
 
-.follow-up-past { display: grid; gap: var(--space-2); opacity: 0.55; }
+.follow-up-past { display: grid; gap: var(--space-2); opacity: 0.5; }
 .follow-up-log > div { display: grid; gap: var(--space-2); }
 
-/* 묻는 쪽. 왼쪽에서 시작해 오른쪽을 비운다 — 답이 들어올 자리다. */
+/* 묻는 쪽. 왼쪽에 선을 세우고 오른쪽을 비운다 — 답이 들어올 자리다. */
 .follow-up-ask {
   display: grid;
   gap: 4px;
   margin-right: var(--space-6);
-  padding: var(--space-3);
-  border: 1px solid var(--line-control);
-  background: var(--surface);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--line-dark);
 }
 
 .follow-up-ask-source {
@@ -3389,35 +3389,34 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 
 .follow-up-topic {
   margin: 0;
-  padding-left: var(--space-2);
-  border-left: 2px solid #62a06f;
-  color: var(--ink-soft);
+  color: var(--ink-muted);
   /* 대부분 한국어 문장이라 모노를 쓰지 않는다. 글자 사이만 벌어져 읽기 어려워진다. */
   font-size: var(--text-2xs);
   line-height: 1.6;
 }
 
-/* 답한 쪽. 오른쪽으로 붙여 누가 한 말인지 모양으로 갈린다. */
+/* 답한 쪽. 오른쪽에 선을 세워 묻는 쪽과 방향으로 갈린다. */
 .follow-up-said {
   justify-self: end;
-  max-width: 88%;
+  max-width: 86%;
   margin: 0;
-  padding: var(--space-3);
-  border: 1px solid var(--ink);
-  background: var(--lime-soft);
+  padding-right: var(--space-3);
+  border-right: 2px solid #62a06f;
+  color: var(--ink-soft);
   font-size: var(--text-sm);
   line-height: 1.7;
+  text-align: right;
 }
 
-.follow-up-note { margin: 0; color: var(--ink-soft); font-size: var(--text-2xs); line-height: 1.6; }
+.follow-up-note { margin: 0; color: var(--ink-muted); font-size: var(--text-2xs); line-height: 1.6; }
 
 /* 답하는 자리. 늘 아래 한 곳에 있어야 다음에 무엇을 할지 찾을 필요가 없다.
-   따로 배경을 깔지 않는다 — 대화가 이어지는 화면이지 별도의 폼이 아니다. */
+   배경을 깔지 않는다 — 대화가 이어지는 자리이지 별도의 폼이 아니다. */
 .follow-up-composer {
   display: grid;
   flex: none;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--line);
 }
 
@@ -3425,19 +3424,31 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   width: 100%;
   min-height: 62px;
   padding: var(--space-2);
-  border: 1px solid var(--line-control);
+  border: 0;
+  border-bottom: 1px solid var(--line-control);
   border-radius: 0;
   outline: 0;
-  background: var(--paper);
+  background: transparent;
   font-size: var(--text-sm);
   line-height: 1.7;
   resize: vertical;
-  transition: border 140ms ease, box-shadow 140ms ease;
+  transition: border-color 140ms ease;
 }
 
-.follow-up-composer textarea:focus { border-color: var(--ink); box-shadow: 3px 3px 0 var(--lime); }
+.follow-up-composer textarea:focus { border-bottom-color: var(--ink); }
 .follow-up-composer > div { display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; }
 .follow-up-composer .button { min-height: var(--control-height-sm); }
+
+/* 좁은 화면에는 옆에 둘 자리가 없다. 문서 아래로 내려와 이어진다. */
+@media (max-width: 1100px) {
+  .result-page.with-rail { display: block; --rail-width: 0px; }
+  .follow-up-rail {
+    position: static;
+    max-height: none;
+    padding: 0 max(24px, calc((100% - 1240px) / 2)) var(--space-12);
+  }
+  .follow-up-log { max-height: 60vh; }
+}
 
 /* 문서 쪽 표시.
 
