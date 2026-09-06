@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
   PORTFOLIO_ANSWER_MAX_LENGTH,
@@ -7,24 +8,24 @@ import {
   type PortfolioStatementResultDto,
 } from "@/contracts/api-contract";
 import { ApiClientError, apiClient } from "@/lib/api-client";
-import { SteadyLabel } from "@/components/ui/SteadyLabel";
 
 /**
- * 문서 옆에서 하나씩 되묻는 대화창.
+ * 문서 옆의 댓글 스레드. 노션 댓글이 원형이다.
  *
- * 처음에는 질문을 전부 펼친 폼이었다. 한 화면에 열 개가 넘게 쌓이면 사람이
- * 아무것도 답하지 않고 닫을 것 같아 물을 것을 8개로 묶어뒀는데, 그러다 보니
- * 저장소가 다섯이면 프로젝트마다 한두 개밖에 못 물었다. 폼을 유지하는 대가로
- * 물을 것을 버린 셈이다.
+ * 세 번째 시도다. 처음에는 화면 끝에 붙은 전체 높이 슬래브, 다음에는 배경을
+ * 전부 걷어낸 맨살 텍스트 — 앞은 화면 위에 얹힌 판이었고 뒤는 담기지 않아
+ * 흩어져 보였다. 노션 참고본이 보여주는 것은 그 중간이다: **작고 잘 담긴
+ * 둥근 카드** 안에 아바타 달린 말풍선이 쌓이고, 아래에 알약형 회신 입력이
+ * 있다. 이 앱은 전부 각진 모서리지만 이 카드만 노션을 따른다 — 참고 이미지가
+ * 이 컴포넌트에 대한 지시였다.
  *
- * 대화창은 한 번에 하나만 보여준다. 목록이 길어도 부담이 되지 않으므로 물을
- * 것을 줄일 이유가 없어진다. 답하는 방식도 이력서 칸을 채우는 일보다 누가
- * 물어봐서 대답하는 일에 가깝고, 우리가 원하는 것이 정확히 그것이다 —
- * 지원자가 면접에서 하듯 자기 말로 답하는 것.
+ * 대화는 하나씩 묻는다. 목록이 길어도 부담이 되지 않으므로 물을 것을 줄일
+ * 이유가 없고, 답하는 일도 이력서 칸을 채우는 것보다 물어봐서 대답하는 것에
+ * 가까워진다 — 지원자가 면접에서 하듯 자기 말로.
  *
- * 결정은 셋이 모여야 문서에 들어간다. 대화창은 그 셋을 차례로 물어 모은 뒤
- * 한 번에 보낸다. 폼이었을 때 "세 가지를 다 알려주셔야" 하고 되돌려 보내야
- * 했던 일이 여기서는 그냥 대화의 순서가 된다.
+ * 결정은 셋이 모여야 문서에 들어간다. 셋을 차례로 물어 모은 뒤 한 번에
+ * 보낸다. 폼이었을 때 "세 가지를 다 알려주셔야" 하고 되돌려 보내던 일이
+ * 여기서는 대화의 순서가 된다.
  */
 
 const FIELD_LABEL: Record<PortfolioQuestionDto["field"], string> = {
@@ -50,6 +51,12 @@ export type RailProject = {
   title: string;
 };
 
+/** 답하는 사람. 말풍선의 아바타와 이름 줄에 쓴다. */
+export type RailProfile = {
+  displayName: string;
+  avatarUrl: string | null;
+};
+
 /**
  * 문서에서 그 프로젝트의 블록을 찾는다.
  *
@@ -70,6 +77,7 @@ export function FollowUpRail({
   portfolioId,
   questions,
   projects,
+  profile,
   open,
   onClose,
   onApplied,
@@ -79,6 +87,7 @@ export function FollowUpRail({
   questions: PortfolioQuestionDto[];
   /** 문서에 나오는 프로젝트. 질문이 어느 프로젝트 이야기인지 잇는 데 쓴다. */
   projects: RailProject[];
+  profile: RailProfile;
   open: boolean;
   onClose: () => void;
   onApplied: (result: PortfolioStatementResultDto) => void;
@@ -131,8 +140,7 @@ export function FollowUpRail({
     pending.current = [...pending.current, { questionId: current.id, answer: text }];
 
     /* 결정은 셋이 모여야 문서에 들어간다. 아직 모이는 중이면 다음 질문으로
-       넘어가기만 한다 — 폼이었을 때 "세 가지를 다 알려주셔야" 하고 되돌려
-       보내던 일이 여기서는 대화의 순서가 된다. */
+       넘어가기만 한다. */
     if (!isGroupComplete(current, cursor)) {
       setCursor(cursor + 1);
       return;
@@ -163,6 +171,7 @@ export function FollowUpRail({
       // 보내지 못한 답을 되돌린다. 다시 보낼 때 처음부터 묻지 않게.
       pending.current = batch;
     } finally {
+      /* 실패로 이 자리에 머무는 경우가 있다. 되돌리지 않으면 전송이 영영 잠긴다. */
       setSubmitting(false);
     }
   };
@@ -185,20 +194,25 @@ export function FollowUpRail({
 
   return (
     <aside className="follow-up-rail" aria-label="더 알려주기">
+      {/* 노션 카드에는 큰 머리가 없다. 남은 개수와 닫기만 얇게. */}
       <header className="follow-up-rail-head">
-        <div>
-          <p className="mono-label">MISSING CONTEXT</p>
-          <strong>{remaining > 0 ? `답할 것 ${remaining}개` : "다 채웠어요"}</strong>
-        </div>
+        <span>{remaining > 0 ? `답할 것 ${remaining}개` : "다 채웠어요"}</span>
         <button className="text-link" type="button" onClick={onClose}>닫기</button>
       </header>
 
       <div className="follow-up-log">
+        {/* 답의 기준은 한 번만 말한다. 질문마다 반복하면 잔소리가 된다. */}
+        {remaining > 0 ? (
+          <p className="follow-up-note">
+            있었던 일을 그대로 적어주세요. 수치가 없어도 괜찮아요.
+          </p>
+        ) : null}
+
         {/* 지난 대화. 다시 열었을 때 무엇을 답했는지 이어 보인다. */}
         {history.map((question) => (
           <div className="follow-up-past" key={question.id}>
             <Ask question={question} project={projectOf(question)} />
-            <p className="follow-up-said">{question.answer}</p>
+            <Said profile={profile} text={question.answer ?? ""} />
           </div>
         ))}
 
@@ -209,14 +223,14 @@ export function FollowUpRail({
           return (
             <div key={`${question.id}-${index}`}>
               <Ask question={question} project={projectOf(question)} />
-              {said?.kind === "answer" ? <p className="follow-up-said">{said.text}</p> : null}
+              {said?.kind === "answer" ? <Said profile={profile} text={said.text} /> : null}
               {note ? <p className="follow-up-note" role="status">{note.text}</p> : null}
             </div>
           );
         })}
 
         {current ? (
-          <Ask question={current} project={projectOf(current)} />
+          <Ask question={current} project={projectOf(current)} onSkip={submitting ? undefined : skip} />
         ) : (
           <p className="follow-up-note" role="status">
             물어볼 것이 더 없어요. 답해주신 내용은 문서에 들어가 있어요.
@@ -227,14 +241,14 @@ export function FollowUpRail({
         <div ref={endRef} />
       </div>
 
-      {/* 입력은 아래에 붙는다. 대화창이 늘 그렇듯 답하는 자리가 한 곳이어야
-          다음에 무엇을 해야 하는지 찾을 필요가 없다. */}
+      {/* 회신 줄. 노션처럼 알약형 입력 안에 원형 전송 버튼을 둔다.
+          아이콘이라 문구 스왑이 없어 전송 중에도 폭이 흔들리지 않는다. */}
       {current ? (
         <div className="follow-up-composer">
           <textarea
             value={draft}
-            rows={2}
-            placeholder="있었던 일을 그대로 적어주세요. 수치가 없어도 괜찮아요."
+            rows={1}
+            placeholder="답변..."
             aria-label="답변"
             onChange={(event) => {
               setDraft(event.target.value);
@@ -250,20 +264,15 @@ export function FollowUpRail({
               }
             }}
           />
-          <div>
-            <button className="text-link" type="button" aria-disabled={submitting} onClick={skip}>
-              건너뛰기
-            </button>
-            <button
-              className="button primary"
-              type="button"
-              aria-disabled={submitting || draft.trim().length === 0}
-              onClick={() => void send()}
-            >
-              {/* 두 문구의 폭이 달라 그대로 바꾸면 버튼이 눌린 뒤에 흔들린다. */}
-              <SteadyLabel states={["보내기", "쓰는 중…"]} value={submitting ? "쓰는 중…" : "보내기"} />
-            </button>
-          </div>
+          <button
+            className="follow-up-send"
+            type="button"
+            aria-label="보내기"
+            aria-disabled={submitting || draft.trim().length === 0}
+            onClick={() => void send()}
+          >
+            ↑
+          </button>
         </div>
       ) : null}
     </aside>
@@ -271,37 +280,67 @@ export function FollowUpRail({
 }
 
 /**
- * 질문.
+ * 묻는 말풍선. 노션의 댓글 행 — 아바타, 이름 줄, 본문.
  *
- * 어느 프로젝트의 어느 자리를 채우는지 머리에 적는다. 답을 어디에 쓸지 알아야
- * 답의 범위가 정해진다. 누르면 문서에서 그곳으로 간다.
+ * 이름 줄의 회색 꼬리가 어느 프로젝트의 어느 자리를 채우는 질문인지 짚는다.
+ * 답을 어디에 쓸지 알아야 답의 범위가 정해진다. 누르면 문서에서 그곳으로 간다.
  */
 function Ask({
   question,
   project,
+  onSkip,
 }: {
   question: PortfolioQuestionDto;
   project: RailProject | null;
+  /** 지금 물어보는 중인 질문에만 붙는다. */
+  onSkip?: () => void;
 }) {
   return (
     <div className="follow-up-ask">
-      {project ? (
-        <button
-          className="follow-up-ask-source"
-          type="button"
-          onClick={() => findProjectBlock(project.url)?.scrollIntoView({ behavior: "smooth", block: "center" })}
-          onMouseEnter={() => findProjectBlock(project.url)?.classList.add("result-block-active")}
-          onMouseLeave={() => findProjectBlock(project.url)?.classList.remove("result-block-active")}
-          onFocus={() => findProjectBlock(project.url)?.classList.add("result-block-active")}
-          onBlur={() => findProjectBlock(project.url)?.classList.remove("result-block-active")}
-        >
-          {project.title} · {FIELD_LABEL[question.field]}
-        </button>
-      ) : null}
-      {/* 무엇에 대한 질문인지 짚어야 답의 범위가 정해진다. 저장소에서 본
-          그대로라 지원자가 "아, 그거" 하고 떠올릴 수 있다. */}
-      {question.topic ? <p className="follow-up-topic">{question.topic}</p> : null}
-      <p className="follow-up-ask-text">{question.question}</p>
+      <span className="follow-up-avatar follow-up-avatar-bot" aria-hidden="true">F/</span>
+      <div>
+        <p className="follow-up-name">
+          folio.ai
+          {project ? (
+            <button
+              className="follow-up-ask-source"
+              type="button"
+              onClick={() => findProjectBlock(project.url)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              onMouseEnter={() => findProjectBlock(project.url)?.classList.add("result-block-active")}
+              onMouseLeave={() => findProjectBlock(project.url)?.classList.remove("result-block-active")}
+              onFocus={() => findProjectBlock(project.url)?.classList.add("result-block-active")}
+              onBlur={() => findProjectBlock(project.url)?.classList.remove("result-block-active")}
+            >
+              {project.title} · {FIELD_LABEL[question.field]}
+            </button>
+          ) : null}
+          {onSkip ? (
+            <button className="follow-up-skip" type="button" onClick={onSkip}>건너뛰기</button>
+          ) : null}
+        </p>
+        {/* 무엇에 대한 질문인지 짚어야 답의 범위가 정해진다. 저장소에서 본
+            그대로라 지원자가 "아, 그거" 하고 떠올릴 수 있다. */}
+        {question.topic ? <p className="follow-up-topic">{question.topic}</p> : null}
+        <p className="follow-up-ask-text">{question.question}</p>
+      </div>
+    </div>
+  );
+}
+
+/** 답한 말풍선. 같은 행 구조에 아바타만 사용자다 — 노션에서 회신이 그렇듯. */
+function Said({ profile, text }: { profile: RailProfile; text: string }) {
+  const initial = profile.displayName.replace(/\s/gu, "").slice(0, 1) || "나";
+  return (
+    <div className="follow-up-ask follow-up-said">
+      {profile.avatarUrl ? (
+        <Image className="follow-up-avatar" src={profile.avatarUrl} alt="" width={24} height={24} />
+      ) : (
+        <span className="follow-up-avatar" aria-hidden="true">{initial}</span>
+      )}
+      <div>
+        <p className="follow-up-name">{profile.displayName}</p>
+        <p className="follow-up-ask-text">{text}</p>
+      </div>
     </div>
   );
 }

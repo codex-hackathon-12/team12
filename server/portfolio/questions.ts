@@ -1,4 +1,5 @@
 import type { PortfolioStatementField } from "@/contracts/api-contract";
+import { CONTENT_LIMITS } from "@/server/portfolio/content-limits";
 
 /**
  * 모델이 돌려준 되묻기 질문을 거른다.
@@ -54,8 +55,9 @@ export type QuestionTarget = {
 export const MAX_QUESTIONS = 24;
 export const MAX_SINGLE_QUESTIONS_PER_PROJECT = 3;
 
-/** 강조점이 담기는 자리 수. 계약의 CONTENT_LIMITS.highlights와 같은 값이다. */
-const HIGHLIGHT_SLOTS = 4;
+/* 강조점 자리 수는 한 곳에서만 정한다. 숫자를 따로 적어두면 상한을 바꿀 때
+   여기만 남아, 자리가 있는데 안 묻거나 없는 자리를 묻게 된다. */
+const HIGHLIGHT_SLOTS = CONTENT_LIMITS.highlights;
 
 const QUESTION_MIN_LENGTH = 8;
 export const QUESTION_MAX_LENGTH = 120;

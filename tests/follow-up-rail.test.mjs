@@ -72,31 +72,61 @@ test("남에게 보내는 문서에는 되묻기가 새어 나가지 않는다",
   assert.match(resultPage, /markedProjectUrls=\{/u, "결과 화면이 표시를 안 넘겨요");
 });
 
-test("패널에 배경을 깔지 않는다", () => {
-  /* 여기까지 두 번 잘못 만들었다. 화면 끝에 붙은 전체 높이 슬래브였다가,
-     테두리와 그림자를 두른 카드였다. 둘 다 화면 위에 얹힌 판이지 페이지의
-     일부가 아니었다.
+test("카드는 담기고, 안쪽은 칠하지 않는다", () => {
+  /* 두 번 잘못 갔던 자리다. 슬래브(전부 칠함)도, 맨살 텍스트(아무것도 안
+     담김)도 아니다. 노션 댓글처럼 카드 하나가 담고, 안의 말풍선·입력에는
+     색을 채우지 않는다 — 누가 한 말인지는 아바타와 이름 줄이 말한다. */
+  const rail = css.match(/\.follow-up-rail \{([^}]*)\}/u);
+  assert.ok(rail, ".follow-up-rail 규칙이 없어요");
+  assert.match(rail[1], /border-radius: 12px/u, "노션처럼 둥글지 않아요");
+  assert.match(rail[1], /background: var\(--paper\)/u, "카드가 담기지 않아요");
+  // 이 앱의 오프셋 하드 섀도가 아니라 노션의 부드러운 그림자다.
+  assert.match(rail[1], /box-shadow: 0 4px 24px/u, "그림자가 카드답지 않아요");
 
-     물음과 답이 여백에 적혀 있는 것으로 읽혀야 한다. 어디에도 색을 채우지
-     않고, 누가 한 말인지는 어느 쪽에 붙었는지와 선 하나로 갈린다. */
+  /* 카드 안에서 칠해도 되는 것은 아바타 원, 전송 버튼, 그리고 ::before로
+     긋는 1px 스레드 선뿐이다 — 노션도 그 셋만 칠한다. 말풍선·입력·로그에
+     면 색이 붙는 순간 다시 폼처럼 보인다. */
   const offenders = [];
-  for (const match of css.matchAll(/(\.follow-up-[a-z-]+)[^{}]*\{([^}]*)\}/gu)) {
-    const [, selector, body] = match;
-    const fill = body.match(/background(?:-color)?:\s*([^;]+)/u);
+  for (const match of css.matchAll(/(\.follow-up-[a-z-]+[^{}]*)\{([^}]*)\}/gu)) {
+    const selector = match[1].trim();
+    if (/^\.follow-up-rail$|follow-up-avatar|follow-up-send|::/u.test(selector)) continue;
+    const fill = match[2].match(/background(?:-color)?:\s*([^;]+)/u);
     if (fill && !/transparent|none/u.test(fill[1])) offenders.push(`${selector} → ${fill[1].trim()}`);
   }
-  assert.deepEqual(offenders, [], `배경이 남아 있어요:\n${offenders.join("\n")}`);
+  assert.deepEqual(offenders, [], `말풍선 안쪽에 배경이 있어요:\n${offenders.join("\n")}`);
 });
 
 test("패널이 문서 흐름을 따라 내려온다", () => {
   /* fixed로 띄우면 페이지 밖의 물건이 된다. 문서와 자리를 나눠 갖고
      스크롤에는 sticky로 따라와야 페이지의 일부로 읽힌다. */
   const rule = css.match(/\.follow-up-rail \{([^}]*)\}/u);
-  assert.ok(rule, ".follow-up-rail 규칙이 없어요");
   assert.match(rule[1], /position: sticky/u, "sticky가 아니에요");
   assert.doesNotMatch(rule[1], /position: fixed/u);
   // 내용이 짧으면 그만큼만 차지한다. 화면 높이를 채우면 다시 판이 된다.
   assert.match(rule[1], /max-height:/u, "높이 상한이 없어요");
+});
+
+test("말풍선이 노션 댓글의 행 구조를 갖는다", () => {
+  /* 행 = 아바타 + 이름 줄 + 본문. 묻는 쪽은 서비스 마크, 답한 쪽은 사용자
+     아바타 — 누가 한 말인지 읽지 않고도 갈린다. 행 사이 스레드 선이 하나의
+     대화임을 보인다. */
+  assert.match(rail, /follow-up-avatar-bot/u, "묻는 쪽 아바타가 없어요");
+  assert.match(rail, /profile\.avatarUrl/u, "답한 쪽이 사용자 아바타를 안 써요");
+  assert.match(rail, /profile\.displayName/u, "답한 쪽 이름 줄이 없어요");
+  assert.match(css, /\.follow-up-avatar \{[^}]*border-radius: 50%/u, "아바타가 원형이 아니에요");
+  assert.match(css, /follow-up-ask:not\(:last-of-type\)::before/u, "스레드 연결선이 없어요");
+});
+
+test("회신 줄이 노션의 알약 입력이다", () => {
+  /* 알약형 테두리 안에 입력과 원형 전송 버튼. 전송은 아이콘이라 문구 스왑이
+     없어 전송 중에도 폭이 흔들리지 않는다. */
+  const composer = css.match(/\.follow-up-composer \{([^}]*)\}/u);
+  assert.ok(composer, ".follow-up-composer 규칙이 없어요");
+  assert.match(composer[1], /border-radius: 18px/u, "알약형이 아니에요");
+  const send = css.match(/\.follow-up-send \{([^}]*)\}/u);
+  assert.ok(send, "전송 버튼 규칙이 없어요");
+  assert.match(send[1], /border-radius: 50%/u, "전송 버튼이 원형이 아니에요");
+  assert.match(rail, /aria-label="보내기"/u, "아이콘 버튼에 접근 가능한 이름이 없어요");
 });
 
 test("한 번에 하나만 묻는다", () => {
@@ -131,21 +161,6 @@ test("한글을 쓰는 중에 Enter로 보내지 않는다", () => {
   /* 조합 중의 Enter는 글자를 확정하는 키다. 그때 보내면 쓰던 글자가 잘린
      채로 나간다. */
   assert.match(rail, /!event\.nativeEvent\.isComposing/u, "조합 중 Enter를 걸러내지 않아요");
-});
-
-test("입력은 아래에 고정하고 배경을 깔지 않는다", () => {
-  /* 답하는 자리가 한 곳이어야 다음에 무엇을 할지 찾을 필요가 없다. 배경을
-     깔면 대화가 아니라 별도의 폼처럼 보인다. */
-  const rule = css.match(/\.follow-up-composer \{([^}]*)\}/u);
-  assert.ok(rule, ".follow-up-composer 규칙이 없어요");
-  assert.match(rule[1], /border-top:/u, "입력 자리를 구분하는 선이 없어요");
-  assert.doesNotMatch(rule[1], /background:/u, "입력 자리에 배경을 깔았어요");
-});
-
-test("묻는 쪽과 답한 쪽이 모양으로 갈린다", () => {
-  // 누가 한 말인지 읽지 않고도 알 수 있어야 대화로 읽힌다.
-  assert.match(css, /\.follow-up-said \{[^}]*justify-self: end/u, "답이 오른쪽으로 붙지 않아요");
-  assert.match(css, /\.follow-up-ask \{[^}]*margin-right/u, "물음이 오른쪽을 비우지 않아요");
 });
 
 test("패널이 문서를 가리지 않는다", () => {
