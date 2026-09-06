@@ -97,41 +97,64 @@ test("카드는 담기고, 안쪽은 칠하지 않는다", () => {
 });
 
 test("카드만을 위한 사이드바를 만들지 않는다", () => {
-  /* 예전에는 그리드 컬럼(396px)을 하나 만들어 카드를 담았다. 그러면 카드가
-     아니라 툴바·공유 줄·꼬리말까지 전부 왼쪽으로 밀려 "질문 창 전용
-     사이드바"가 생긴 꼴이 됐다. 카드는 회색 여백에 겹쳐 뜬다. */
+  /* 예전에는 그리드 컬럼(396px)을 `.result-page`에 만들어 카드를 담았다.
+     그러면 카드가 아니라 툴바·공유 줄·꼬리말까지 전부 왼쪽으로 밀려 "질문 창
+     전용 사이드바"가 생긴 꼴이 됐다. 나뉘는 것은 회색 캔버스 안뿐이다. */
   assert.doesNotMatch(css, /\.result-page\.with-rail/u, "카드 전용 컬럼이 되살아났어요");
   assert.doesNotMatch(css, /--rail-width/u, "컬럼 폭 변수가 남아 있어요");
+  assert.doesNotMatch(resultPage, /result-main/u, "문서를 감싸는 래퍼가 되살아났어요");
+});
+
+test("카드가 이력서 오른쪽에 선다", () => {
+  /* 절대 배치로 회색 여백에 겹쳐 띄우던 때는 A4 보기에서만 맞는 계산이었다.
+     읽기 보기의 문서는 `.portfolio-preview`의 1120px이라 훨씬 넓어서, 폭이
+     1560px을 넘으면 카드가 이력서 오른쪽을 덮었다. 칸을 나누면 종이가 자기
+     칸 밖으로 나갈 수 없어 겹칠 방법이 사라진다. */
+  const grid = css.match(
+    /@media screen and \(min-width: (\d+)px\) \{\s*\.portfolio-canvas-wrap:has\(\.follow-up-rail\) \{([^}]*)\}/u,
+  );
+  assert.ok(grid, "캔버스를 두 칸으로 나누는 규칙이 없어요");
+  assert.match(grid[2], /grid-template-columns:\s*minmax\(0, 1fr\) 336px/u, "칸이 둘이 아니에요");
+
+  /* 종이 794 + 간격 16 + 카드 336 + 캔버스 좌우 24×2 = 1194. 이보다 좁으면
+     나란히 설 수 없다. */
+  assert.ok(Number(grid[1]) >= 1194, `분기점 ${grid[1]}px에서는 종이와 카드가 안 들어가요`);
 
   const rule = css.match(/\.follow-up-rail \{([^}]*)\}/u);
   assert.ok(rule, ".follow-up-rail 규칙이 없어요");
-  assert.match(rule[1], /position: absolute/u, "여백에 겹쳐 뜨지 않아요");
-  assert.doesNotMatch(rule[1], /position: (?:sticky|fixed)/u);
+  assert.doesNotMatch(rule[1], /position: (?:sticky|fixed|absolute)/u, "칸 안에 서지 않아요");
 });
 
-test("카드가 이력서 윗변에서 시작한다", () => {
-  /* 캔버스가 기준 상자이고 그 위쪽 여백이 곧 A4 종이 윗변이다. 같은 값을
-     써야 계산 없이 맞는다 — 헤더 아래에서 시작하면 이력서보다 한참 위에
-     떠 있게 된다. */
-  const canvas = css.match(/\.portfolio-canvas-wrap \{([^}]*)\}/u);
-  assert.ok(canvas, ".portfolio-canvas-wrap 규칙이 없어요");
-  assert.match(canvas[1], /position: relative/u, "캔버스가 기준 상자가 아니에요");
-  const pad = canvas[1].match(/padding:\s*(\d+)px/u);
-  assert.ok(pad, "캔버스 위쪽 여백을 못 읽었어요");
-
-  const rail = css.match(/\.follow-up-rail \{([^}]*)\}/u)[1];
-  const top = rail.match(/top:\s*(\d+)px/u);
-  assert.ok(top, "카드의 top이 없어요");
-  assert.equal(top[1], pad[1], `카드 top(${top?.[1]})이 캔버스 여백(${pad[1]})과 달라요`);
+test("인쇄를 폭 질의에 맡기지 않는다", () => {
+  /* 인쇄할 때 크롬은 종이 폭(794px)으로 다시 배치해서 min-width 질의가 어차피
+     걸리지 않지만, 그 우연에 기대면 안 된다 — 미리보기와 인쇄가 어긋났던
+     사고가 정확히 그 우연에서 나왔다. 카드는 인쇄에서 display: none이어도
+     DOM에 남으므로 `:has()`는 계속 맞고, 종이에 336px 칸이 생긴다. */
+  const rule = new RegExp(String.raw`@media ([^{]*)\{\s*\.portfolio-canvas-wrap:has\(\.follow-up-rail\)`, "u");
+  const found = css.match(rule);
+  assert.ok(found, "캔버스를 나누는 질의를 못 찾았어요");
+  assert.match(found[1], /screen and/u, "인쇄를 명시적으로 배제하지 않아요");
 });
 
-test("여백이 모자라면 문서 아래로 내려온다", () => {
-  /* 종이 오른쪽 여백은 화면 폭 W에 대해 W/2 - 397이다. 카드 336에 여백과
-     간격을 더하면 1560px은 되어야 겹치지 않는다. 억지로 옆에 두면 카드가
-     이력서를 덮는다. */
+test("칸을 나눠도 문서가 접히지 않는다", () => {
+  /* 읽기 보기의 문서는 `margin: 0 auto`로 가운데 정렬하는데, 자동 여백은
+     그리드의 stretch를 이겨서 칸 안에서 fit-content로 줄어든다. 그리고 이
+     문서는 컨테이너 질의로 크기가 갇혀 있어 fit-content가 0이다 — 실제로
+     폭 2px에 높이 19000px짜리 띠로 접혔다. */
   assert.match(
     css,
-    /@media \(max-width: 1559px\) \{[\s\S]*?\.follow-up-rail \{[^}]*position: static/u,
+    /:has\(\.follow-up-rail\) > \.portfolio-preview \{[^}]*width: 100%/u,
+    "칸 안에서 문서 폭을 되돌리지 않아요",
+  );
+  assert.match(css, /container: result \/ inline-size/u,
+    "컨테이너 선언이 사라졌다면 위 규칙의 이유도 다시 봐야 해요");
+});
+
+test("나란히 설 수 없으면 문서 아래로 내려온다", () => {
+  /* 카드를 줄여서 억지로 옆에 두는 길도 있지만 그러면 대화가 읽히지 않는다. */
+  assert.match(
+    css,
+    /@media \(max-width: 1199px\) \{[\s\S]*?\.follow-up-rail \{[^}]*margin: var\(--space-6\) auto 0/u,
     "좁은 화면 폴백이 없어요",
   );
 });

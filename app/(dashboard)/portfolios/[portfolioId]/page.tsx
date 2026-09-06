@@ -37,10 +37,14 @@ export default function PortfolioResultPage() {
     content: PortfolioContentDto;
     questions: PortfolioQuestionDto[];
   } | null>(null);
-  /* 옆에 둘 자리가 있으면 열린 채로 시작한다. 접혀서 시작하면 있는 줄도
-     모른다. 좁은 화면에서는 패널이 아래에서 올라와 문서를 덮으므로, 열려고
-     누른 사람에게만 연다. 사용자가 한 번 정하면 그 선택을 따른다. */
-  const roomForRail = useMediaQuery("(min-width: 1101px)");
+  /* 이력서 옆에 설 자리가 있으면 열린 채로 시작한다. 접혀서 시작하면 있는
+     줄도 모른다. 그 아래 폭에서는 카드가 문서 아래로 내려가 읽던 자리를
+     밀어내므로, 열려고 누른 사람에게만 연다. 사용자가 한 번 정하면 그 선택을
+     따른다.
+
+     1200px은 CSS가 칸을 나누기 시작하는 폭과 같은 값이다. 둘이 어긋나면
+     "옆에 자리가 있다고 보고 열었는데 아래에 붙는" 구간이 생긴다. */
+  const roomForRail = useMediaQuery("(min-width: 1200px)");
   const [railChoice, setRailChoice] = useState<boolean | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
