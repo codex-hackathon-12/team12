@@ -3621,6 +3621,34 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 .follow-up-open button:hover { border-color: var(--ink); color: var(--ink); }
 .follow-up-open button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
 
+/* 저장소에서 찾은 결정 후보. 제목이 길어 칩으로는 읽히지 않는다 — 한 줄에
+   하나씩 세로로 쌓고 왼쪽 정렬한다. */
+.follow-up-candidates { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+
+.follow-up-candidates button {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.follow-up-candidates span { min-width: 0; }
+
+/* 커밋인지 PR인지. 어디서 온 줄인지 알아야 저장소에서 찾아볼 수 있다. */
+.follow-up-candidates em {
+  flex: none;
+  color: var(--ink-muted);
+  font-size: var(--text-2xs);
+  font-style: normal;
+  font-weight: 650;
+}
+
+.follow-up-open .follow-up-cancel { justify-self: start; }
+
 /* 결정 묶음의 몇 번째인지. 셋이 모여야 문서에 들어가는 이유가 여기서 읽힌다. */
 .follow-up-step {
   flex: none;

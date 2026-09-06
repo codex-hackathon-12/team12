@@ -38,6 +38,9 @@ export const API_ROUTES = {
     `${API_PREFIX}/portfolios/${portfolioId}/statements`,
   portfolioQuestions: (portfolioId: string) =>
     `${API_PREFIX}/portfolios/${portfolioId}/questions`,
+  portfolioDecisionCandidates: (portfolioId: string, repositoryName: string) =>
+    `${API_PREFIX}/portfolios/${portfolioId}/decision-candidates`
+    + `?repositoryName=${encodeURIComponent(repositoryName)}`,
   publicPortfolio: (slug: string) =>
     `${API_PREFIX}/public/portfolios/${slug}`,
   credits: `${API_PREFIX}/credits`,
@@ -503,6 +506,41 @@ export interface RequestPortfolioQuestionsRequest {
   /** 어느 프로젝트의 자리인지. 저장소 이름으로 가리킨다. */
   repositoryName: string;
   slot: PortfolioQuestionSlot;
+  /**
+   * 어떤 결정에 대해 물을지. 저장소에서 본 그대로의 한 줄이다.
+   *
+   * 비워두면 "가장 판단이 필요했던 선택"을 두루 묻는다. 채워 보내면 그 줄이
+   * 질문에 붙어 지원자가 "아, 그거" 하고 떠올릴 수 있게 된다.
+   */
+  topic?: string;
+  /**
+   * 이미 채워진 결정을 **다른 결정으로 바꾼다.**
+   *
+   * 초안은 저장소에서 결정 하나를 스스로 골라 쓴다. 그게 지원자가 말하고 싶은
+   * 결정이 아닐 수 있는데 바꿀 방법이 없었다. 이 값이 참이면 채워진 자리도
+   * 연다 — 문서의 기존 결정은 새 답이 다 모일 때까지 그대로 남는다.
+   */
+  replace?: boolean;
+}
+
+/**
+ * 저장소에서 찾은 결정 후보.
+ *
+ * 초안이 결정을 고르는 일은 모델이 한다. 그런데 무엇이 말할 만한 결정인지는
+ * 만든 사람이 안다. 저장소에 실제로 남아 있는 본인 PR과 커밋 제목을 그대로
+ * 보여주고 고르게 한다 — 생성 지침이 말하는 topic이 원래 "커밋 제목, 함수
+ * 이름, 파일 경로처럼 지원자가 '아, 그거' 하고 떠올릴 수 있는 것"이라,
+ * 다듬지 않은 원문이 이 자리에 맞는 모양이다.
+ *
+ * 모델을 부르지 않는다. 생성 근거가 남아 있지 않으면 빈 목록이 오고, 그때는
+ * 두루 묻는 질문으로 연다.
+ */
+export interface PortfolioDecisionCandidateDto {
+  /** 저장소에서 본 그대로의 한 줄. */
+  topic: string;
+  source: "commit" | "pullRequest";
+  /** 본문이 있어 "왜"가 적혀 있을 만한 것. 앞에 놓는다. */
+  hasContext: boolean;
 }
 
 /**

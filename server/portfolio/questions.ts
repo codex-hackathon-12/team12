@@ -236,13 +236,20 @@ export type RequestedQuestion = {
   question: string;
 };
 
-/** 사용자가 스스로 고른 결정이라 저장소에서 짚어줄 것이 없다. */
+/** 후보를 고르지 않았을 때. 저장소에서 짚어줄 것이 없다는 뜻이다. */
 const REQUESTED_DECISION_TOPIC = "직접 고르신 결정";
 
 export function buildRequestedQuestions(
   slot: PortfolioQuestionSlot,
   repositoryName: string,
   projectTitle: string,
+  /**
+   * 어떤 결정을 물을지 짚는 한 줄. 저장소에서 본 그대로다.
+   *
+   * 있으면 첫 질문이 그것을 직접 가리킨다. 두루 묻는 것보다 훨씬 답하기
+   * 쉽다 — 무엇에 대해 말할지 이미 정해져 있기 때문이다.
+   */
+  topic?: string,
 ): RequestedQuestion[] {
   if (slot === "highlights") {
     return [{
@@ -255,8 +262,14 @@ export function buildRequestedQuestions(
 
   /* 셋을 한 번에 만든다. 하나씩 열면 반쪽짜리 결정이 생기고, 그건 답해도
      문서에 안 들어간다 — `dropIncompleteDecisions`가 막던 실패와 같다. */
+  const chosen = topic?.trim();
   const asked: Record<DecisionField, string> = {
-    decisionProblem: `${projectTitle}에서 가장 판단이 필요했던 선택 하나를 떠올려 주세요. 그전에는 어떤 문제가 있었나요?`,
+    /* 고른 결정이 있으면 그것을 가리킨다. topic 줄이 질문 바로 위에 함께
+       보이므로 여기서 제목을 되풀이하지 않는다 — 같은 문장을 두 번 읽게
+       된다. */
+    decisionProblem: chosen
+      ? "이 작업을 하기 전에는 어떤 문제가 있었나요?"
+      : `${projectTitle}에서 가장 판단이 필요했던 선택 하나를 떠올려 주세요. 그전에는 어떤 문제가 있었나요?`,
     decisionApproach: "무엇을 골랐고, 왜 그것이었나요?",
     decisionOutcome: "그래서 무엇이 달라졌나요?",
   };
@@ -264,7 +277,7 @@ export function buildRequestedQuestions(
   return DECISION_FIELDS.map((field) => ({
     repositoryName,
     field,
-    topic: REQUESTED_DECISION_TOPIC,
+    topic: chosen || REQUESTED_DECISION_TOPIC,
     question: asked[field],
   }));
 }

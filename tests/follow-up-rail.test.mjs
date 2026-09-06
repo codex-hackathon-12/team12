@@ -293,7 +293,7 @@ test("연 질문이 지금 자리에 들어간다", () => {
   /* 맨 뒤에 붙이면 남은 질문을 다 답해야 자기가 연 질문에 닿는다. 그 자리를
      채우려고 누른 사람에게는 그게 곧 "안 열렸다"이다. */
   assert.match(rail, /setTimeline\(\(previous\) => \{/u, "대화 순서에 못 끼워 넣어요");
-  assert.match(rail, /previous\.slice\(0, cut\), \.\.\.added/u, "새 질문을 맨 뒤에 붙여요");
+  assert.match(rail, /rest\.slice\(0, cut\), \.\.\.incoming/u, "새 질문을 맨 뒤에 붙여요");
 });
 
 test("한 프로젝트의 상한을 계약에서 가져온다", () => {
@@ -302,6 +302,45 @@ test("한 프로젝트의 상한을 계약에서 가져온다", () => {
      안 뜨거나 눌러도 거절당한다. */
   assert.match(resultPage, /PORTFOLIO_HIGHLIGHT_SLOTS/u);
   assert.doesNotMatch(resultPage, /highlights\.length < \d/u, "숫자를 직접 적었어요");
+});
+
+test("어느 결정을 쓸지 고를 수 있다", () => {
+  /* 초안은 저장소에서 결정 하나를 스스로 골라 쓴다. 그게 지원자가 말하고
+     싶은 결정이 아닐 수 있는데 바꿀 방법이 없었다. */
+  assert.match(rail, /getDecisionCandidates/u, "후보를 안 물어봐요");
+  assert.match(rail, /다른 결정으로/u, "이미 쓰인 결정을 바꿀 길이 없어요");
+  assert.match(rail, /replace: choosing\.replace/u, "바꿔 쓰기가 서버에 안 전해져요");
+
+  /* 후보가 없어도 막지 않는다. 근거가 남아 있지 않은 오래된 포트폴리오가
+     있고, 후보를 못 뽑는 것과 결정을 못 쓰는 것은 다른 일이다. */
+  assert.match(rail, /직접 쓸래요/u, "후보가 없으면 길이 막혀요");
+  assert.match(rail, /candidates: \[\]/u, "후보를 못 불러오면 화면이 멈춰요");
+});
+
+test("바꿔 쓰면 이번에 연 자리만 지운다", () => {
+  /* 서버가 그 질문들의 답을 비운다. 화면에 남겨두면 문서에 들어가지도 않을
+     옛 답이 새 질문 아래에 붙어 있게 된다.
+
+     범위가 넓으면 더 나쁘다. "서버가 답 없다고 한 것 전부"로 잡았더니 아까
+     건너뛴 질문의 건너뜀까지 풀려 되살아났고, 그게 커서를 가로채 방금 고른
+     결정 대신 엉뚱한 질문이 떠 있었다. */
+  assert.match(rail, /if \(options\.replace\) \{/u);
+  assert.match(rail, /!incomingIds\.has\(id\)/u, "이번에 연 자리만 지우지 않아요");
+  assert.doesNotMatch(rail, /all\.filter\(\(question\) => !question\.answer\)/u, "범위가 다시 넓어졌어요");
+});
+
+test("연 것이든 바꾼 것이든 지금 묻는다", () => {
+  /* 바꿔 쓴 질문은 이미 대화 뒤쪽에 있어서 그대로 두면 커서가 안 옮겨가고,
+     방금 고른 결정 대신 엉뚱한 질문이 떠 있게 된다. */
+  assert.match(rail, /const incoming = options\.replace/u);
+  assert.match(rail, /filter\(\(question\) => !incomingIds\.has\(question\.id\)\)/u, "옮기지 않고 그 자리에 둬요");
+});
+
+test("바꿔 쓴 질문이 대화에도 반영된다", () => {
+  /* id가 그대로라 "새로 생긴 것"에 안 잡힌다. 문구와 topic이 바뀌었으므로
+     대화가 옛 질문을 계속 보여주면 안 된다. */
+  assert.match(rail, /const changedIds = new Set\(all\.map/u);
+  assert.match(rail, /changedIds\.has\(question\.id\)/u);
 });
 
 test("안 바뀐 이유를 추측하지 않는다", () => {
