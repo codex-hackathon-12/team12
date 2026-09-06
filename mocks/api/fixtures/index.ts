@@ -195,9 +195,34 @@ export const mockPortfolioContent = {
       role: "프로젝트 개발",
       techStack: ["TypeScript", "React"],
       context: { period: "2026.07", scale: "3명" },
-      // 비어 있는 결정. 되묻기 카드가 뜨는 조건이다.
+      // 비어 있는 결정. 되묻기가 뜨는 조건이다.
       keyDecision: { headline: "", problem: "", approach: "", outcome: "" },
       highlights: [],
+      challenges: [],
+      solutions: [],
+      impact: [],
+    },
+    /* 세 번째. 한 장에 두 개가 들어가고 세 번째가 넘어가는 분량이라야
+       미리보기와 인쇄의 쪽 나눔을 실제로 맞춰볼 수 있다. 프로젝트가 둘뿐인
+       목으로는 둘 다 한 장에 들어가 나눔이 일어나지 않았다. */
+    {
+      id: "project_ledger",
+      title: "Ledger Sync",
+      description: "여러 은행 API에서 거래 내역을 모아 하나의 장부로 맞추는 배치 작업입니다.",
+      repositoryUrl: "https://github.com/frontend-builder/ledger-sync",
+      role: "프로젝트 개발",
+      techStack: ["TypeScript", "Node.js", "PostgreSQL"],
+      context: { period: "2025.11–2026.02", scale: "개인" },
+      keyDecision: {
+        headline: "중복 거래를 지우는 대신 표시만 남기기로 정함",
+        problem: "같은 거래가 은행마다 다른 식별자로 내려와 이중으로 쌓였다. 지워버리자니 어느 쪽이 진짜인지 판단할 근거가 없었고, 잘못 지우면 되돌릴 방법도 없었다.",
+        approach: "지우지 않고 후보끼리 묶어 표시만 남겼다. 판단은 사람이 하고 기록은 남기는 쪽이, 자동으로 지우고 틀렸을 때 복구하는 쪽보다 싸다고 봤다.",
+        outcome: "장부를 맞추다 잃어버린 거래가 없어졌다.",
+      },
+      highlights: [
+        "은행별 응답 차이를 어댑터로 흡수해 배치 본체를 하나로 유지",
+        "재시도가 같은 거래를 두 번 넣지 않도록 멱등 키를 도입",
+      ],
       challenges: [],
       solutions: [],
       impact: [],
