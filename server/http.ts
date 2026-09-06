@@ -1,19 +1,7 @@
-type ApiErrorCode =
-  | "AUTH_REQUIRED"
-  | "AUTH_FAILED"
-  | "FORBIDDEN"
-  | "VALIDATION_ERROR"
-  | "NOT_FOUND"
-  | "GITHUB_CONNECTION_ERROR"
-  | "GITHUB_RATE_LIMITED"
-  | "GENERATION_IN_PROGRESS"
-  | "GENERATION_FAILED"
-  | "JOB_NOT_RETRYABLE"
-  | "EVIDENCE_UNAVAILABLE"
-  | "ACCOUNT_DELETION_IN_PROGRESS"
-  | "MOCK_PAYMENT_FAILED"
-  | "TOO_MANY_REPOSITORIES"
-  | "INTERNAL_ERROR";
+/* 계약에서 그대로 가져온다. 여기 목록을 따로 두고 있었는데, 계약에 코드를
+   더해도 라우트가 그 코드를 쓸 수 없었다 — 두 목록이 어긋나는 것을 타입이
+   막아주지 않고 새 코드를 쓰는 쪽에서 뒤늦게 터졌다. */
+import type { ApiErrorCode } from "@/contracts/api-contract";
 
 export function json(data: unknown, status = 200, headers?: HeadersInit): Response {
   const responseHeaders = new Headers(headers);

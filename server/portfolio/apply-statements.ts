@@ -84,20 +84,30 @@ async function loadEvidence(generationJobId: string): Promise<PortfolioEvidence 
  * 걸리면 통째로 비운다 — 병합이 어차피 셋이 다 있을 때만 쓰므로, 조각만
  * 지워두면 사용자는 답했는데 아무것도 안 바뀐 이유를 알 수 없다.
  */
-function sanitizeRewrite(rewrite: ProjectRewrite, numbers: Set<string>): ProjectRewrite {
+function sanitizeRewrite(
+  rewrite: ProjectRewrite,
+  numbers: Set<string>,
+): { rewrite: ProjectRewrite; strippedDecision: boolean } {
   const clean = (values: unknown) =>
     verifyNarrative(Array.isArray(values) ? values.filter((v): v is string => typeof v === "string") : [], numbers).value;
 
   const decision = rewrite.keyDecision ?? { headline: "", problem: "", approach: "", outcome: "" };
   const parts = [decision.headline, decision.problem, decision.approach, decision.outcome];
   const kept = verifyNarrative(parts.filter((part) => typeof part === "string"), numbers);
+  const strippedDecision = kept.removed.length > 0;
 
   return {
-    ...rewrite,
-    highlights: clean(rewrite.highlights),
-    keyDecision: kept.removed.length > 0
-      ? { headline: "", problem: "", approach: "", outcome: "" }
-      : decision,
+    rewrite: {
+      ...rewrite,
+      highlights: clean(rewrite.highlights),
+      keyDecision: strippedDecision
+        ? { headline: "", problem: "", approach: "", outcome: "" }
+        : decision,
+    },
+    /* 여기서 지운 사실을 병합 단계는 알 수 없다 — 빈 결정으로만 보인다.
+       사용자에게는 이 사유가 가장 쓸모 있다. 자기가 쓴 숫자 때문이라는 것을
+       알 방법이 지금 전혀 없기 때문이다. */
+    strippedDecision,
   };
 }
 
@@ -174,7 +184,11 @@ export async function applyPortfolioStatements(
     buildPortfolioPrompt(evidence).input,
     statements.map((statement) => statement.answer),
   );
-  const checked = rewrites.map((rewrite) => sanitizeRewrite(rewrite, numbers));
+  const sanitized = rewrites.map((rewrite) => sanitizeRewrite(rewrite, numbers));
+  const checked = sanitized.map((entry) => entry.rewrite);
+  const strippedRepositories = new Set(
+    sanitized.filter((entry) => entry.strippedDecision).map((entry) => entry.rewrite.repositoryName),
+  );
 
   /* 여기가 "답한 부분만 바뀐다"는 약속을 지키는 자리다. 모델이 요청하지 않은
      자리를 돌려줘도 버린다. 지시는 강제가 아니므로 약속을 지시에 맡기지 않는다. */
@@ -193,7 +207,12 @@ export async function applyPortfolioStatements(
     content: result.content,
     questions: await listPortfolioQuestions(portfolioId),
     updatedFields: result.updatedFields,
-    // 사유는 뒤따르는 커밋에서 채운다. 계약이 먼저 서야 화면이 붙을 수 있다.
-    skippedFields: [],
+    /* 수치 검증이 지운 결정은 병합 단계에 "빈 결정"으로만 보여 incomplete로
+       분류된다. 여기서 진짜 이유로 바꿔 준다. */
+    skippedFields: result.skippedFields.map((skipped) =>
+      skipped.reason === "incomplete" && strippedRepositories.has(skipped.repositoryName)
+        ? { ...skipped, reason: "numbers" as const }
+        : skipped,
+    ),
   };
 }

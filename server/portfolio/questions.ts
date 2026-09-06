@@ -1,4 +1,4 @@
-import type { PortfolioStatementField } from "@/contracts/api-contract";
+import type { PortfolioQuestionSlot, PortfolioStatementField } from "@/contracts/api-contract";
 import { CONTENT_LIMITS } from "@/server/portfolio/content-limits";
 
 /**
@@ -208,4 +208,63 @@ function limit(
   }
 
   return result;
+}
+
+/**
+ * 지원자가 직접 연 자리에 붙일 질문.
+ *
+ * 위의 `selectFollowUpQuestions`가 다루는 것은 **모델이 먼저 내민 질문**이다.
+ * 그쪽은 저장소에서 본 것을 짚어 구체적으로 물어야 한다 — 묻지도 않은 사람
+ * 에게 "성과를 알려주세요"를 들이밀면 무엇을 답할지 몰라 아무 말이나 적거나
+ * 그냥 닫기 때문이다.
+ *
+ * 여기는 반대다. 사용자가 이 자리를 채우겠다고 눌렀고, 그 순간 무슨 말을
+ * 쓸지 이미 알고 있다. 그래서 문구가 일반적이어도 된다. 모델을 부르지 않으니
+ * 즉시 열리고, 크레딧을 쓰지 않으며, 생성 근거가 남아 있지 않은 오래된
+ * 포트폴리오에서도 된다 — 이미 한 번 질문을 내지 않은 모델에게 다시 묻느니
+ * 확실히 열리는 쪽을 고른다.
+ *
+ * 프로젝트 제목을 문장에 넣는다. 대화가 프로젝트를 오가므로 어느 이야기를
+ * 묻는지 질문 안에서 완결돼야 한다.
+ *
+ * 외부 의존이 없는 순수 함수다.
+ */
+export type RequestedQuestion = {
+  repositoryName: string;
+  field: SelectableField;
+  topic: string | null;
+  question: string;
+};
+
+/** 사용자가 스스로 고른 결정이라 저장소에서 짚어줄 것이 없다. */
+const REQUESTED_DECISION_TOPIC = "직접 고르신 결정";
+
+export function buildRequestedQuestions(
+  slot: PortfolioQuestionSlot,
+  repositoryName: string,
+  projectTitle: string,
+): RequestedQuestion[] {
+  if (slot === "highlights") {
+    return [{
+      repositoryName,
+      field: "highlights",
+      topic: null,
+      question: `${projectTitle}에서 더 남기고 싶은 것이 있나요? 있었던 일을 그대로 적어주세요.`,
+    }];
+  }
+
+  /* 셋을 한 번에 만든다. 하나씩 열면 반쪽짜리 결정이 생기고, 그건 답해도
+     문서에 안 들어간다 — `dropIncompleteDecisions`가 막던 실패와 같다. */
+  const asked: Record<DecisionField, string> = {
+    decisionProblem: `${projectTitle}에서 가장 판단이 필요했던 선택 하나를 떠올려 주세요. 그전에는 어떤 문제가 있었나요?`,
+    decisionApproach: "무엇을 골랐고, 왜 그것이었나요?",
+    decisionOutcome: "그래서 무엇이 달라졌나요?",
+  };
+
+  return DECISION_FIELDS.map((field) => ({
+    repositoryName,
+    field,
+    topic: REQUESTED_DECISION_TOPIC,
+    question: asked[field],
+  }));
 }
