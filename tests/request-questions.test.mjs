@@ -94,3 +94,31 @@ test("목이 서버와 같은 질문을 낸다", () => {
     if (item.topic) assert.ok(mock.includes(item.topic), `목의 topic이 달라요: ${item.topic}`);
   }
 });
+
+test("바꿔 쓸 때는 채워진 결정도 연다", () => {
+  /* 초안은 저장소에서 결정 하나를 스스로 골라 쓴다. 그게 지원자가 말하고
+     싶은 결정이 아닐 수 있는데 바꿀 방법이 없었다. */
+  const service = read("server/portfolio/request-questions.ts");
+  assert.match(service, /const replacing = Boolean\(replace\) && slot === "keyDecision"/u);
+  assert.match(service, /if \(!replacing && !isOpenSlot\(slot, project\)\)/u, "바꿔 쓰기가 막혀요");
+  // 강조는 바꿔 쓰지 않는다. 답이 기존 항목 뒤에 붙는 자리라 지울 이유가 없다.
+  assert.doesNotMatch(service, /Boolean\(replace\)(?! && slot)/u);
+});
+
+test("바꿔 쓰면 지난 답을 비운다", () => {
+  /* 지난 답은 다른 결정에 대한 것이라 새 결정에 붙이면 두 이야기가 섞인다.
+     문서의 기존 결정은 새 답이 셋 다 모일 때까지 그대로 남는다. */
+  const store = read("server/portfolio/statements.ts");
+  const block = store.match(/export async function replacePortfolioQuestions[\s\S]*?\n\}/u);
+  assert.ok(block, "바꿔 쓰는 함수가 없어요");
+  assert.match(block[0], /answer: null/u, "지난 답이 새 결정에 남아요");
+  // ignoreDuplicates면 덮어쓰지 못하고 조용히 아무 일도 안 일어난다.
+  assert.doesNotMatch(block[0], /ignoreDuplicates/u);
+});
+
+test("후보가 없다고 막지 않는다", () => {
+  /* 생성 근거가 없는 오래된 포트폴리오가 있다. 후보를 못 뽑는 것과 결정을
+     못 쓰는 것은 다른 일이다. */
+  const service = read("server/portfolio/request-questions.ts");
+  assert.match(service, /return repository \? selectDecisionCandidates\(repository\) : \[\]/u);
+});

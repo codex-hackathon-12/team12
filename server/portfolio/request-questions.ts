@@ -4,9 +4,16 @@ import {
   type PortfolioQuestionDto,
   type PortfolioQuestionSlot,
 } from "@/contracts/api-contract";
+import type { PortfolioDecisionCandidateDto } from "@/contracts/api-contract";
+import { selectDecisionCandidates } from "@/server/portfolio/decision-candidates";
+import { loadGenerationEvidence } from "@/server/portfolio/generation-evidence";
 import { getPortfolio } from "@/server/portfolio/portfolios";
 import { buildRequestedQuestions } from "@/server/portfolio/questions";
-import { insertPortfolioQuestions, listPortfolioQuestions } from "@/server/portfolio/statements";
+import {
+  insertPortfolioQuestions,
+  listPortfolioQuestions,
+  replacePortfolioQuestions,
+} from "@/server/portfolio/statements";
 
 /**
  * 지원자가 직접 빈 자리를 연다.
@@ -39,12 +46,21 @@ export function isOpenSlot(slot: PortfolioQuestionSlot, project: PortfolioProjec
     : project.highlights.length < PORTFOLIO_HIGHLIGHT_SLOTS;
 }
 
+export type RequestInput = {
+  repositoryName: string;
+  slot: PortfolioQuestionSlot;
+  /** 어떤 결정에 대해 물을지. 저장소에서 본 그대로의 한 줄이다. */
+  topic?: string;
+  /** 이미 채워진 결정을 다른 결정으로 바꾼다. */
+  replace?: boolean;
+};
+
 export async function requestPortfolioQuestions(
   userId: string,
   portfolioId: string,
-  repositoryName: string,
-  slot: PortfolioQuestionSlot,
+  input: RequestInput,
 ): Promise<PortfolioQuestionDto[] | RequestFailure> {
+  const { repositoryName, slot, topic, replace } = input;
   /* 소유자 조건이 걸린 조회다. 저장소 목록과 문서를 함께 주므로 이름과
      프로젝트를 잇는 데 따로 질의할 것이 없다. */
   const portfolio = await getPortfolio(userId, portfolioId);
@@ -58,16 +74,46 @@ export async function requestPortfolioQuestions(
     : undefined;
   if (!project) return { kind: "notFound" };
 
-  if (!isOpenSlot(slot, project)) return { kind: "alreadyFilled" };
+  /* 바꿔 쓰기는 채워진 자리도 연다. 초안이 스스로 고른 결정이 지원자가
+     말하고 싶은 결정이 아닐 수 있고, 그때 바꿀 방법이 없었다. */
+  const replacing = Boolean(replace) && slot === "keyDecision";
+  if (!replacing && !isOpenSlot(slot, project)) return { kind: "alreadyFilled" };
 
-  /* 같은 자리를 두 번 눌러도 안전하다. `(portfolio_id, repository_name,
-     field)` 유니크 인덱스가 있고 삽입이 중복을 무시하므로, 이미 있는 질문은
-     답까지 그대로 남는다. */
-  await insertPortfolioQuestions(
-    userId,
-    portfolioId,
-    buildRequestedQuestions(slot, repositoryName, project.title),
-  );
+  const asked = buildRequestedQuestions(slot, repositoryName, project.title, topic);
+
+  if (replacing) {
+    /* 기존 질문의 답은 다른 결정에 대한 것이라 함께 비운다. 문서의 기존
+       결정은 새 답이 셋 다 모일 때까지 그대로 남으므로, 바꾸다 말아도 잃는
+       것이 없다. */
+    await replacePortfolioQuestions(userId, portfolioId, asked);
+  } else {
+    /* 같은 자리를 두 번 눌러도 안전하다. `(portfolio_id, repository_name,
+       field)` 유니크 인덱스가 있고 삽입이 중복을 무시하므로, 이미 있는 질문은
+       답까지 그대로 남는다. */
+    await insertPortfolioQuestions(userId, portfolioId, asked);
+  }
 
   return listPortfolioQuestions(portfolioId);
+}
+
+/**
+ * 저장소에서 찾은 결정 후보.
+ *
+ * 근거가 남아 있지 않으면 빈 목록이다. 막지 않는다 — 후보가 없다고 결정을 못
+ * 쓸 이유는 없고, 그때는 두루 묻는 질문으로 연다.
+ */
+export async function listDecisionCandidates(
+  userId: string,
+  portfolioId: string,
+  repositoryName: string,
+): Promise<PortfolioDecisionCandidateDto[] | RequestFailure> {
+  const portfolio = await getPortfolio(userId, portfolioId);
+  if (!portfolio) return { kind: "notFound" };
+  if (!portfolio.repositories.some((item) => item.name === repositoryName)) {
+    return { kind: "notFound" };
+  }
+
+  const evidence = await loadGenerationEvidence(portfolio.generationJobId);
+  const repository = evidence?.repositories.find((item) => item.name === repositoryName);
+  return repository ? selectDecisionCandidates(repository) : [];
 }

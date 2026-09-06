@@ -115,6 +115,46 @@ export async function insertPortfolioQuestions(
 }
 
 /**
+ * 이미 있는 질문을 다른 것으로 바꾼다.
+ *
+ * 초안이 스스로 고른 결정을 지원자가 다른 결정으로 바꿀 때 쓴다. 같은 자리
+ * (`portfolio_id, repository_name, field`)를 덮어쓰므로 유니크 인덱스와
+ * 충돌하지 않고, 한 프로젝트에 결정은 하나라는 제약도 그대로 지켜진다.
+ *
+ * **답을 함께 비운다.** 지난 답은 다른 결정에 대한 것이라 새 결정에 붙이면
+ * 두 이야기가 섞인다. 문서의 기존 결정은 새 답이 셋 다 모일 때까지 그대로
+ * 남으므로, 바꾸다 말아도 잃는 것이 없다.
+ */
+export async function replacePortfolioQuestions(
+  userId: string,
+  portfolioId: string,
+  questions: NewQuestion[],
+): Promise<void> {
+  if (questions.length === 0) {
+    return;
+  }
+
+  const { error } = await getSupabaseClient()
+    .from("portfolio_statements")
+    .upsert(
+      questions.map((question) => ({
+        portfolio_id: portfolioId,
+        user_id: userId,
+        repository_name: question.repositoryName,
+        field: question.field,
+        topic: question.topic,
+        question: question.question,
+        answer: null,
+      })),
+      { onConflict: "portfolio_id,repository_name,field" },
+    );
+
+  if (error) {
+    throw new Error("Unable to replace portfolio questions.");
+  }
+}
+
+/**
  * 답변을 기록한다. 답한 뒤 다시 답하면 마지막 답이 남는다.
  *
  * 소유자 조건을 UPDATE의 WHERE에 함께 건다. 조회로 확인한 뒤 조건 없이 쓰면

@@ -42,13 +42,17 @@ async function handlePOST(
     return failure("VALIDATION_ERROR", "어느 프로젝트의 어떤 자리를 열지 알려주세요.", 400);
   }
 
+  /* 고른 결정의 한 줄. 저장소에서 본 그대로 오므로 다듬지 않고, 화면에
+     그려지는 값이라 길이만 잰다. */
+  const topic = typeof body.topic === "string" ? body.topic.trim().slice(0, 120) : undefined;
+
   const { portfolioId } = await context.params;
-  const result = await requestPortfolioQuestions(
-    authentication.user.id,
-    portfolioId,
+  const result = await requestPortfolioQuestions(authentication.user.id, portfolioId, {
     repositoryName,
     slot,
-  );
+    topic: topic || undefined,
+    replace: body.replace === true,
+  });
 
   if ("kind" in result) {
     if (result.kind === "notFound") {

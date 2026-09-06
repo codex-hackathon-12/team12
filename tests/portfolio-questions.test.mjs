@@ -214,3 +214,21 @@ test("직접 연 질문도 답할 수 있는 길이다", () => {
     assert.ok(item.question.length <= 120, `너무 길어요(${item.question.length}자): ${item.question}`);
   }
 });
+
+test("고른 결정이 있으면 그것을 가리켜 묻는다", () => {
+  /* 두루 묻는 것보다 훨씬 답하기 쉽다 — 무엇에 대해 말할지 이미 정해져 있다. */
+  const topic = "알림을 서버 폴링에서 로컬 푸시로 옮긴 커밋";
+  const made = buildRequestedQuestions("keyDecision", "chrono-derm", "Chrono-Derm", topic);
+  for (const item of made) {
+    assert.equal(item.topic, topic, "고른 줄이 질문에 안 붙었어요");
+  }
+  /* 제목을 질문 안에서 되풀이하지 않는다. topic 줄이 질문 바로 위에 함께
+     보이므로 같은 문장을 두 번 읽게 된다. */
+  assert.doesNotMatch(made[0].question, /Chrono-Derm/u);
+});
+
+test("고른 것이 없으면 두루 묻는다", () => {
+  const made = buildRequestedQuestions("keyDecision", "chrono-derm", "Chrono-Derm", "   ");
+  assert.match(made[0].question, /Chrono-Derm/u, "어느 프로젝트인지 안 짚어요");
+  assert.ok(made[0].topic, "묶을 topic이 없으면 세 조각이 안 묶여요");
+});

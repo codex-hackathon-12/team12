@@ -4,7 +4,8 @@ import type {
   PortfolioStatementResultDto,
 } from "@/contracts/api-contract";
 import { generatePortfolioRewrite } from "@/server/openai/portfolio-rewriter";
-import { buildPortfolioPrompt, type PortfolioEvidence } from "@/server/openai/portfolio-prompt";
+import { buildPortfolioPrompt } from "@/server/openai/portfolio-prompt";
+import { loadGenerationEvidence } from "@/server/portfolio/generation-evidence";
 import type { RewriteProjectSnapshot, RewriteStatement } from "@/server/openai/rewrite-prompt";
 import { mapPortfolioContent, mapRepository, type PortfolioRecord } from "@/server/portfolio/mapper";
 import {
@@ -60,24 +61,6 @@ async function loadPortfolio(userId: string, portfolioId: string): Promise<Loade
 }
 
 /**
- * 생성 근거를 되찾는다.
- *
- * `portfolios.generation_job_id`가 `on delete restrict`라 포트폴리오가 사는 동안
- * 작업은 지워지지 않고, 근거도 그 작업에 묶여 남는다. 그래도 규격 이전에 만든
- * 결과에는 근거 행이 없을 수 있어 없을 때를 다룬다.
- */
-async function loadEvidence(generationJobId: string): Promise<PortfolioEvidence | null> {
-  const { data, error } = await getSupabaseClient()
-    .from("generation_evidence")
-    .select("evidence")
-    .eq("generation_job_id", generationJobId)
-    .maybeSingle();
-
-  if (error) throw new Error("Unable to load generation evidence.");
-  return data ? ((data as { evidence: PortfolioEvidence }).evidence) : null;
-}
-
-/**
  * 근거 어디에도 없는 숫자가 든 문장을 걷어낸다.
  *
  * role은 문장이 아니라 구절이라 그대로 둔다. 결정은 조각마다 보되 하나라도
@@ -123,7 +106,7 @@ export async function applyPortfolioStatements(
   // 하나도 저장되지 않았다면 남의 질문 id이거나 이미 지워진 질문이다.
   if (saved.length === 0) return { kind: "notFound" };
 
-  const evidence = await loadEvidence(loaded.record.generation_job_id);
+  const evidence = await loadGenerationEvidence(loaded.record.generation_job_id);
   if (!evidence) return { kind: "evidenceUnavailable" };
 
   const answered = saved.filter(
