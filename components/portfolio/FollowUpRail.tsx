@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
   PORTFOLIO_ANSWER_MAX_LENGTH,
+  type PortfolioDecisionCandidateDto,
   type PortfolioQuestionDto,
   type PortfolioQuestionSlot,
   type PortfolioSkipReason,
@@ -78,6 +79,13 @@ export type RailProject = {
    * 여기 담긴 자리를 지원자가 직접 연다.
    */
   openSlots: PortfolioQuestionSlot[];
+  /**
+   * 이미 결정이 쓰여 있는지.
+   *
+   * 초안은 저장소에서 결정 하나를 스스로 골라 쓴다. 그게 지원자가 말하고 싶은
+   * 결정이 아닐 수 있으므로 "다른 결정으로"를 내민다.
+   */
+  hasDecision: boolean;
 };
 
 const SLOT_ASK_LABEL: Record<PortfolioQuestionSlot, string> = {
@@ -186,6 +194,15 @@ export function FollowUpRail({
   const [submitting, setSubmitting] = useState(false);
   /** 지금 여는 중인 자리. 두 번 눌러 두 벌이 생기는 것을 막는다. */
   const [opening, setOpening] = useState<string | null>(null);
+  /**
+   * 결정 후보를 고르는 중.
+   *
+   * 무엇이 말할 만한 결정인지는 만든 사람이 안다. 저장소에 남아 있는 본인
+   * PR과 커밋 제목을 보여주고 고르게 한다.
+   */
+  const [choosing, setChoosing] = useState<
+    { project: RailProject; replace: boolean; candidates: PortfolioDecisionCandidateDto[] | null } | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -224,8 +241,14 @@ export function FollowUpRail({
       .filter((slot) => (slot === "keyDecision"
         ? !asked.has(`${project.name} decisionProblem`)
         : !asked.has(`${project.name} highlights`)))
-      .map((slot) => ({ project, slot })),
+      .map((slot) => ({ project, slot, replace: false })),
   );
+  /* 이미 쓰여 있는 결정도 바꿀 수 있어야 한다. 초안이 저장소에서 스스로 고른
+     것이라 지원자가 말하고 싶은 결정이 아닐 수 있다. */
+  const replaceable = projects
+    .filter((project) => project.hasDecision)
+    .map((project) => ({ project, slot: "keyDecision" as const, replace: true }));
+  const actions = [...openable, ...replaceable];
 
   /** 같은 결정에 속한 질문 전부. 셋이 한 덩어리다. */
   const groupOf = (question: PortfolioQuestionDto) =>
@@ -347,7 +370,11 @@ export function FollowUpRail({
    * 질문을 다 답해야 자기가 연 질문에 닿는데, 그 자리를 채우려고 누른
    * 사람에게는 그게 곧 "안 열렸다"이다.
    */
-  const openSlot = async (project: RailProject, slot: PortfolioQuestionSlot) => {
+  const openSlot = async (
+    project: RailProject,
+    slot: PortfolioQuestionSlot,
+    options: { topic?: string; replace?: boolean } = {},
+  ) => {
     if (opening || submitting) return;
     setOpening(`${project.name} ${slot}`);
     setError(null);
@@ -355,19 +382,57 @@ export function FollowUpRail({
       const all = await apiClient.requestPortfolioQuestions(portfolioId, {
         repositoryName: project.name,
         slot,
+        ...options,
       });
+      setChoosing(null);
       const known = new Set(timeline.map((question) => question.id));
       const added = all.filter((question) => !known.has(question.id));
       onQuestionsAdded(all);
-      if (added.length === 0) return;
 
+      /* 이번에 연 자리가 어느 것인지. 바꿔 쓸 때는 id가 그대로라 이것으로만
+         가려낼 수 있다. */
+      const fields = slot === "keyDecision"
+        ? ["decisionProblem", "decisionApproach", "decisionOutcome"]
+        : ["highlights"];
+      const byField = new Set(fields.map((field) => `${project.name} ${field}`));
+
+      /* 바꿔 쓴 질문은 id가 그대로라 "새로 생긴 것"에 안 잡힌다. 문구와
+         topic이 바뀌었고 답이 비워졌으므로 대화도 그것을 따라가야 한다. */
+      const changedIds = new Set(all.map((question) => question.id));
+      /* 연 것이든 바꾼 것이든 **지금** 묻는다. 바꿔 쓴 질문은 이미 대화
+         뒤쪽에 있어서 그대로 두면 커서가 안 옮겨가고, 방금 고른 결정 대신
+         엉뚱한 질문이 떠 있게 된다. */
+      const incoming = options.replace
+        ? all.filter((question) => byField.has(`${question.repositoryName} ${question.field}`))
+        : added;
+      if (incoming.length === 0) return;
+
+      const incomingIds = new Set(incoming.map((question) => question.id));
       setTimeline((previous) => {
-        const at = previous.findIndex(
-          (question) => !answers[question.id] && !skipped[question.id],
-        );
-        const cut = at === -1 ? previous.length : at;
-        return [...previous.slice(0, cut), ...added, ...previous.slice(cut)];
+        const rest = previous
+          .map((question) => (changedIds.has(question.id)
+            ? all.find((item) => item.id === question.id) ?? question
+            : question))
+          .filter((question) => !incomingIds.has(question.id));
+        const at = rest.findIndex((question) => !answers[question.id] && !skipped[question.id]);
+        const cut = at === -1 ? rest.length : at;
+        return [...rest.slice(0, cut), ...incoming, ...rest.slice(cut)];
       });
+
+      /* 바꿔 쓰면 서버가 그 질문들의 답을 비운다. 화면에 남겨두면 문서에
+         들어가지도 않을 옛 답이 새 질문 아래에 붙어 있게 된다.
+
+         **이번에 연 자리만** 지운다. "서버가 답 없다고 한 것 전부"로 잡으면
+         아까 건너뛴 질문의 건너뜀까지 풀려 되살아나고, 그게 커서를 가로채
+         방금 고른 결정 대신 엉뚱한 질문이 떠 있게 된다. */
+      if (options.replace) {
+        const forget = <T,>(previous: Record<string, T>) => Object.fromEntries(
+          Object.entries(previous).filter(([id]) => !incomingIds.has(id)),
+        );
+        setAnswers(forget);
+        setSkipped((previous) => forget(previous) as Record<string, true>);
+        setResults(forget);
+      }
     } catch (caught) {
       setError(
         caught instanceof ApiClientError && caught.code === "SLOT_ALREADY_FILLED"
@@ -376,6 +441,28 @@ export function FollowUpRail({
       );
     } finally {
       setOpening(null);
+    }
+  };
+
+  /**
+   * 결정을 고르는 화면을 연다.
+   *
+   * 후보는 저장소에서 온다. 근거가 남아 있지 않으면 빈 목록이 오는데 그때도
+   * 막지 않는다 — 후보가 없다고 결정을 못 쓸 이유는 없고, "직접 쓸래요"가
+   * 늘 있다.
+   */
+  const chooseDecision = async (project: RailProject, replace: boolean) => {
+    if (opening || submitting) return;
+    setChoosing({ project, replace, candidates: null });
+    setError(null);
+    try {
+      const candidates = await apiClient.getDecisionCandidates(portfolioId, project.name);
+      setChoosing((previous) =>
+        previous?.project.name === project.name ? { ...previous, candidates } : previous);
+    } catch {
+      // 후보를 못 불러와도 결정을 쓰는 일 자체는 막지 않는다.
+      setChoosing((previous) =>
+        previous?.project.name === project.name ? { ...previous, candidates: [] } : previous);
     }
   };
 
@@ -462,18 +549,61 @@ export function FollowUpRail({
       {/* 비어 있는데 물어볼 질문도 없는 자리. 여기가 없으면 초안이 비워둔
           핵심 결정을 지원자가 채울 방법이 영영 없다 — 답변에 "추가해줘"라고
           써도 답은 그 질문의 자리 하나에만 반영된다. */}
-      {openable.length > 0 ? (
+      {choosing ? (
         <div className="follow-up-open">
-          <p>빈 자리 채우기</p>
+          <p>{choosing.project.title} · 어느 결정을 쓸까요?</p>
+          {choosing.candidates === null ? (
+            <p className="follow-up-status">
+              <span className="loading-mark-inline" aria-hidden="true" />
+              저장소를 읽는 중…
+            </p>
+          ) : (
+            <ul className="follow-up-candidates">
+              {/* 저장소에서 본 그대로다. 다듬으면 본인이 못 알아본다. */}
+              {choosing.candidates.map((candidate) => (
+                <li key={candidate.topic}>
+                  <button
+                    type="button"
+                    aria-disabled={opening !== null}
+                    onClick={() => void openSlot(choosing.project, "keyDecision", {
+                      topic: candidate.topic,
+                      replace: choosing.replace,
+                    })}
+                  >
+                    <span>{candidate.topic}</span>
+                    <em>{candidate.source === "pullRequest" ? "PR" : "커밋"}</em>
+                  </button>
+                </li>
+              ))}
+              <li>
+                <button
+                  type="button"
+                  aria-disabled={opening !== null}
+                  onClick={() => void openSlot(choosing.project, "keyDecision", { replace: choosing.replace })}
+                >
+                  <span>직접 쓸래요</span>
+                </button>
+              </li>
+            </ul>
+          )}
+          <button className="follow-up-cancel" type="button" onClick={() => setChoosing(null)}>
+            그만두기
+          </button>
+        </div>
+      ) : actions.length > 0 ? (
+        <div className="follow-up-open">
+          <p>더 쓸 자리</p>
           <div>
-            {openable.map(({ project, slot }) => (
+            {actions.map(({ project, slot, replace }) => (
               <button
-                key={`${project.name} ${slot}`}
+                key={`${project.name} ${slot} ${replace}`}
                 type="button"
                 aria-disabled={opening !== null || submitting}
-                onClick={() => void openSlot(project, slot)}
+                onClick={() => (slot === "keyDecision"
+                  ? void chooseDecision(project, replace)
+                  : void openSlot(project, slot))}
               >
-                {project.title} · {SLOT_ASK_LABEL[slot]}
+                {project.title} · {replace ? "다른 결정으로" : SLOT_ASK_LABEL[slot]}
               </button>
             ))}
           </div>

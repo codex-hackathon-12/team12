@@ -22,6 +22,7 @@ import type {
   PortfolioListDto,
   PortfolioAnswerInput,
   PortfolioShareDto,
+  PortfolioDecisionCandidateDto,
   PortfolioQuestionDto,
   PortfolioStatementResultDto,
   RequestPortfolioQuestionsRequest,
@@ -74,6 +75,14 @@ export interface ApiClient {
     portfolioId: string,
     request: RequestPortfolioQuestionsRequest,
   ): Promise<PortfolioQuestionDto[]>;
+  /**
+   * 저장소에서 찾은 결정 후보. 근거가 남아 있지 않으면 빈 목록이고
+   * 오류가 아니다 — 그때는 두루 묻는 질문으로 연다.
+   */
+  getDecisionCandidates(
+    portfolioId: string,
+    repositoryName: string,
+  ): Promise<PortfolioDecisionCandidateDto[]>;
   /** 인증 없이 조회하는 공개 포트폴리오. */
   getPublicPortfolio(slug: string): Promise<PublicPortfolioDto>;
   getCredits(): Promise<CreditSummaryDto>;

@@ -127,7 +127,13 @@ export default function PortfolioResultPage() {
     const openSlots: PortfolioQuestionSlot[] = [];
     if (!project.keyDecision.headline.trim()) openSlots.push("keyDecision");
     if (project.highlights.length < PORTFOLIO_HIGHLIGHT_SLOTS) openSlots.push("highlights");
-    return [{ url: project.repositoryUrl, name, title: project.title, openSlots }];
+    return [{
+      url: project.repositoryUrl,
+      name,
+      title: project.title,
+      openSlots,
+      hasDecision: Boolean(project.keyDecision.headline.trim()),
+    }];
   });
   const order = new Map(railProjects.map((project, index) => [project.name, index]));
   const railQuestions = [...(rewritten?.questions ?? portfolio.questions)].sort(

@@ -25,6 +25,7 @@ import {
   type PortfolioListDto,
   type PortfolioAnswerInput,
   type PortfolioShareDto,
+  type PortfolioDecisionCandidateDto,
   type PortfolioQuestionDto,
   type PortfolioStatementResultDto,
   type RequestPortfolioQuestionsRequest,
@@ -272,6 +273,14 @@ export class HttpApiClient implements ApiClient {
         method: "POST",
         body: JSON.stringify(body),
       })
+    ).data;
+  }
+
+  async getDecisionCandidates(portfolioId: string, repositoryName: string) {
+    return (
+      await request<PortfolioDecisionCandidateDto[]>(
+        API_ROUTES.portfolioDecisionCandidates(portfolioId, repositoryName),
+      )
     ).data;
   }
 

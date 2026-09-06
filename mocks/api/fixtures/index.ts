@@ -10,6 +10,7 @@ import type {
   GalleryExampleSummaryDto,
   GitRepositoryDto,
   MockPaymentDto,
+  PortfolioDecisionCandidateDto,
   PortfolioContentDto,
   PortfolioDto,
   PortfolioQuestionDto,
@@ -161,6 +162,30 @@ export const mockRepositories = [
     syncedAt: now,
   },
 ] satisfies GitRepositoryDto[];
+
+/**
+ * 저장소에서 찾은 결정 후보.
+ *
+ * 목에는 근거 테이블이 없으므로 저장소별로 그럴듯한 제목을 둔다. 실제 서버는
+ * 본인 PR과 커밋 제목을 그대로 쓰므로 여기도 다듬지 않은 모양으로 적는다.
+ *
+ * signal-board는 일부러 비워 둔다. 생성 근거가 남아 있지 않은 오래된
+ * 포트폴리오에서 후보가 하나도 없는 화면도 로컬에서 실제로 실행돼야 한다 —
+ * 목이 늘 꽉 찬 결과만 돌려주면 그 경로는 한 번도 안 돌아본다.
+ */
+export const mockDecisionCandidates: Record<string, PortfolioDecisionCandidateDto[]> = {
+  "folio-maker": [
+    { topic: "생성 흐름을 세 단계로 나눈 PR", source: "pullRequest", hasContext: true },
+    { topic: "되묻기 답변을 그 자리만 병합하도록 바꿈", source: "commit", hasContext: true },
+    { topic: "A4 미리보기를 인쇄와 같은 조판으로 맞춤", source: "commit", hasContext: false },
+  ],
+  "ledger-sync": [
+    { topic: "중복 거래를 지우는 대신 표시만 남기기로 함", source: "pullRequest", hasContext: true },
+    { topic: "재시도가 같은 거래를 두 번 넣지 않도록 멱등 키 도입", source: "commit", hasContext: true },
+    { topic: "은행별 응답 차이를 어댑터로 흡수", source: "commit", hasContext: false },
+  ],
+  "signal-board": [],
+};
 
 export const mockPortfolioContent = {
   profile: {

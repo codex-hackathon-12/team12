@@ -19,6 +19,7 @@ import {
   mockConnection,
   mockCredits,
   mockDashboard,
+  mockDecisionCandidates,
   mockGalleryExamples,
   mockGallerySummaries,
   mockPayments,
@@ -248,9 +249,12 @@ export class MockApiClient implements ApiClient {
   /* 생성 때 만들어진 질문에 "직접 연 자리"가 뒤에 붙는다. 고정 목록만 보면
      새 질문이 어디에도 나타나지 않아 그 경로를 로컬에서 한 번도 못 본다. */
   private opened: PortfolioQuestionDto[] = [];
+  /* 다른 결정으로 바꾼 질문. 고정 목록을 그 자리에서 갈아 끼운다. */
+  private replaced = new Map<string, PortfolioQuestionDto>();
 
   private allQuestions(): PortfolioQuestionDto[] {
-    return [...mockPortfolioQuestions, ...this.opened];
+    return [...mockPortfolioQuestions, ...this.opened]
+      .map((question) => this.replaced.get(question.id) ?? question);
   }
 
   /** 답한 것은 답한 채로 돌려준다. */
@@ -259,6 +263,20 @@ export class MockApiClient implements ApiClient {
       ...question,
       answer: this.answers.get(question.id) ?? null,
     }));
+  }
+
+  /**
+   * 저장소에서 찾은 결정 후보.
+   *
+   * 목에는 근거 테이블이 없으므로 저장소별로 그럴듯한 제목을 둔다. 하나는
+   * 일부러 비워 둔다 — 근거가 남아 있지 않은 오래된 포트폴리오에서 후보가
+   * 없는 화면도 로컬에서 실제로 실행돼야 한다.
+   */
+  async getDecisionCandidates(portfolioId: string, repositoryName: string) {
+    await maybeFail("getDecisionCandidates");
+    await wait(300);
+    void portfolioId;
+    return mockDecisionCandidates[repositoryName] ?? [];
   }
 
   /**
@@ -278,13 +296,16 @@ export class MockApiClient implements ApiClient {
     );
     if (!project) throw mockError("NOT_FOUND", "프로젝트를 찾을 수 없습니다.", 404);
 
-    /* 채워진 자리를 열면 답해도 병합이 버려 아무것도 안 바뀐다. 서버와 같은
-       판단을 목도 해야 화면의 그 경로가 로컬에서 돈다. */
+    /* 바꿔 쓰기는 채워진 결정도 연다. 그 밖에는 채워진 자리를 열지 않는다 —
+       답해도 병합이 버려 아무것도 안 바뀐다. 서버와 같은 판단을 목도 해야
+       화면의 그 경로가 로컬에서 돈다. */
+    const replacing = body.replace === true && body.slot === "keyDecision";
     const open = body.slot === "keyDecision"
       ? project.keyDecision.headline.trim().length === 0
       : project.highlights.length < PORTFOLIO_HIGHLIGHT_SLOTS;
-    if (!open) throw mockError("SLOT_ALREADY_FILLED", "이 자리는 이미 채워져 있어요.", 409);
+    if (!replacing && !open) throw mockError("SLOT_ALREADY_FILLED", "이 자리는 이미 채워져 있어요.", 409);
 
+    const topic = body.topic?.trim() || "직접 고르신 결정";
     const asked = body.slot === "highlights"
       ? [{
           field: "highlights" as const,
@@ -294,26 +315,32 @@ export class MockApiClient implements ApiClient {
       : [
           {
             field: "decisionProblem" as const,
-            topic: "직접 고르신 결정",
-            question: `${project.title}에서 가장 판단이 필요했던 선택 하나를 떠올려 주세요. 그전에는 어떤 문제가 있었나요?`,
+            topic,
+            question: body.topic?.trim()
+              ? "이 작업을 하기 전에는 어떤 문제가 있었나요?"
+              : `${project.title}에서 가장 판단이 필요했던 선택 하나를 떠올려 주세요. 그전에는 어떤 문제가 있었나요?`,
           },
-          { field: "decisionApproach" as const, topic: "직접 고르신 결정", question: "무엇을 골랐고, 왜 그것이었나요?" },
-          { field: "decisionOutcome" as const, topic: "직접 고르신 결정", question: "그래서 무엇이 달라졌나요?" },
+          { field: "decisionApproach" as const, topic, question: "무엇을 골랐고, 왜 그것이었나요?" },
+          { field: "decisionOutcome" as const, topic, question: "그래서 무엇이 달라졌나요?" },
         ];
 
-    /* 같은 자리를 두 번 눌러도 질문이 겹치지 않는다. 서버는 유니크 인덱스가
-       막는 것을 목은 여기서 막는다. */
     for (const item of asked) {
-      const already = this.allQuestions().some(
+      const id = `question_opened_${body.repositoryName}_${item.field}`;
+      const existing = this.allQuestions().find(
         (question) => question.repositoryName === body.repositoryName && question.field === item.field,
       );
-      if (already) continue;
-      this.opened.push({
-        id: `question_opened_${body.repositoryName}_${item.field}`,
-        repositoryName: body.repositoryName,
-        ...item,
-        answer: null,
-      });
+
+      if (existing) {
+        /* 바꿔 쓰기는 덮어쓰고 지난 답을 비운다. 다른 결정에 대한 답이라
+           새 결정에 붙이면 두 이야기가 섞인다. */
+        if (!replacing) continue;
+        this.answers.delete(existing.id);
+        this.opened = this.opened.filter((question) => question.id !== existing.id);
+        this.replaced.set(existing.id, { ...existing, ...item, answer: null });
+        continue;
+      }
+
+      this.opened.push({ id, repositoryName: body.repositoryName, ...item, answer: null });
     }
 
     return this.questions();
