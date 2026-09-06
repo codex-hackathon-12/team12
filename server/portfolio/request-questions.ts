@@ -1,5 +1,9 @@
-import type { PortfolioProjectDto, PortfolioQuestionDto, PortfolioQuestionSlot } from "@/contracts/api-contract";
-import { CONTENT_LIMITS } from "@/server/portfolio/content-limits";
+import {
+  PORTFOLIO_HIGHLIGHT_SLOTS,
+  type PortfolioProjectDto,
+  type PortfolioQuestionDto,
+  type PortfolioQuestionSlot,
+} from "@/contracts/api-contract";
 import { getPortfolio } from "@/server/portfolio/portfolios";
 import { buildRequestedQuestions } from "@/server/portfolio/questions";
 import { insertPortfolioQuestions, listPortfolioQuestions } from "@/server/portfolio/statements";
@@ -32,7 +36,7 @@ export type RequestFailure =
 export function isOpenSlot(slot: PortfolioQuestionSlot, project: PortfolioProjectDto): boolean {
   return slot === "keyDecision"
     ? project.keyDecision.headline.trim().length === 0
-    : project.highlights.length < CONTENT_LIMITS.highlights;
+    : project.highlights.length < PORTFOLIO_HIGHLIGHT_SLOTS;
 }
 
 export async function requestPortfolioQuestions(

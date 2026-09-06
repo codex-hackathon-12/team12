@@ -1,3 +1,5 @@
+import { PORTFOLIO_HIGHLIGHT_SLOTS } from "@/contracts/api-contract";
+
 /**
  * 결과 화면이 감당할 수 있는 분량 상한.
  *
@@ -9,7 +11,9 @@ export const CONTENT_LIMITS = {
   skillGroups: 5,
   skillsPerGroup: 8,
   techStack: 10,
-  highlights: 4,
+  /* 화면도 이 값을 본다. "강조 더 쓰기"를 내밀지 정하는 조건이 서버와 같아야
+     하므로 계약에 두고 양쪽이 같은 것을 가리킨다. */
+  highlights: PORTFOLIO_HIGHLIGHT_SLOTS,
   challenges: 3,
   solutions: 3,
   impact: 3,

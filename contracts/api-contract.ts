@@ -490,6 +490,15 @@ export interface AnswerPortfolioQuestionsRequest {
  */
 export type PortfolioQuestionSlot = "keyDecision" | "highlights";
 
+/**
+ * 한 프로젝트가 가질 수 있는 강조점 수.
+ *
+ * 화면과 서버가 같은 값을 봐야 한다. 화면은 이 수보다 적을 때만 "강조 더
+ * 쓰기"를 내밀고 서버는 같은 조건으로 자리를 열어주므로, 두 곳에 따로 적으면
+ * 상한을 바꿀 때 한쪽만 남아 버튼이 안 뜨거나 눌러도 거절당한다.
+ */
+export const PORTFOLIO_HIGHLIGHT_SLOTS = 4;
+
 export interface RequestPortfolioQuestionsRequest {
   /** 어느 프로젝트의 자리인지. 저장소 이름으로 가리킨다. */
   repositoryName: string;
