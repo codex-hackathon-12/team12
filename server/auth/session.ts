@@ -4,7 +4,8 @@ import { hashToken, randomToken } from "@/server/auth/crypto";
 import { parseCookie, serializeCookie } from "@/server/http";
 import type { AuthSessionDto } from "@/contracts/api-contract";
 
-export const SESSION_COOKIE_NAME = "portfolio_session";
+export { SESSION_COOKIE_NAME } from "@/server/auth/cookie";
+import { SESSION_COOKIE_NAME } from "@/server/auth/cookie";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
 
 export type AuthenticatedUser = {

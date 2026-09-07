@@ -7,6 +7,7 @@ import type { TasteSampleDto } from "@/contracts/api-contract";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { apiClient } from "@/lib/api-client";
 import { MOCK_CHIP } from "@/lib/copy";
+import { isSafeReturnPath } from "@/lib/safe-return-path";
 import { REQUESTED_SCOPES } from "@/lib/scopes";
 import { LABEL } from "@/lib/copy";
 
@@ -31,6 +32,10 @@ function LandingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const authFailure = AUTH_FAILURE_MESSAGES[searchParams.get("auth") ?? ""];
+  /* 라우팅 가드가 돌려보낸 경우 보던 화면 경로가 실려 온다. 검증해서 쓴다 —
+     아무 값이나 통과시키면 로그인 흐름이 열린 리다이렉트가 된다. */
+  const rawReturnTo = searchParams.get("returnTo");
+  const returnTo = isSafeReturnPath(rawReturnTo) ? rawReturnTo : "/dashboard";
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [tasteSample, setTasteSample] = useState<TasteSampleDto | null>(null);
 
@@ -50,7 +55,7 @@ function LandingPage() {
         .then((session) => {
           if (!active) return;
           if (session.authenticated) {
-            router.replace("/dashboard");
+            router.replace(returnTo);
             return;
           }
           setIsAnonymous(true);
@@ -72,13 +77,14 @@ function LandingPage() {
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, returnTo]);
 
   if (!isAnonymous) {
     return <LoadingState label="화면을 불러오고 있어요" />;
   }
 
-  const loginHref = apiClient.getGitHubLoginUrl("/dashboard");
+  /* 가드가 돌려보낸 사람은 로그인 뒤 보던 화면으로 돌아간다. */
+  const loginHref = apiClient.getGitHubLoginUrl(returnTo);
 
   return (
     <main className="landing-page">
@@ -112,6 +118,12 @@ function LandingPage() {
               로그인 버튼 바로 옆에서 알려준다. */}
           {authFailure ? (
             <p className="inline-error" role="alert">{authFailure}</p>
+          ) : rawReturnTo ? (
+            /* 가드가 돌려보낸 사람에게 왜 랜딩에 서 있는지 말해준다. 아무 말
+               없이 서 있으면 방금 누른 링크가 고장난 것처럼 보인다. */
+            <p className="inline-error" role="status">
+              로그인이 필요한 화면이에요. GitHub로 로그인하면 보던 화면으로 이어져요.
+            </p>
           ) : null}
 
           <div className="hero-actions">
