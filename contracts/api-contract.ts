@@ -541,6 +541,13 @@ export interface PortfolioDecisionCandidateDto {
   source: "commit" | "pullRequest";
   /** 본문이 있어 "왜"가 적혀 있을 만한 것. 앞에 놓는다. */
   hasContext: boolean;
+  /**
+   * 본문 첫 줄.
+   *
+   * 제목만으로는 어떤 작업이었는지 기억이 안 날 수 있다. 본문 첫 줄이 "왜"가
+   * 적힌 자리라 그것만 보여줘도 "아, 그거"가 된다. 본문이 없으면 null.
+   */
+  excerpt: string | null;
 }
 
 /**

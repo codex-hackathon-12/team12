@@ -175,14 +175,34 @@ export const mockRepositories = [
  */
 export const mockDecisionCandidates: Record<string, PortfolioDecisionCandidateDto[]> = {
   "folio-maker": [
-    { topic: "생성 흐름을 세 단계로 나눈 PR", source: "pullRequest", hasContext: true },
-    { topic: "되묻기 답변을 그 자리만 병합하도록 바꿈", source: "commit", hasContext: true },
-    { topic: "A4 미리보기를 인쇄와 같은 조판으로 맞춤", source: "commit", hasContext: false },
+    {
+      topic: "생성 흐름을 세 단계로 나눈 PR",
+      source: "pullRequest",
+      hasContext: true,
+      excerpt: "저장 단계에서 실패하면 수집과 모델 호출이 통째로 다시 돌았다.",
+    },
+    {
+      topic: "되묻기 답변을 그 자리만 병합하도록 바꿈",
+      source: "commit",
+      hasContext: true,
+      excerpt: "전체 재생성이면 마음에 들던 문장까지 바뀌어 답할 이유가 없어진다.",
+    },
+    { topic: "A4 미리보기를 인쇄와 같은 조판으로 맞춤", source: "commit", hasContext: false, excerpt: null },
   ],
   "ledger-sync": [
-    { topic: "중복 거래를 지우는 대신 표시만 남기기로 함", source: "pullRequest", hasContext: true },
-    { topic: "재시도가 같은 거래를 두 번 넣지 않도록 멱등 키 도입", source: "commit", hasContext: true },
-    { topic: "은행별 응답 차이를 어댑터로 흡수", source: "commit", hasContext: false },
+    {
+      topic: "중복 거래를 지우는 대신 표시만 남기기로 함",
+      source: "pullRequest",
+      hasContext: true,
+      excerpt: "잘못 지우면 되돌릴 방법이 없어 판단은 사람에게 남긴다.",
+    },
+    {
+      topic: "재시도가 같은 거래를 두 번 넣지 않도록 멱등 키 도입",
+      source: "commit",
+      hasContext: true,
+      excerpt: "배치가 중간에 죽었다 다시 돌면 같은 거래가 이중으로 쌓였다.",
+    },
+    { topic: "은행별 응답 차이를 어댑터로 흡수", source: "commit", hasContext: false, excerpt: null },
   ],
   "signal-board": [],
 };
