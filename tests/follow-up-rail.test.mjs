@@ -114,8 +114,14 @@ test("대화가 문서의 배치를 건드리지 않는다", () => {
   const dock = css.match(/\.follow-up-dock \{([^}]*)\}/u);
   assert.ok(dock, "떠 있는 자리가 없어요");
   assert.match(dock[1], /position: fixed/u, "화면에 고정돼 있지 않아요");
-  assert.doesNotMatch(css, /portfolio-canvas-wrap:has\(/u, "캔버스가 다시 칸을 나눠요");
   assert.doesNotMatch(css, /\.follow-up-column/u, "옛 칼럼이 남아 있어요");
+
+  /* 열리면 종이가 왼쪽으로 비켜선다. 밀어주는 것은 padding뿐이어야 한다 —
+     grid 칸이 다시 생기면 툴바·공유 줄까지 밀리던 옛 문제로 돌아간다. */
+  const shift = css.match(/\.portfolio-canvas-wrap:has\(\.follow-up-rail\) \{([^}]*)\}/u);
+  assert.ok(shift, "패널이 열려도 종이가 안 비켜서요");
+  assert.match(shift[1], /padding-right/u);
+  assert.doesNotMatch(shift[1], /grid|width|position/u, "밀어주기가 배치 나누기가 됐어요");
 });
 
 test("플로팅 버튼이 남은 개수를 말한다", () => {
@@ -382,6 +388,14 @@ test("안 바뀐 이유를 추측하지 않는다", () => {
   for (const reason of ["empty", "same", "incomplete", "numbers", "unavailable"]) {
     assert.match(rail, new RegExp(`${reason}:`, "u"), `${reason} 문구가 없어요`);
   }
+});
+
+test("건너뛴 질문에도 다시 답할 수 있다", () => {
+  /* 없으면 건너뛰기가 영영 포기가 된다 — 마음이 바뀌어도 그 질문을 다시
+     세울 방법이 없다. 묶음째 되살리고, "건너뛸게요" 안내는 지운다. */
+  assert.match(rail, /follow-up-skipped-redo/u, "돌아오는 손잡이가 없어요");
+  assert.match(rail, /skipped\[question\.id\] && !answers\[question\.id\]/u, "답한 줄에도 붙어요");
+  assert.match(rail, /entry\.kind === "skipped"/u, "건너뜀 안내가 남아 두 말을 해요");
 });
 
 test("한글을 쓰는 중에 Enter로 보내지 않는다", () => {
