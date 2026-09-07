@@ -397,10 +397,10 @@ test("다음 하나만 예고한다", () => {
   assert.match(rail, /upNext/u);
 });
 
-test("후보에 본문 첫 줄이 보인다", () => {
-  assert.match(more, /candidate\.excerpt \? <small>/u, "발췌를 안 그려요");
+test("후보에 무슨 일이었는지 한 줄이 보인다", () => {
+  assert.match(more, /candidate\.summary \? <small>/u, "요약을 안 그려요");
   const fixtures = read("mocks/api/fixtures/index.ts");
-  assert.match(fixtures, /excerpt: "/u, "목 후보에 발췌가 없어요");
+  assert.match(fixtures, /summary: "/u, "목 후보에 요약이 없어요");
 });
 
 test("안 바뀐 이유를 추측하지 않는다", () => {

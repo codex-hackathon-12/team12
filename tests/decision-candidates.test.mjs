@@ -28,7 +28,7 @@ test("본문이 있는 것이 앞에 온다", () => {
     ownCommits: [{ title: "생성 흐름을 세 단계로 나눔", body: "저장에서 실패하면 통째로 다시 돌았다." }],
   }));
   assert.equal(found[0].topic, "생성 흐름을 세 단계로 나눔");
-  assert.equal(found[0].hasContext, true);
+  assert.ok(found[0].summary, "본문이 요약 자리에 없어요");
   assert.equal(found[1].source, "pullRequest");
 });
 
@@ -96,7 +96,7 @@ test("근거가 비어도 터지지 않는다", () => {
   assert.deepEqual(selectDecisionCandidates({}), []);
 });
 
-test("본문 첫 줄이 발췌로 온다", () => {
+test("본문 첫 줄이 요약으로 온다", () => {
   /* 제목만으로는 어떤 작업이었는지 기억이 안 날 수 있다. 본문 첫 줄이
      "왜"가 적히는 자리라 그것만 보여줘도 "아, 그거"가 된다. */
   const [found] = selectDecisionCandidates(repository({
@@ -105,22 +105,20 @@ test("본문 첫 줄이 발췌로 온다", () => {
       body: "\n  저장에서 실패하면 수집과 모델 호출이 통째로 다시 돌았다.\n\n단계 사이 산출물을 남긴다.",
     }],
   }));
-  assert.equal(found.excerpt, "저장에서 실패하면 수집과 모델 호출이 통째로 다시 돌았다.");
-  assert.equal(found.hasContext, true);
+  assert.equal(found.summary, "저장에서 실패하면 수집과 모델 호출이 통째로 다시 돌았다.");
 });
 
-test("본문이 없으면 발췌도 없다", () => {
+test("본문이 없으면 요약도 없다", () => {
   const [found] = selectDecisionCandidates(repository({
     ownCommits: [{ title: "알림을 서버 폴링에서 로컬 푸시로 옮김", body: "  \n " }],
   }));
-  assert.equal(found.excerpt, null);
-  assert.equal(found.hasContext, false);
+  assert.equal(found.summary, null);
 });
 
-test("발췌가 목록을 본문으로 만들지 않게 자른다", () => {
+test("요약이 목록을 본문으로 만들지 않게 자른다", () => {
   const [found] = selectDecisionCandidates(repository({
     ownCommits: [{ title: "생성 흐름을 세 단계로 나눔", body: "가".repeat(300) }],
   }));
-  assert.ok([...found.excerpt].length <= 90, `발췌가 ${[...found.excerpt].length}자예요`);
-  assert.ok(found.excerpt.endsWith("…"), "잘렸다는 표시가 없어요");
+  assert.ok([...found.summary].length <= 90, `요약이 ${[...found.summary].length}자예요`);
+  assert.ok(found.summary.endsWith("…"), "잘렸다는 표시가 없어요");
 });

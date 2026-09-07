@@ -77,7 +77,7 @@ function excerptOf(body: string): string | null {
  * 하다. PR은 커밋보다 큰 단위라 그다음에 둔다.
  */
 function rank(candidate: PortfolioDecisionCandidateDto): number {
-  if (candidate.hasContext) return candidate.source === "pullRequest" ? 0 : 1;
+  if (candidate.summary) return candidate.source === "pullRequest" ? 0 : 1;
   return candidate.source === "pullRequest" ? 2 : 3;
 }
 
@@ -94,8 +94,7 @@ export function selectDecisionCandidates(
     const key = topic.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
-    const excerpt = excerptOf(body);
-    found.push({ topic, source, hasContext: excerpt !== null, excerpt });
+    found.push({ topic, source, summary: excerptOf(body), evidence: [] });
   };
 
   for (const pull of repository.ownPullRequests ?? []) push(pull.title, "pullRequest", pull.body);

@@ -105,11 +105,11 @@ export function MoreToWrite({
                         <span className="follow-up-candidate-title">
                           {candidate.topic}
                           {/* 어디서 온 줄인지 알아야 저장소에서 찾아볼 수 있다. */}
-                          <em>{busyHere ? "" : candidate.source === "pullRequest" ? "PR" : "커밋"}</em>
+                          <em>{busyHere ? "" : candidate.source === "analysis" ? "" : candidate.source === "pullRequest" ? "PR" : "커밋"}</em>
                         </span>
-                        {/* 제목만으로는 어떤 작업이었는지 기억이 안 날 수 있다.
-                            본문 첫 줄이 "왜"가 적힌 자리라 그것만으로 "아, 그거"가 된다. */}
-                        {candidate.excerpt ? <small>{candidate.excerpt}</small> : null}
+                        {/* 무슨 일이 있었는지 한 줄. 제목만으로 기억이 안 날 때
+                            "아, 그거"를 만든다. */}
+                        {candidate.summary ? <small>{candidate.summary}</small> : null}
                       </button>
                     </li>
                   );
