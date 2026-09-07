@@ -440,7 +440,9 @@ export function FollowUpRail({
     }
     setOpenError(null);
     setView("chat");
-    composerRef.current?.focus();
+    /* 더 쓰기 탭에서 오면 입력칸이 아직 없다. 대화 뷰가 그려진 뒤에 포커스를
+       준다 — 지금 주면 허공에 준다. */
+    setTimeout(() => composerRef.current?.focus(), 0);
   };
 
   /**
@@ -543,7 +545,7 @@ export function FollowUpRail({
          데려가고 입력칸에 포커스를 준다 — 누른 자리에서 다음 할 일이 바로
          보여야 "안 열렸다"로 읽히지 않는다. */
       setView("chat");
-      composerRef.current?.focus();
+      setTimeout(() => composerRef.current?.focus(), 0);
     } catch (caught) {
       setOpenError(
         caught instanceof ApiClientError && caught.code === "SLOT_ALREADY_FILLED"
@@ -651,7 +653,19 @@ export function FollowUpRail({
           onChoose={(project, replace) => void chooseDecision(project, replace)}
           onOpen={(project, slot, options) => void openSlot(project, slot, options)}
           onCancelChoose={() => { setChoosing(null); setOpenError(null); }}
-          onGoChat={() => setView("chat")}
+          onGoChat={(project, slot) => {
+            /* 그 자리의 대기 중인 질문을 지금 차례로 세운다. 탭만 바꾸면
+               대기열 뒤쪽 질문일 때 엉뚱한 질문이 떠 있게 된다. */
+            const fields = slot === "keyDecision"
+              ? ["decisionProblem", "decisionApproach", "decisionOutcome"]
+              : ["highlights"];
+            const waiting = timeline.find((question) =>
+              question.repositoryName === project.name
+              && fields.includes(question.field)
+              && !answers[question.id] && !skipped[question.id]);
+            if (waiting) reopenQuestion(waiting);
+            else setView("chat");
+          }}
         />
       ) : (
       <>

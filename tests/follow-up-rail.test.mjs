@@ -137,7 +137,9 @@ test("패널이 대화와 더 쓰기의 두 얼굴을 갖는다", () => {
   assert.match(rail, /follow-up-tab/u, "탭이 없어요");
   /* 자리를 열면 대화 탭으로 데려간다. 누른 자리에서 다음 할 일이 바로
      보여야 "안 열렸다"로 읽히지 않는다. */
-  assert.match(rail, /setView\("chat"\);\s*\n\s*composerRef\.current\?\.focus\(\)/u,
+  /* 포커스는 대화 뷰가 그려진 뒤에 준다. 더 쓰기 탭에서 오면 입력칸이 아직
+     없어 지금 주면 허공에 준다. */
+  assert.match(rail, /setView\("chat"\);\s*\n\s*setTimeout\(\(\) => composerRef\.current\?\.focus\(\), 0\)/u,
     "열고 나서 대화로 안 데려가요");
 });
 
