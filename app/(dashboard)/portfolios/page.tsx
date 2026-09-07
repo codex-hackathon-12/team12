@@ -6,7 +6,7 @@ import type { PortfolioSummaryDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { formatDay } from "@/lib/format";
 import { useReturnFocus } from "@/hooks/useReturnFocus";
-import { SkeletonCards } from "@/components/ui/Skeleton";
+import { PortfolioCardsSkeleton } from "@/components/ui/Skeleton";
 import { LABEL } from "@/lib/copy";
 import { SteadyLabel } from "@/components/ui/SteadyLabel";
 
@@ -97,7 +97,7 @@ export default function PortfolioListPage() {
       </header>
 
       {!portfolios ? (
-        <SkeletonCards label="포트폴리오를 불러오고 있어요" />
+        <PortfolioCardsSkeleton label="포트폴리오를 불러오고 있어요" />
       ) : portfolios.length === 0 ? (
         <div className="empty-state">
           <div>

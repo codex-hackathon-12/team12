@@ -16,20 +16,41 @@ const read = (path) => readFileSync(root + path, "utf8");
 const skeleton = read("components/ui/Skeleton.tsx");
 const css = read("app/globals.css");
 
-test("자료 화면은 자리 모양을 그린다", () => {
-  /* 화면마다 올 것의 모양이 다르다 — 행 목록, 카드, 문서. 모양이 맞아야
-     진짜가 왔을 때 화면이 덜컥 바뀌지 않는다. */
-  /* 화면 전체를 대신하는 자리는 제목 줄까지, 화면이 제목·도구줄을 이미
-     그리고 있으면 맨몸(행·카드만) — 제목까지 다시 그리면 진짜와 겹쳐 두
-     벌이 된다. */
+test("자리 표시가 실물의 클래스를 입는다", () => {
+  /* 범용 모양 한 벌로 때웠더니 진짜와 다르게 생겨 화면이 두 번 바뀌는
+     것처럼 보였다. 행 높이·칸 나눔·카드 최소 높이가 전부 실제 CSS에서
+     오도록, 화면마다 그 화면의 컨테이너 클래스를 그대로 입는다. */
+  const shapes = [
+    ["RepositoryRowsSkeleton", ["repository-rows", "repository-row", "repository-row-label"]],
+    ["PortfolioCardsSkeleton", ["portfolio-list-grid", "portfolio-list-card", "tag-row"]],
+    ["GalleryCardsSkeleton", ["gallery-grid", "gallery-card", "gallery-visual"]],
+    ["BillingPageSkeleton", ["product-grid", "product-card", "product-radio", "product-price"]],
+    ["DashboardPageSkeleton", ["dashboard-section", "split-section"]],
+    ["SettingsPageSkeleton", ["connection-card"]],
+    ["PromptPageSkeleton", ["prompt-layout"]],
+    ["DocumentPageSkeleton", ["document-toolbar", "portfolio-canvas-wrap"]],
+  ];
+  for (const [shape, classes] of shapes) {
+    const at = skeleton.indexOf(`function ${shape}`);
+    assert.notEqual(at, -1, `${shape}이 없어요`);
+    const block = skeleton.slice(at, skeleton.indexOf("\nexport", at + 1) === -1
+      ? undefined
+      : skeleton.indexOf("\nexport", at + 1));
+    for (const cls of classes) {
+      assert.match(block, new RegExp(cls, "u"), `${shape}이 실물 클래스 ${cls}를 안 입어요`);
+    }
+  }
+});
+
+test("자료 화면이 자기 모양의 자리를 그린다", () => {
   const pages = [
-    ["app/(dashboard)/dashboard/page.tsx", "ListPageSkeleton"],
-    ["app/(dashboard)/settings/page.tsx", "ListPageSkeleton"],
-    ["app/(dashboard)/create/[id]/prompt/page.tsx", "ListPageSkeleton"],
-    ["app/(dashboard)/repositories/page.tsx", "SkeletonRows"],
-    ["app/(dashboard)/portfolios/page.tsx", "SkeletonCards"],
-    ["app/(dashboard)/gallery/page.tsx", "SkeletonCards"],
-    ["app/(dashboard)/billing/page.tsx", "CardsPageSkeleton"],
+    ["app/(dashboard)/dashboard/page.tsx", "DashboardPageSkeleton"],
+    ["app/(dashboard)/settings/page.tsx", "SettingsPageSkeleton"],
+    ["app/(dashboard)/create/[id]/prompt/page.tsx", "PromptPageSkeleton"],
+    ["app/(dashboard)/repositories/page.tsx", "RepositoryRowsSkeleton"],
+    ["app/(dashboard)/portfolios/page.tsx", "PortfolioCardsSkeleton"],
+    ["app/(dashboard)/gallery/page.tsx", "GalleryCardsSkeleton"],
+    ["app/(dashboard)/billing/page.tsx", "BillingPageSkeleton"],
     ["app/(dashboard)/portfolios/[portfolioId]/page.tsx", "DocumentPageSkeleton"],
     ["app/(dashboard)/gallery/[exampleId]/page.tsx", "DocumentPageSkeleton"],
   ];
@@ -41,16 +62,12 @@ test("자료 화면은 자리 모양을 그린다", () => {
 });
 
 test("스켈레톤이 스피너의 접근성 계약을 이어받는다", () => {
-  /* 조각은 낭독기에서 빠지고, 묶음이 role="status"와 라벨로 말한다. */
+  /* 조각은 낭독기에서 빠지고, 화면 묶음이 role="status"와 라벨로 말한다. */
   assert.match(skeleton, /aria-hidden="true" className="skeleton"/u, "조각이 낭독기에 잡혀요");
-  for (const shape of ["ListPageSkeleton", "CardsPageSkeleton", "DocumentPageSkeleton"]) {
-    const block = skeleton.slice(skeleton.indexOf(`function ${shape}`));
-    assert.match(block.slice(0, 400), /role="status" aria-label=\{label\}/u, `${shape}이 상태를 안 알려요`);
-  }
-  /* 빈 라벨의 role="status"는 무엇을 기다리는지 말하지 않는 알림이다.
-     라벨이 없으면 장식으로 빠져야 한다. */
-  assert.match(skeleton, /label \? \(\{ role: "status"/u);
-  assert.match(skeleton, /"aria-hidden": true/u);
+  const statuses = skeleton.match(/role="status" aria-label=\{label\}/gu) ?? [];
+  const shapes = skeleton.match(/export function \w+Skeleton\(/gu) ?? [];
+  // "…Skeleton(" 꼴은 화면 묶음뿐이다(조각 Skeleton·SkeletonText는 안 잡힌다).
+  assert.equal(statuses.length, shapes.length, "상태를 안 알리는 화면 묶음이 있어요");
 });
 
 test("맥동이 움직임 줄이기를 존중한다", () => {
@@ -59,14 +76,17 @@ test("맥동이 움직임 줄이기를 존중한다", () => {
   assert.match(css, /\.skeleton \{[^}]*animation: skeleton-pulse[^}]*infinite/u, "맥동이 없어요");
   assert.match(css, /prefers-reduced-motion: reduce[\s\S]{0,200}\.skeleton \{ animation: none/u,
     "줄이기 설정을 무시해요");
+  // 채움 조각도 같은 예외 조건을 진다.
+  assert.match(css, /\.skeleton-fill \{ animation: none/u, "채움 조각이 줄이기 설정을 무시해요");
 });
 
-test("문서 자리가 진짜 문서와 같은 색 위에 선다", () => {
-  /* 캔버스·종이 색이 다르면 진짜가 오는 순간 배경이 덜컥 바뀐다. */
-  const canvas = css.match(/\.skeleton-canvas \{([^}]*)\}/u);
+test("종이 자리가 진짜 종이와 같다", () => {
+  /* 캔버스는 실물 클래스(.portfolio-canvas-wrap)를 입으므로 종이만 지킨다.
+     폭·비율·색이 다르면 진짜가 오는 순간 화면이 덜컥 바뀐다. */
   const paper = css.match(/\.skeleton-paper \{([^}]*)\}/u);
-  assert.ok(canvas && paper, "문서 자리 규칙이 없어요");
-  assert.match(canvas[1], /#d9d8cf/u, "캔버스 색이 달라요");
+  assert.ok(paper, "종이 자리 규칙이 없어요");
+  assert.match(paper[1], /width: min\(794px, 100%\)/u, "종이 폭이 A4 화면 폭과 달라요");
+  assert.match(paper[1], /aspect-ratio: 210 \/ 297/u, "A4 비율이 아니에요");
   assert.match(paper[1], /#fffefa/u, "종이 색이 달라요");
 });
 

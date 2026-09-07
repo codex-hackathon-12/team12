@@ -9,7 +9,7 @@ import type {
 } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { formatLongDay } from "@/lib/format";
-import { CardsPageSkeleton } from "@/components/ui/Skeleton";
+import { BillingPageSkeleton } from "@/components/ui/Skeleton";
 import { MOCK_CHIP, MOCK_NOTE } from "@/lib/copy";
 import { LABEL } from "@/lib/copy";
 
@@ -81,7 +81,7 @@ export default function BillingPage() {
     );
   }
 
-  if (!products) return <CardsPageSkeleton label="크레딧 정보를 불러오고 있어요" />;
+  if (!products) return <BillingPageSkeleton label="크레딧 정보를 불러오고 있어요" />;
 
   return (
     <div className="page-container billing-page">

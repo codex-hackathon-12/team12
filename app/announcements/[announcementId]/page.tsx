@@ -32,11 +32,15 @@ export default function AnnouncementPage() {
   }
 
   if (!announcement) {
+    /* 실제 공지와 같은 컨테이너라 제목 크기·본문 폭이 그대로다. */
     return (
-      <div className="page-container skeleton-page" role="status" aria-label="새로운 소식을 불러오고 있어요">
-        <Skeleton w={96} h={12} />
-        <Skeleton w="60%" h={26} />
-        <SkeletonText lines={4} />
+      <div className="announcement-page" role="status" aria-label="새로운 소식을 불러오고 있어요">
+        <article aria-hidden="true">
+          <Skeleton w={96} h={24} r={0} />
+          <div className="skeleton-gap"><Skeleton w="72%" h={58} /></div>
+          <div className="skeleton-gap"><SkeletonText lines={2} /></div>
+          <div className="announcement-content"><SkeletonText lines={5} /></div>
+        </article>
       </div>
     );
   }
