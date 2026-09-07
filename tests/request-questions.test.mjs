@@ -122,3 +122,20 @@ test("후보가 없다고 막지 않는다", () => {
   const service = read("server/portfolio/request-questions.ts");
   assert.match(service, /return repository \? selectDecisionCandidates\(repository\) : \[\]/u);
 });
+
+test("질문 저장 실패가 조용히 삼켜지지 않는다", () => {
+  /* 예전에는 upsert의 error를 아예 읽지 않았다. 삽입이 실패해도 라우트는
+     성공(200)으로 돌려줬고, 화면은 "새로 생긴 질문이 없네" 하고 조용히
+     돌아갔다 — 버튼을 눌러도 아무 일도 안 일어나는 것으로 보였다. */
+  const store = read("server/portfolio/statements.ts");
+  const block = store.match(/export async function insertPortfolioQuestions[\s\S]*?\n\}/u);
+  assert.ok(block, "삽입 함수가 없어요");
+  assert.match(block[0], /const \{ error \} = await/u, "upsert 결과를 안 읽어요");
+  assert.match(block[0], /if \(error\)/u, "실패가 삼켜져요");
+
+  /* 관대함은 그걸 원하는 호출자의 일이다. 생성 경로의 try/catch가 사라지면
+     질문 저장 실패가 완성된 포트폴리오까지 실패로 만든다. */
+  const runner = read("server/generation/runner.ts");
+  assert.match(runner, /async function persistFollowUpQuestions[\s\S]{0,400}try \{/u,
+    "생성 경로의 관대함이 사라졌어요");
+});

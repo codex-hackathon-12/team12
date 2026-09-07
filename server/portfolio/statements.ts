@@ -84,11 +84,16 @@ export type NewQuestion = {
 };
 
 /**
- * 생성 직후 질문을 남긴다.
+ * 질문을 남긴다. 이미 있는 자리는 답까지 그대로 둔다.
  *
- * 질문 저장이 실패해도 포트폴리오 생성 자체는 성공으로 둔다. 되묻기는 결과를
- * 더 좋게 만드는 보조 기능이고, 여기서 던지면 완성된 포트폴리오를 저장하고도
- * 작업 전체가 실패로 표시된다.
+ * 실패하면 던진다. 예전에는 upsert의 error를 아예 읽지 않았다 — 삽입이
+ * 실패해도 라우트는 바뀐 것 없는 목록을 성공(200)으로 돌려줬고, 화면은
+ * "새로 생긴 질문이 없네" 하고 조용히 돌아갔다. 사용자에게는 버튼을 눌러도
+ * 아무 일도 안 일어나는 것으로 보였다.
+ *
+ * "질문 저장이 실패해도 생성은 성공으로"라는 관대함은 그걸 원하는 호출자의
+ * 일이다 — 생성 경로는 `persistFollowUpQuestions`가 try/catch로 감싸고 있다.
+ * 여기서 삼키면 실패를 알아야 하는 쪽까지 못 알게 된다.
  */
 export async function insertPortfolioQuestions(
   userId: string,
@@ -99,7 +104,7 @@ export async function insertPortfolioQuestions(
     return;
   }
 
-  await getSupabaseClient()
+  const { error } = await getSupabaseClient()
     .from("portfolio_statements")
     .upsert(
       questions.map((question) => ({
@@ -112,6 +117,10 @@ export async function insertPortfolioQuestions(
       })),
       { onConflict: "portfolio_id,repository_name,field", ignoreDuplicates: true },
     );
+
+  if (error) {
+    throw new Error("Unable to insert portfolio questions.");
+  }
 }
 
 /**

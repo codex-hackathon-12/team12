@@ -22,6 +22,8 @@ export const MAX_DECISION_CANDIDATES = 6;
 
 const TITLE_MIN_LENGTH = 6;
 const TITLE_MAX_LENGTH = 80;
+/* 발췌는 기억을 살리는 용도라 한 줄이면 충분하다. 길면 목록이 본문이 된다. */
+const EXCERPT_MAX_LENGTH = 90;
 
 /**
  * 결정이 아닌 것.
@@ -53,6 +55,21 @@ function usable(title: string): boolean {
 }
 
 /**
+ * 본문 첫 비어있지 않은 줄.
+ *
+ * 제목만으로는 어떤 작업이었는지 기억이 안 날 수 있다. 본문 첫 줄이 "왜"가
+ * 적히는 자리라 그것만 보여줘도 "아, 그거"가 된다.
+ */
+function excerptOf(body: string): string | null {
+  const line = (body ?? "")
+    .split("\n")
+    .map((part) => part.trim())
+    .find((part) => part.length > 0);
+  if (!line) return null;
+  return line.length > EXCERPT_MAX_LENGTH ? `${line.slice(0, EXCERPT_MAX_LENGTH - 1)}…` : line;
+}
+
+/**
  * 순위.
  *
  * 본문이 있는 것이 먼저다. 본문은 "왜"가 적히는 자리라 지원자가 그 결정을
@@ -77,8 +94,8 @@ export function selectDecisionCandidates(
     const key = topic.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
-    // excerpt는 다음 커밋에서 본문 첫 줄로 채운다. 계약이 먼저 서야 한다.
-    found.push({ topic, source, hasContext: (body ?? "").trim().length > 0, excerpt: null });
+    const excerpt = excerptOf(body);
+    found.push({ topic, source, hasContext: excerpt !== null, excerpt });
   };
 
   for (const pull of repository.ownPullRequests ?? []) push(pull.title, "pullRequest", pull.body);

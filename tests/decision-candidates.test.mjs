@@ -95,3 +95,32 @@ test("같은 순위 안에서는 순서가 흔들리지 않는다", () => {
 test("근거가 비어도 터지지 않는다", () => {
   assert.deepEqual(selectDecisionCandidates({}), []);
 });
+
+test("본문 첫 줄이 발췌로 온다", () => {
+  /* 제목만으로는 어떤 작업이었는지 기억이 안 날 수 있다. 본문 첫 줄이
+     "왜"가 적히는 자리라 그것만 보여줘도 "아, 그거"가 된다. */
+  const [found] = selectDecisionCandidates(repository({
+    ownCommits: [{
+      title: "생성 흐름을 세 단계로 나눔",
+      body: "\n  저장에서 실패하면 수집과 모델 호출이 통째로 다시 돌았다.\n\n단계 사이 산출물을 남긴다.",
+    }],
+  }));
+  assert.equal(found.excerpt, "저장에서 실패하면 수집과 모델 호출이 통째로 다시 돌았다.");
+  assert.equal(found.hasContext, true);
+});
+
+test("본문이 없으면 발췌도 없다", () => {
+  const [found] = selectDecisionCandidates(repository({
+    ownCommits: [{ title: "알림을 서버 폴링에서 로컬 푸시로 옮김", body: "  \n " }],
+  }));
+  assert.equal(found.excerpt, null);
+  assert.equal(found.hasContext, false);
+});
+
+test("발췌가 목록을 본문으로 만들지 않게 자른다", () => {
+  const [found] = selectDecisionCandidates(repository({
+    ownCommits: [{ title: "생성 흐름을 세 단계로 나눔", body: "가".repeat(300) }],
+  }));
+  assert.ok([...found.excerpt].length <= 90, `발췌가 ${[...found.excerpt].length}자예요`);
+  assert.ok(found.excerpt.endsWith("…"), "잘렸다는 표시가 없어요");
+});
