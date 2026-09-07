@@ -65,22 +65,8 @@ export function serializeCookie(
   return parts.join("; ");
 }
 
-/**
- * 로그인 후 돌아갈 경로인지 확인한다.
- *
- * `//host`만 막으면 부족하다. 브라우저는 백슬래시를 슬래시로 정규화하므로
- * `/\evil.com`이 `//evil.com`이 되어 외부로 나간다. 제어문자도 같은 이유로 막는다.
- */
-export function isSafeReturnPath(value: string | null): value is string {
-  if (!value || !value.startsWith("/")) {
-    return false;
-  }
-  // eslint-disable-next-line no-control-regex
-  if (/[\u0000-\u001f\u007f]/u.test(value)) {
-    return false;
-  }
-  return !/^\/[/\\]/u.test(value);
-}
+/* 판정은 잎 모듈에 산다. 랜딩 화면과 미들웨어도 같은 판정을 쓴다. */
+export { isSafeReturnPath } from "@/lib/safe-return-path";
 
 /**
  * 요청 헤더에서 서비스의 기준 주소를 만든다.

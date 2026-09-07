@@ -98,7 +98,10 @@ test("keeps the public landing anonymous-only and mock mode as the default", asy
   assert.match(page, /className="landing-page"/);
   assert.match(page, /GITHUB TO CAREER STORY/);
   assert.match(page, /TASTE THE RESULT/);
-  assert.match(page, /router\.replace\("\/dashboard"\)/);
+  /* 로그인 상태로 랜딩에 오면 돌아간다 — 가드가 실어 보낸 returnTo가 있으면
+     그쪽, 없으면 대시보드. 검증된 값만 쓴다. */
+  assert.match(page, /router\.replace\(returnTo\)/);
+  assert.match(page, /isSafeReturnPath\(rawReturnTo\) \? rawReturnTo : "\/dashboard"/);
   assert.match(page, /preview"\) === "landing"/);
   assert.match(page, /"localhost", "127\.0\.0\.1"/);
   assert.match(page, /GitHub 로그인/);
