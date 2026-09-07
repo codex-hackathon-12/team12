@@ -114,8 +114,14 @@ test("대화가 문서의 배치를 건드리지 않는다", () => {
   const dock = css.match(/\.follow-up-dock \{([^}]*)\}/u);
   assert.ok(dock, "떠 있는 자리가 없어요");
   assert.match(dock[1], /position: fixed/u, "화면에 고정돼 있지 않아요");
-  assert.doesNotMatch(css, /portfolio-canvas-wrap:has\(/u, "캔버스가 다시 칸을 나눠요");
   assert.doesNotMatch(css, /\.follow-up-column/u, "옛 칼럼이 남아 있어요");
+
+  /* 열리면 종이가 왼쪽으로 비켜선다. 밀어주는 것은 padding뿐이어야 한다 —
+     grid 칸이 다시 생기면 툴바·공유 줄까지 밀리던 옛 문제로 돌아간다. */
+  const shift = css.match(/\.portfolio-canvas-wrap:has\(\.follow-up-rail\) \{([^}]*)\}/u);
+  assert.ok(shift, "패널이 열려도 종이가 안 비켜서요");
+  assert.match(shift[1], /padding-right/u);
+  assert.doesNotMatch(shift[1], /grid|width|position/u, "밀어주기가 배치 나누기가 됐어요");
 });
 
 test("플로팅 버튼이 남은 개수를 말한다", () => {

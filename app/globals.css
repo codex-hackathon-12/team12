@@ -2073,6 +2073,24 @@ a {
 .portfolio-canvas-wrap {
   padding: 42px max(24px, calc((100% - 1360px) / 2));
   background: #d9d8cf;
+  /* 패널이 열리고 닫힐 때 종이가 미끄러지듯 비켜선다. */
+  transition: padding 220ms ease;
+}
+
+/* 패널이 열리면 종이가 왼쪽으로 비켜선다.
+
+   패널은 fixed라 문서 배치와 무관하지만, 종이를 그대로 두면 오른쪽을 덮는다.
+   패널이 있을 때만(`.follow-up-rail`은 열렸을 때만 DOM에 있다) 캔버스 오른쪽에
+   패널 폭 + 여백만큼 자리를 내준다 — 칸을 나누는 게 아니라 밀어주는 것이라
+   툴바·공유 줄은 그대로다.
+
+   448 = 패널 400 + 화면 끝 여백 24 + 종이와의 간격 24. 종이 794 + 왼쪽 여백
+   24를 더하면 1266이라, 그보다 좁으면 비켜설 자리가 없어 패널이 겹쳐 뜬다 —
+   챗봇 시트의 관례대로 둔다. */
+@media screen and (min-width: 1280px) {
+  .portfolio-canvas-wrap:has(.follow-up-rail) {
+    padding-right: 448px;
+  }
 }
 
 .portfolio-preview {
