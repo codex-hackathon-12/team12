@@ -96,6 +96,10 @@ test("카드는 담기고, 안쪽은 칠하지 않는다", () => {
     const parts = selector.split(",").map((part) => part.trim());
     const card = (part) => /^\.follow-up-(rail|more)$/u.test(part);
     if (parts.every(card) || /follow-up-avatar|follow-up-send|::/u.test(selector)) continue;
+    /* 호버는 쉬는 상태의 면 색이 아니라 "눌린다"는 예고다. 쉬는 상태에 색이
+       붙으면 폼처럼 보이지만, 지나가는 손에만 반응하는 색은 그 반대 —
+       반응한다는 사실을 보여준다. 단 버튼에만 허용한다. */
+    if (/button:hover$/u.test(selector)) continue;
     const fill = match[2].match(/background(?:-color)?:\s*([^;]+)/u);
     if (fill && !/transparent|none/u.test(fill[1])) offenders.push(`${selector} → ${fill[1].trim()}`);
   }
@@ -347,6 +351,56 @@ test("바꿔 쓴 질문이 대화에도 반영된다", () => {
      대화가 옛 질문을 계속 보여주면 안 된다. */
   assert.match(rail, /const changedIds = new Set\(all\.map/u);
   assert.match(rail, /changedIds\.has\(question\.id\)/u);
+});
+
+test("반응이 행동한 곳에서 난다", () => {
+  /* "뭐 눌러도 반영도 안 되고, 반응을 하는지도 모르겠고." 오류가 대화 카드
+     로그 바닥에 그려졌다 — 버튼은 아래 카드에 있는데 반응은 위 카드 스크롤
+     밖에서 났다. */
+  assert.match(rail, /const \[openError, setOpenError\]/u, "여는 오류가 대화 오류와 안 갈라져요");
+  assert.match(more, /error \? <p className="inline-error"/u, "오류가 아래 카드에 안 떠요");
+
+  /* 누른 칩만 "여는 중"이 된다. 전부 흐려지기만 하면 반응하는지 알 수 없다. */
+  assert.match(more, /opening === `\$\{project\.name\} \$\{slot\}`/u, "누른 칩을 못 가려내요");
+  assert.match(more, /여는 중/u);
+
+  /* 새 질문은 위 카드에 나타난다. 포커스가 시선을 데려간다. */
+  assert.match(rail, /composerRef\.current\?\.focus\(\)/u, "성공해도 시선이 안 옮겨가요");
+
+  /* 성공했는데 새 질문이 없으면(경합 등) 조용히 돌아가지 않는다. */
+  assert.doesNotMatch(rail, /if \(incoming\.length === 0\) return;/u, "조용한 반환이 되살아났어요");
+
+  /* 후보 불러오기 실패도 침묵하지 않는다 — 원래 없는 것과 구분돼야 한다. */
+  assert.match(more, /failed \?/u, "후보 실패가 침묵해요");
+});
+
+test("어떻게 답하는 것인지 입력칸이 보여준다", () => {
+  /* "질문이 너무 보편적이라서 뭘 어떻게 답해야할 지도 모르겠음." 직접 연
+     자리의 질문은 고정 문구라 일반적이다. 그 대신 조각별 예시가 감을 준다. */
+  const guide = rail.match(/const FIELD_GUIDE[\s\S]*?\n\};/u);
+  assert.ok(guide, "조각별 안내가 없어요");
+  for (const field of [
+    "impact", "challenges", "solutions", "role", "highlights",
+    "decisionProblem", "decisionApproach", "decisionOutcome",
+  ]) {
+    assert.match(guide[0], new RegExp(`${field}:`, "u"), `${field} 안내가 없어요`);
+  }
+  assert.match(rail, /FIELD_GUIDE\[current\.field\]\.placeholder/u, "입력칸 문구가 조각을 안 따라가요");
+  // 상한이 가까워지면 예시가 카운터로 바뀐다. 넘긴 뒤에야 오류로 아는 것보다 낫다.
+  assert.match(rail, /자 남았어요/u, "상한 카운터가 없어요");
+});
+
+test("다음 하나만 예고한다", () => {
+  /* 하나씩 묻는 대화는 끝이 안 보인다. 전체 목록을 펼치면 결정 세 조각의
+     순서 보장이 깨지므로 다음 하나만. */
+  assert.match(rail, /follow-up-next/u, "다음 예고가 없어요");
+  assert.match(rail, /upNext/u);
+});
+
+test("후보에 본문 첫 줄이 보인다", () => {
+  assert.match(more, /candidate\.excerpt \? <small>/u, "발췌를 안 그려요");
+  const fixtures = read("mocks/api/fixtures/index.ts");
+  assert.match(fixtures, /excerpt: "/u, "목 후보에 발췌가 없어요");
 });
 
 test("안 바뀐 이유를 추측하지 않는다", () => {

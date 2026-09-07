@@ -3350,21 +3350,24 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 .follow-up-more {
   display: grid;
   flex: none;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
 }
 
+/* 대화 카드의 머리와 같은 목소리. 두 카드가 한 벌로 읽힌다. */
 .follow-up-more-head {
-  margin: 0;
-  color: var(--ink-muted);
-  font-size: var(--text-2xs);
+  margin: 0 calc(-1 * var(--space-4)) 0;
+  padding: 0 var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
   font-weight: 650;
 }
 
 .follow-up-more-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 
-.follow-up-more button {
-  padding: 5px var(--space-3);
+.follow-up-more-actions > button {
+  padding: 6px var(--space-3);
   border: 1px solid var(--line-dark);
   border-radius: 999px;
   background: none;
@@ -3373,11 +3376,22 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   font-size: var(--text-2xs);
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 140ms ease, color 140ms ease;
+  transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease;
 }
 
-.follow-up-more button:hover { border-color: var(--ink); color: var(--ink); }
+/* 이 카드의 유일한 색은 앱의 라임이다. 눌릴 수 있는 것에만 칠한다. */
+.follow-up-more-actions > button:hover { border-color: var(--ink); background: var(--lime-soft); color: var(--ink); }
 .follow-up-more button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
+
+/* 누른 칩만 "여는 중"이 된다. 전부 흐려지기만 하면 반응하는지 알 수 없다. */
+.follow-up-opening {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  color: var(--ink-muted);
+}
+
+.follow-up-more .inline-error { margin: 0; font-size: var(--text-2xs); }
 
 /* 종이 794 + 간격 16 + 카드 336 + 캔버스 좌우 24×2 = 1194. 그 아래에서는
    물리적으로 옆에 설 수 없어 문서 아래로 내려간다(그 규칙은 아래에 있다).
@@ -3634,28 +3648,55 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 
 /* 저장소에서 찾은 결정 후보. 제목이 길어 칩으로는 읽히지 않는다 — 한 줄에
    하나씩 세로로 쌓고 왼쪽 정렬한다. */
-.follow-up-candidates { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.follow-up-candidates { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 
 .follow-up-candidates button {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.follow-up-candidates button:hover { border-color: var(--ink); background: var(--lime-soft); }
+.follow-up-candidates button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
+
+.follow-up-candidate-title {
   display: flex;
   gap: var(--space-2);
   align-items: baseline;
   justify-content: space-between;
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border-radius: 8px;
-  text-align: left;
+  min-width: 0;
+  color: var(--ink);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
-.follow-up-candidates span { min-width: 0; }
-
 /* 커밋인지 PR인지. 어디서 온 줄인지 알아야 저장소에서 찾아볼 수 있다. */
-.follow-up-candidates em {
+.follow-up-candidate-title em {
   flex: none;
   color: var(--ink-muted);
   font-size: var(--text-2xs);
   font-style: normal;
   font-weight: 650;
+}
+
+/* 본문 첫 줄. 제목만으로 기억이 안 날 때 "아, 그거"를 만든다. */
+.follow-up-candidates small {
+  display: block;
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .follow-up-more .follow-up-cancel { justify-self: start; }
@@ -3670,13 +3711,38 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 }
 
 /* 회신 줄. 알약형 입력 안에 원형 전송 버튼 — 노션의 "회신…" 그대로. */
-.follow-up-composer {
+/* 회신 묶음: 다음 예고 + 알약 입력 + 예시 한 줄. */
+.follow-up-composer-area {
   display: grid;
   flex: none;
+  gap: var(--space-1);
+  margin: 0 var(--space-4) var(--space-3);
+}
+
+/* 하나씩 묻는 대화는 끝이 안 보인다. 다음 하나만 예고한다. */
+.follow-up-next {
+  margin: 0 0 2px var(--space-3);
+  color: var(--ink-muted);
+  font-size: var(--text-2xs);
+  font-weight: 550;
+}
+
+/* 무엇을 쓰라는 건지 예시 한 줄. 상한이 가까워지면 카운터가 된다. */
+.follow-up-guide {
+  margin: 2px 0 0 var(--space-3);
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.follow-up-composer {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-2);
   align-items: end;
-  margin: 0 var(--space-4) var(--space-4);
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
   border: 1px solid var(--line-control);
   border-radius: 18px;

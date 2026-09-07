@@ -32,6 +32,25 @@ import { SLOT_LABEL, type RewriteChange } from "@/lib/rewrite-summary";
  * 여기서는 대화의 순서가 된다.
  */
 
+/**
+ * 조각별 답 예시와 입력칸 문구.
+ *
+ * 직접 연 자리의 질문은 고정 문구라 의도적으로 일반적이다. 그 대신 "어떻게
+ * 답하는 것인지"를 입력칸이 보여준다 — 예시 한 줄이면 무엇을 쓰라는 건지
+ * 감이 잡힌다. 예시는 이 앱의 목 데이터와 같은 결로, 있었던 일을 그대로
+ * 적은 모양이다.
+ */
+const FIELD_GUIDE: Record<PortfolioQuestionDto["field"], { placeholder: string; example: string }> = {
+  impact: { placeholder: "달라진 점을 적어주세요", example: "예: 배포할 때마다 손으로 확인하던 절차가 없어졌어요" },
+  challenges: { placeholder: "어려웠던 지점을 적어주세요", example: "예: 은행마다 응답 모양이 달라 배치가 자꾸 멈췄어요" },
+  solutions: { placeholder: "어떻게 풀었는지 적어주세요", example: "예: 응답 차이를 어댑터로 흡수해 본체를 하나로 유지했어요" },
+  role: { placeholder: "맡은 범위를 적어주세요", example: "예: 화면 전부와 네이티브 알림 연동을 맡았어요" },
+  highlights: { placeholder: "남기고 싶은 일을 적어주세요", example: "예: 야간 알림을 로컬 푸시로 옮겨 앱이 꺼져 있어도 오게 했어요" },
+  decisionProblem: { placeholder: "그전의 문제를 적어주세요", example: "예: 목록을 열 때마다 같은 요청이 수십 번 나갔어요" },
+  decisionApproach: { placeholder: "고른 방법과 이유를 적어주세요", example: "예: 캐시 대신 질의를 합쳤어요 — 캐시는 무효화가 더 복잡해서요" },
+  decisionOutcome: { placeholder: "달라진 결과를 적어주세요", example: "예: 목록이 요청 한 번으로 뜨게 됐어요" },
+};
+
 const FIELD_LABEL: Record<PortfolioQuestionDto["field"], string> = {
   impact: "성과",
   challenges: "문제",
@@ -184,11 +203,19 @@ export function FollowUpRail({
   /** 지금 고쳐 쓰는 중인 질문. 없으면 첫 미답을 묻는다. */
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   /** 턴마다의 진행과 결과. 답한 말풍선 아래에 그대로 붙는다. */
   const [results, setResults] = useState<Record<string, TurnResult>>({});
   const [submitting, setSubmitting] = useState(false);
-  /** 지금 여는 중인 자리. 두 번 눌러 두 벌이 생기는 것을 막는다. */
+  /** 지금 여는 중인 자리. 두 번 눌러 두 벌이 생기는 것을 막고, 누른 칩이 "여는 중"이 된다. */
   const [opening, setOpening] = useState<string | null>(null);
+  /**
+   * 자리를 열다 난 오류. 대화(전송) 오류와 자리를 나눈다.
+   *
+   * 하나로 쓰면 오류가 대화 카드 로그 바닥에 그려진다 — 버튼은 아래 카드에
+   * 있는데 반응은 위 카드 스크롤 밖에서 난다. 행동한 곳에서 반응이 나야 한다.
+   */
+  const [openError, setOpenError] = useState<string | null>(null);
   /**
    * 결정 후보를 고르는 중.
    *
@@ -265,6 +292,13 @@ export function FollowUpRail({
   /** 문서의 그 블록으로 데려간다. 이름 줄 꼬리가 쓰는 통로와 같다. */
   const showBlock = (url: string) =>
     findProjectBlock(url)?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  /* 다음에 올 질문. 하나씩 묻는 대화는 언제 끝나는지 감이 안 잡히므로 한
+     줄만 예고한다 — 전체 목록을 펼치면 결정 세 조각의 순서 보장이 깨진다. */
+  const upNext = current
+    ? timeline.find((question) =>
+        question.id !== current.id && !answers[question.id] && !skipped[question.id])
+    : null;
 
   const beginEdit = (question: PortfolioQuestionDto) => {
     if (submitting) return;
@@ -370,7 +404,7 @@ export function FollowUpRail({
   ) => {
     if (opening || submitting) return;
     setOpening(`${project.name} ${slot}`);
-    setError(null);
+    setOpenError(null);
     try {
       const all = await apiClient.requestPortfolioQuestions(portfolioId, {
         repositoryName: project.name,
@@ -398,7 +432,12 @@ export function FollowUpRail({
       const incoming = options.replace
         ? all.filter((question) => byField.has(`${question.repositoryName} ${question.field}`))
         : added;
-      if (incoming.length === 0) return;
+      /* 서버가 성공이라는데 새 질문이 없다면 무언가 어긋난 것이다(경합 등).
+         조용히 돌아가면 버튼이 아무 일도 안 하는 것처럼 보인다. */
+      if (incoming.length === 0) {
+        setOpenError("질문을 열지 못했어요. 화면을 새로고침한 뒤 다시 시도해주세요.");
+        return;
+      }
 
       const incomingIds = new Set(incoming.map((question) => question.id));
       setTimeline((previous) => {
@@ -426,8 +465,12 @@ export function FollowUpRail({
         setSkipped((previous) => forget(previous) as Record<string, true>);
         setResults(forget);
       }
+
+      /* 새 질문은 위 카드에 나타난다. 시선이 아래 카드에 머물러 있으므로
+         입력칸으로 포커스를 옮겨 따라오게 한다. 로그는 알아서 끝으로 간다. */
+      composerRef.current?.focus();
     } catch (caught) {
-      setError(
+      setOpenError(
         caught instanceof ApiClientError && caught.code === "SLOT_ALREADY_FILLED"
           ? "이 자리는 이미 채워져 있어요. 고치시려면 문서의 그 자리에 대한 질문에 다시 답해주세요."
           : "질문을 열지 못했어요. 잠시 후 다시 시도해주세요.",
@@ -446,16 +489,19 @@ export function FollowUpRail({
    */
   const chooseDecision = async (project: RailProject, replace: boolean) => {
     if (opening || submitting) return;
-    setChoosing({ project, replace, candidates: null });
-    setError(null);
+    setChoosing({ project, replace, candidates: null, failed: false });
+    setOpenError(null);
     try {
       const candidates = await apiClient.getDecisionCandidates(portfolioId, project.name);
       setChoosing((previous) =>
         previous?.project.name === project.name ? { ...previous, candidates } : previous);
     } catch {
-      // 후보를 못 불러와도 결정을 쓰는 일 자체는 막지 않는다.
+      /* 후보를 못 불러와도 결정을 쓰는 일 자체는 막지 않는다. 다만 침묵하면
+         후보가 원래 없는 것과 실패가 구분이 안 돼 고장처럼 보인다. */
       setChoosing((previous) =>
-        previous?.project.name === project.name ? { ...previous, candidates: [] } : previous);
+        previous?.project.name === project.name
+          ? { ...previous, candidates: [], failed: true }
+          : previous);
     }
   };
 
@@ -546,11 +592,20 @@ export function FollowUpRail({
       {/* 회신 줄. 노션처럼 알약형 입력 안에 원형 전송 버튼을 둔다.
           아이콘이라 문구 스왑이 없어 전송 중에도 폭이 흔들리지 않는다. */}
       {current ? (
+        <div className="follow-up-composer-area">
+        {/* 어디까지 왔는지. 하나씩 묻는 대화는 끝이 안 보이므로 다음 하나만
+            예고한다. */}
+        {upNext && !editing ? (
+          <p className="follow-up-next">
+            다음: {targetOf(upNext)}{remaining > 2 ? ` · 남은 ${remaining - 1}개` : ""}
+          </p>
+        ) : null}
         <div className="follow-up-composer">
           <textarea
+            ref={composerRef}
             value={draft}
             rows={1}
-            placeholder="답변..."
+            placeholder={FIELD_GUIDE[current.field].placeholder}
             aria-label="답변"
             onChange={(event) => {
               setDraft(event.target.value);
@@ -590,6 +645,14 @@ export function FollowUpRail({
             </button>
           ) : null}
         </div>
+        {/* 무엇을 쓰라는 건지 예시 한 줄. 상한이 가까워지면 이 줄이 카운터가
+            된다 — 지금은 넘긴 뒤에야 오류로 안다. */}
+        <p className="follow-up-guide">
+          {[...draft].length > PORTFOLIO_ANSWER_MAX_LENGTH - 100
+            ? `${PORTFOLIO_ANSWER_MAX_LENGTH - [...draft].length}자 남았어요`
+            : FIELD_GUIDE[current.field].example}
+        </p>
+        </div>
       ) : null}
       </aside>
 
@@ -600,9 +663,11 @@ export function FollowUpRail({
         actions={actions}
         choosing={choosing}
         busy={opening !== null || submitting}
+        opening={opening}
+        error={openError}
         onChoose={(project, replace) => void chooseDecision(project, replace)}
         onOpen={(project, slot, options) => void openSlot(project, slot, options)}
-        onCancel={() => setChoosing(null)}
+        onCancel={() => { setChoosing(null); setOpenError(null); }}
       />
     </div>
   );
