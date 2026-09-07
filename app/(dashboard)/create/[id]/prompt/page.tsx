@@ -9,7 +9,7 @@ import {
   type PortfolioTone,
 } from "@/contracts/api-contract";
 import { ApiClientError, apiClient } from "@/lib/api-client";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { ListPageSkeleton } from "@/components/ui/Skeleton";
 import { MOCK_CHIP, MOCK_NOTE } from "@/lib/copy";
 import { PROMPT_DIRECTIONS, composePrompt } from "@/lib/prompt-presets";
 
@@ -153,7 +153,7 @@ export default function PromptPage() {
     );
   }
 
-  if (!repositories) return <LoadingState label="선택한 저장소를 불러오고 있어요" />;
+  if (!repositories) return <ListPageSkeleton label="선택한 저장소를 불러오고 있어요" rows={3} />;
 
   const estimatedCost = repositories.length * 30;
 

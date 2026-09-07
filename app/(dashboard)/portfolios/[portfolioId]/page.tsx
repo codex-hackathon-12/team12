@@ -17,7 +17,7 @@ import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { FollowUpRail, type RailProject } from "@/components/portfolio/FollowUpRail";
 import { summarizeRewrite, type RewriteChange } from "@/lib/rewrite-summary";
 import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { DocumentPageSkeleton } from "@/components/ui/Skeleton";
 import { LABEL } from "@/lib/copy";
 import { SteadyLabel } from "@/components/ui/SteadyLabel";
 
@@ -80,7 +80,7 @@ export default function PortfolioResultPage() {
     );
   }
 
-  if (!portfolio) return <LoadingState label="포트폴리오를 불러오고 있어요" />;
+  if (!portfolio) return <DocumentPageSkeleton label="포트폴리오를 불러오고 있어요" />;
 
   /* 문서의 프로젝트에는 저장소 이름이 없다. 화면에 필요한 것만 담아
      repositoryUrl만 남기기 때문이다. 질문은 이름으로 오므로 여기서 잇는다. */

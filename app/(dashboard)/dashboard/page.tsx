@@ -7,7 +7,7 @@ import type { DashboardDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { stageMessage, stageValueText } from "@/lib/copy";
 import { formatDay } from "@/lib/format";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { ListPageSkeleton } from "@/components/ui/Skeleton";
 import { LABEL, MOCK_NOTE } from "@/lib/copy";
 import { dismissNotice, useDismissedNotice } from "@/lib/dismissed-notice";
 
@@ -53,7 +53,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!dashboard) return <LoadingState label="대시보드를 불러오고 있어요" />;
+  if (!dashboard) return <ListPageSkeleton label="대시보드를 불러오고 있어요" rows={4} />;
 
   /* 이미 본 안내는 치울 수 있어야 한다. 서버가 24시간 뒤에 내려주지만,
      그때까지 같은 자리를 차지한다. */
