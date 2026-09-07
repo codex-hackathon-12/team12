@@ -154,37 +154,73 @@ export function BillingPageSkeleton({ label }: { label: string }) {
   );
 }
 
-/** 대시보드 자리. 좌우 나눔은 `.split-section`(1.25fr/0.75fr)이 정한다. */
+/**
+ * 대시보드 자리. 좌우 나눔은 `.split-section`, 최근 작업 행은 `.recent-item`
+ * (40px 번호 칸 + 24px 세로 여백), 소식 카드는 `.notice-panel`(테두리 상자),
+ * 아래 현황 띠는 `.dashboard-strip`이 정한다.
+ */
 export function DashboardPageSkeleton({ label }: { label: string }) {
   return (
-    <div className="page-container dashboard-page" role="status" aria-label={label}>
-      <section className="dashboard-section split-section" aria-hidden="true">
-        <div className="skeleton-stack">
-          <Skeleton w={100} h={11} />
-          <Skeleton w={200} h={26} />
-          {range(3).map((index) => (
-            <div className="skeleton-line-row" key={index}>
-              <Skeleton w={26} h={12} />
-              <span>
-                <Skeleton w={index % 2 ? "44%" : "58%"} h={15} />
-                <Skeleton w="30%" h={11} />
-              </span>
-              <Skeleton w={56} h={11} />
+    <div className="page-container dashboard-page authenticated-dashboard" role="status" aria-label={label}>
+      <section className="dashboard-section dashboard-main-section split-section" aria-hidden="true">
+        <div>
+          <div className="section-title-row compact-title">
+            <div>
+              <Skeleton w={100} h={11} />
+              <div style={{ marginTop: 4 }}><Skeleton w={170} h={25} /></div>
             </div>
-          ))}
-        </div>
-        <div className="skeleton-stack">
-          <Skeleton w={110} h={11} />
-          <Skeleton w={160} h={26} />
-          {range(2).map((index) => (
-            <div className="skeleton-line-row" key={index}>
-              <span>
-                <Skeleton w="70%" h={14} />
-                <Skeleton w="36%" h={11} />
-              </span>
+            <div className="section-title-links">
+              <Skeleton w={110} h={13} />
+              <Skeleton w={128} h={13} />
             </div>
-          ))}
+          </div>
+          <div className="recent-list">
+            {range(3).map((index) => (
+              <div className="recent-item" key={index}>
+                <Skeleton w={24} h={12} />
+                {/* strong 16px(줄높이 24)·span 14px(줄높이 21)의 실측 높이. */}
+                <span className="skeleton-stack-tight">
+                  <Skeleton w={index % 2 ? "48%" : "62%"} h={24} />
+                  <Skeleton w="34%" h={21} />
+                </span>
+                <Skeleton w={14} h={14} />
+              </div>
+            ))}
+          </div>
         </div>
+
+        <aside className="notice-panel">
+          <div className="section-title-row compact-title">
+            <div>
+              <Skeleton w={118} h={11} />
+              <div className="skeleton-gap"><Skeleton w={140} h={30} /></div>
+            </div>
+          </div>
+          <div className="notice-list">
+            {range(2).map((index) => (
+              <div className="notice-item" key={index}>
+                <div className="skeleton-between">
+                  <Skeleton w={44} h={10} />
+                  <Skeleton w={64} h={10} />
+                </div>
+                {/* strong의 margin-top 14 · p의 margin 8은 실물 규칙이 준다. */}
+                <div style={{ marginTop: 14 }}><Skeleton w={index % 2 ? "64%" : "82%"} h={17} /></div>
+                <div style={{ marginTop: 8 }}><SkeletonText lines={2} /></div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      </section>
+
+      <section className="dashboard-strip" aria-hidden="true">
+        {range(3).map((index) => (
+          <div key={index}>
+            <Skeleton w={index === 1 ? 118 : 92} h={16} />
+            {/* strong 23px 고정폭 숫자의 줄높이. */}
+            <Skeleton w={34} h={34} />
+          </div>
+        ))}
+        <p><Skeleton w={220} h={14} /></p>
       </section>
     </div>
   );

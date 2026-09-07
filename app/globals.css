@@ -795,7 +795,9 @@ a {
   .skeleton-fill { animation: none; opacity: 0.7; }
 }
 
-.skeleton-text { display: grid; gap: 8px; }
+/* 폭을 박아 둔다. 실물 클래스를 입다 보면 부모가 flex인 자리가 있는데,
+   그때 %폭 조각만으로는 내재 폭이 0이라 통째로 접힌다. */
+.skeleton-text { display: grid; gap: 8px; width: 100%; }
 .skeleton-gap { margin-top: 10px; }
 .skeleton-between { display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; }
 .skeleton-stack { display: grid; align-content: start; gap: var(--space-4); }

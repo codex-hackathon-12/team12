@@ -25,7 +25,7 @@ test("자리 표시가 실물의 클래스를 입는다", () => {
     ["PortfolioCardsSkeleton", ["portfolio-list-grid", "portfolio-list-card", "tag-row"]],
     ["GalleryCardsSkeleton", ["gallery-grid", "gallery-card", "gallery-visual"]],
     ["BillingPageSkeleton", ["product-grid", "product-card", "product-radio", "product-price"]],
-    ["DashboardPageSkeleton", ["dashboard-section", "split-section"]],
+    ["DashboardPageSkeleton", ["split-section", "recent-list", "recent-item", "notice-panel", "notice-item", "dashboard-strip"]],
     ["SettingsPageSkeleton", ["connection-card"]],
     ["PromptPageSkeleton", ["prompt-layout"]],
     ["DocumentPageSkeleton", ["document-toolbar", "portfolio-canvas-wrap"]],
