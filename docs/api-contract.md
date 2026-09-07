@@ -777,14 +777,22 @@ MVP에서는 로그인 여부나 생성 횟수와 관계없이 표시 잔액을 
 ```json
 {
   "data": [
-    { "topic": "재시도 처리를 withRetry로 감싼 PR", "source": "pullRequest", "hasContext": true },
-    { "topic": "생성 흐름을 세 단계로 나눔", "source": "commit", "hasContext": true }
+    {
+      "topic": "재시도 처리를 withRetry로 감싼 PR",
+      "source": "pullRequest",
+      "hasContext": true,
+      "excerpt": "네트워크 오류마다 생성이 통째로 다시 돌았다."
+    },
+    { "topic": "생성 흐름을 세 단계로 나눔", "source": "commit", "hasContext": true, "excerpt": null }
   ]
 }
 ```
 
 본문이 있는 것(`hasContext`)을 앞에 둔다. 본문은 "왜"가 적히는 자리라 지원자가
 그 결정을 설명하기 쉽다. 병합 커밋과 잡일 커밋은 걸러낸다.
+
+`excerpt`는 본문 첫 줄이다. 제목만으로는 어떤 작업이었는지 기억이 안 날 수
+있어 함께 보여준다. 본문이 없으면 null이다.
 
 생성 근거가 남아 있지 않으면 빈 배열이다. 그때는 두루 묻는 질문으로 연다 —
 `404`나 `409`로 막지 않는다. 후보가 없다고 결정을 못 쓸 이유는 없다.

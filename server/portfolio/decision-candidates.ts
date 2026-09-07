@@ -77,7 +77,8 @@ export function selectDecisionCandidates(
     const key = topic.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
-    found.push({ topic, source, hasContext: (body ?? "").trim().length > 0 });
+    // excerpt는 다음 커밋에서 본문 첫 줄로 채운다. 계약이 먼저 서야 한다.
+    found.push({ topic, source, hasContext: (body ?? "").trim().length > 0, excerpt: null });
   };
 
   for (const pull of repository.ownPullRequests ?? []) push(pull.title, "pullRequest", pull.body);
