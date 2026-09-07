@@ -765,6 +765,9 @@ a {
 
 /* 스켈레톤 — 내용이 올 자리를 그 모양대로 비워 보여준다.
 
+   배치는 각 화면의 실제 클래스가 정하고, 여기는 조각의 색·맥동과 작은 배치
+   도우미만 둔다. 치수를 여기 베껴 적으면 진짜와 어긋나기 시작한다.
+
    맥동은 스피너와 같은 "진행 중" 표시라 무한 반복 금지의 필수 예외에 함께
    든다. 움직임을 줄이는 설정에서는 멈춘 채 색만 남는다. */
 .skeleton {
@@ -775,6 +778,13 @@ a {
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
+/* 크기를 컨테이너에서 받는 채움 조각. 갤러리 미리보기(16:10)처럼 면적이
+   실제 클래스에서 오는 자리가 쓴다. */
+.skeleton-fill {
+  background: #e0ded2 !important;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
@@ -782,56 +792,39 @@ a {
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; opacity: 0.7; }
+  .skeleton-fill { animation: none; opacity: 0.7; }
 }
 
 .skeleton-text { display: grid; gap: 8px; }
+.skeleton-gap { margin-top: 10px; }
+.skeleton-between { display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; }
+.skeleton-stack { display: grid; align-content: start; gap: var(--space-4); }
+.skeleton-stack-tight { display: grid; gap: 7px; }
+.skeleton-chip-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.skeleton-line-flex { display: flex; gap: var(--space-3); align-items: center; }
+/* 저장소 목록 위 "n개 표시" 줄과 같은 높이의 자리. */
+.skeleton-count-line { padding: 14px 0 12px; }
 
-.skeleton-page { display: grid; align-content: start; gap: var(--space-4); }
-
-.skeleton-rows { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
-
-.skeleton-row {
+/* 행 하나. 대시보드·프롬프트처럼 전용 행 클래스가 없는 목록이 쓴다. */
+.skeleton-line-row {
   display: flex;
   gap: var(--space-3);
   align-items: center;
-  padding: var(--space-4);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
 }
 
-.skeleton-row > span { display: grid; flex: 1; gap: 7px; }
+.skeleton-line-row > span { display: grid; flex: 1; gap: 7px; }
 
-.skeleton-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-}
-
-.skeleton-card {
-  display: grid;
-  gap: var(--space-3);
-  padding: var(--space-5);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-
-/* 문서 화면 자리. 실제 캔버스·종이와 같은 색을 써야 진짜가 왔을 때 배경이
-   덜컥 바뀌지 않는다. */
-.skeleton-doc-toolbar { display: flex; gap: var(--space-3); justify-content: space-between; padding-top: var(--space-5); padding-bottom: var(--space-5); }
-
-.skeleton-canvas {
-  padding: 42px max(24px, calc((100% - 1360px) / 2));
-  background: #d9d8cf;
-}
-
+/* A4 종이. 화면 종이와 같은 폭·비율·색이라야 진짜가 왔을 때 덜컥이지 않는다. */
 .skeleton-paper {
   display: grid;
+  align-content: start;
   gap: var(--space-4);
-  max-width: 794px;
-  min-height: 70vh;
+  width: min(794px, 100%);
+  aspect-ratio: 210 / 297;
   margin: 0 auto;
-  padding: var(--space-10) var(--space-8);
+  padding: 30px;
   background: #fffefa;
   box-shadow: 0 18px 50px rgb(18 26 22 / 16%);
 }
