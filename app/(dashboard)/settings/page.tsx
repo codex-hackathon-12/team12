@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import type { GitHubConnectionDto } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { formatLongDay } from "@/lib/format";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { ListPageSkeleton } from "@/components/ui/Skeleton";
 import { LABEL } from "@/lib/copy";
 
 
@@ -55,7 +55,7 @@ export default function SettingsPage() {
     );
   }
 
-  if (!connection) return <LoadingState label="연동 정보를 불러오고 있어요" />;
+  if (!connection) return <ListPageSkeleton label="연동 정보를 불러오고 있어요" rows={3} />;
 
   /* 재요청은 로그인과 같은 경로를 탄다. 이미 승인한 스코프만 요청하면 GitHub이
      동의 화면 없이 그대로 통과시키므로, 조직 접근을 새로 받았을 때 토큰을

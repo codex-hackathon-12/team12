@@ -2,6 +2,7 @@
 
 import type { PortfolioDecisionCandidateDto, PortfolioQuestionSlot } from "@/contracts/api-contract";
 import type { RailProject } from "@/components/portfolio/FollowUpRail";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { SteadyLabel } from "@/components/ui/SteadyLabel";
 
 /**
@@ -77,12 +78,25 @@ export function MoreToWrite({
         <p className="follow-up-write-title">{choosing.project.title}의 어느 결정을 쓸까요?</p>
 
         {choosing.candidates === null ? (
-          <p className="follow-up-status">
-            <span className="loading-mark-inline" aria-hidden="true" />
-            {/* 첫 열람은 모델이 커밋을 주제로 묶는 동안 기다린다. 다음부터는
-                캐시에서 바로 온다. */}
-            저장소 기록을 주제로 묶는 중… 처음은 조금 걸려요.
-          </p>
+          <div role="status" aria-label="저장소 기록을 주제로 묶는 중">
+            <p className="follow-up-status">
+              {/* 첫 열람은 모델이 커밋을 주제로 묶는 동안 몇 초 기다린다.
+                  다음부터는 캐시에서 바로 온다. */}
+              저장소 기록을 주제로 묶는 중… 처음은 조금 걸려요.
+            </p>
+            {/* 올 것의 모양을 미리 그린다 — 주제 카드 세 장. */}
+            <ul className="follow-up-candidates" aria-hidden="true">
+              {[0, 1, 2].map((index) => (
+                <li key={index}>
+                  <span className="follow-up-candidate-ghost">
+                    <Skeleton w={index % 2 ? "58%" : "72%"} h={13} />
+                    <Skeleton w="92%" h={11} />
+                    <Skeleton w="44%" h={9} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : (
           <>
             {choosing.failed ? (

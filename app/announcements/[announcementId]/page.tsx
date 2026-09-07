@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { formatLongDay } from "@/lib/format";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { Skeleton, SkeletonText } from "@/components/ui/Skeleton";
 import { LABEL } from "@/lib/copy";
 
 export default function AnnouncementPage() {
@@ -31,7 +31,15 @@ export default function AnnouncementPage() {
     );
   }
 
-  if (!announcement) return <LoadingState label="새로운 소식을 불러오고 있어요" />;
+  if (!announcement) {
+    return (
+      <div className="page-container skeleton-page" role="status" aria-label="새로운 소식을 불러오고 있어요">
+        <Skeleton w={96} h={12} />
+        <Skeleton w="60%" h={26} />
+        <SkeletonText lines={4} />
+      </div>
+    );
+  }
 
   return (
     <main className="announcement-page">

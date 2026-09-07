@@ -20,7 +20,7 @@ import {
   sortRepositories,
   type RepositorySort,
 } from "@/lib/repository-list";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 import { MOCK_CHIP } from "@/lib/copy";
 import { LABEL } from "@/lib/copy";
 import { SteadyLabel } from "@/components/ui/SteadyLabel";
@@ -280,7 +280,7 @@ export default function RepositoriesPage() {
           </button>
         </p>
       ) : !repositories ? (
-        <LoadingState label="GitHub 저장소를 불러오고 있어요" />
+        <SkeletonRows label="GitHub 저장소를 불러오고 있어요" rows={7} />
       ) : repositories.length === 0 ? (
         /* 저장소가 아예 없는 사람에게 "필터를 바꿔보세요"라고 하면 할 수 없는 일을
            시키는 셈이다. 필터로 걸러진 경우와 갈라놓는다. */

@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { PortfolioDocument } from "@/components/portfolio/PortfolioDocument";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { DocumentPageSkeleton } from "@/components/ui/Skeleton";
 import { LABEL } from "@/lib/copy";
 
 export default function GalleryDetailPage() {
@@ -30,7 +30,7 @@ export default function GalleryDetailPage() {
     );
   }
 
-  if (!example) return <LoadingState label="포트폴리오 예시를 불러오고 있어요" />;
+  if (!example) return <DocumentPageSkeleton label="포트폴리오 예시를 불러오고 있어요" />;
 
   return (
     <div className="gallery-detail-page">

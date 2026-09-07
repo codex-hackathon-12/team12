@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { SkeletonCards } from "@/components/ui/Skeleton";
 
 const roles = [
   "전체",
@@ -53,7 +53,7 @@ export default function GalleryPage() {
           <button type="button" onClick={reload}>다시 불러오기</button>
         </p>
       ) : !examples ? (
-        <LoadingState label="포트폴리오 예시를 불러오고 있어요" />
+        <SkeletonCards label="포트폴리오 예시를 불러오고 있어요" cards={6} />
       ) : examples.length === 0 ? (
         <div className="empty-state">
           <span>NO MATCH</span>
