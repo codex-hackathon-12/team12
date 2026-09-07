@@ -164,10 +164,7 @@ export const mockRepositories = [
 ] satisfies GitRepositoryDto[];
 
 /**
- * 저장소에서 찾은 결정 후보.
- *
- * 목에는 근거 테이블이 없으므로 저장소별로 그럴듯한 제목을 둔다. 실제 서버는
- * 본인 PR과 커밋 제목을 그대로 쓰므로 여기도 다듬지 않은 모양으로 적는다.
+ * 저장소에서 찾은 결정 후보 — 모델이 커밋·PR을 주제로 묶은 결과.
  *
  * signal-board는 일부러 비워 둔다. 생성 근거가 남아 있지 않은 오래된
  * 포트폴리오에서 후보가 하나도 없는 화면도 로컬에서 실제로 실행돼야 한다 —
@@ -176,33 +173,39 @@ export const mockRepositories = [
 export const mockDecisionCandidates: Record<string, PortfolioDecisionCandidateDto[]> = {
   "folio-maker": [
     {
-      topic: "생성 흐름을 세 단계로 나눈 PR",
-      source: "pullRequest",
-      hasContext: true,
-      excerpt: "저장 단계에서 실패하면 수집과 모델 호출이 통째로 다시 돌았다.",
+      topic: "생성 흐름을 세 단계로 나눔",
+      summary: "저장에서 실패하면 수집과 모델 호출까지 통째로 다시 돌아, 단계 사이 산출물을 남기고 이어 하게 했다.",
+      evidence: ["생성 흐름을 세 단계로 나눈 PR", "단계 산출물을 generation_evidence에 저장"],
+      source: "analysis",
     },
     {
-      topic: "되묻기 답변을 그 자리만 병합하도록 바꿈",
-      source: "commit",
-      hasContext: true,
-      excerpt: "전체 재생성이면 마음에 들던 문장까지 바뀌어 답할 이유가 없어진다.",
+      topic: "되묻기 답변을 그 자리만 병합",
+      summary: "전체 재생성이면 마음에 들던 문장까지 바뀌므로, 답한 자리만 다시 쓰고 나머지는 버린다.",
+      evidence: ["되묻기 답변을 그 자리만 병합하도록 바꿈"],
+      source: "analysis",
     },
-    { topic: "A4 미리보기를 인쇄와 같은 조판으로 맞춤", source: "commit", hasContext: false, excerpt: null },
+    /* 폴백 모양도 하나 둔다. 모델 분류가 안 되는 경로(근거 없음·모델 실패)의
+       화면도 로컬에서 실제로 실행돼야 한다. */
+    {
+      topic: "A4 미리보기를 인쇄와 같은 조판으로 맞춤",
+      summary: null,
+      evidence: [],
+      source: "commit",
+    },
   ],
   "ledger-sync": [
     {
-      topic: "중복 거래를 지우는 대신 표시만 남기기로 함",
-      source: "pullRequest",
-      hasContext: true,
-      excerpt: "잘못 지우면 되돌릴 방법이 없어 판단은 사람에게 남긴다.",
+      topic: "중복 거래를 지우는 대신 표시만 남김",
+      summary: "잘못 지우면 되돌릴 방법이 없어, 후보끼리 묶어 표시만 남기고 판단은 사람에게 뒀다.",
+      evidence: ["중복 거래를 지우는 대신 표시만 남기기로 함"],
+      source: "analysis",
     },
     {
-      topic: "재시도가 같은 거래를 두 번 넣지 않도록 멱등 키 도입",
-      source: "commit",
-      hasContext: true,
-      excerpt: "배치가 중간에 죽었다 다시 돌면 같은 거래가 이중으로 쌓였다.",
+      topic: "재시도의 이중 삽입을 멱등 키로 막음",
+      summary: "배치가 중간에 죽었다 다시 돌면 같은 거래가 이중으로 쌓여, 거래마다 멱등 키를 붙였다.",
+      evidence: ["재시도가 같은 거래를 두 번 넣지 않도록 멱등 키 도입", "멱등 키 충돌 로그 추가"],
+      source: "analysis",
     },
-    { topic: "은행별 응답 차이를 어댑터로 흡수", source: "commit", hasContext: false, excerpt: null },
   ],
   "signal-board": [],
 };

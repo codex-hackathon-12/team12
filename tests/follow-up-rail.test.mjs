@@ -73,32 +73,23 @@ test("남에게 보내는 문서에는 되묻기가 새어 나가지 않는다",
   assert.match(resultPage, /markedProjectUrls=\{/u, "결과 화면이 표시를 안 넘겨요");
 });
 
-test("카드는 담기고, 안쪽은 칠하지 않는다", () => {
-  /* 두 번 잘못 갔던 자리다. 슬래브(전부 칠함)도, 맨살 텍스트(아무것도 안
-     담김)도 아니다. 노션 댓글처럼 카드 하나가 담고, 안의 말풍선·입력에는
-     색을 채우지 않는다 — 누가 한 말인지는 아바타와 이름 줄이 말한다. */
-  const card = css.match(/\.follow-up-rail,\s*\n\.follow-up-more \{([^}]*)\}/u);
-  assert.ok(card, "카드 규칙이 없어요");
-  assert.match(card[1], /border-radius: 12px/u, "노션처럼 둥글지 않아요");
-  assert.match(card[1], /background: var\(--paper\)/u, "카드가 담기지 않아요");
-  // 이 앱의 오프셋 하드 섀도가 아니라 노션의 부드러운 그림자다.
-  assert.match(card[1], /box-shadow: 0 4px 24px/u, "그림자가 카드답지 않아요");
+test("패널은 담기고, 안쪽은 칠하지 않는다", () => {
+  /* 노션 댓글에서 시작한 규칙이 챗봇 패널에서도 그대로다. 패널 하나가 담고,
+     안의 말풍선·입력·목록에는 면 색을 채우지 않는다 — 누가 한 말인지는
+     아바타와 이름 줄이 말한다. */
+  const card = css.match(/\.follow-up-rail \{([^}]*)\}/u);
+  assert.ok(card, "패널 규칙이 없어요");
+  assert.match(card[1], /border-radius: 14px/u, "패널이 둥글지 않아요");
+  assert.match(card[1], /background: var\(--paper\)/u, "패널이 담기지 않아요");
 
-  /* 카드 안에서 칠해도 되는 것은 아바타 원, 전송 버튼, 그리고 ::before로
-     긋는 1px 스레드 선뿐이다 — 노션도 그 셋만 칠한다. 말풍선·입력·로그에
-     면 색이 붙는 순간 다시 폼처럼 보인다. */
   const offenders = [];
   for (const match of css.matchAll(/(\.follow-up-[a-z-]+[^{}]*)\{([^}]*)\}/gu)) {
     const selector = match[1].trim();
-    /* 칠해도 되는 것은 카드 자체(대화·더 쓸 자리), 아바타 원, 전송 버튼,
-       그리고 ::before로 긋는 스레드 선뿐이다. 카드 둘이 규칙을 함께 쓰므로
-       쉼표로 묶인 선택자는 조각마다 본다. */
-    const parts = selector.split(",").map((part) => part.trim());
-    const card = (part) => /^\.follow-up-(rail|more)$/u.test(part);
-    if (parts.every(card) || /follow-up-avatar|follow-up-send|::/u.test(selector)) continue;
-    /* 호버는 쉬는 상태의 면 색이 아니라 "눌린다"는 예고다. 쉬는 상태에 색이
-       붙으면 폼처럼 보이지만, 지나가는 손에만 반응하는 색은 그 반대 —
-       반응한다는 사실을 보여준다. 단 버튼에만 허용한다. */
+    /* 칠해도 되는 것: 패널 자체, 아바타 원, 전송 버튼, 플로팅 버튼과 배지,
+       탭의 개수 배지, ::before 스레드 선. 전부 "여기는 눌린다/여기서 왔다"를
+       말하는 색이다. */
+    if (/^\.follow-up-rail$|follow-up-avatar|follow-up-send|follow-up-fab|follow-up-tab b|::/u.test(selector)) continue;
+    /* 호버는 쉬는 상태의 면 색이 아니라 "눌린다"는 예고다. 버튼에만 허용한다. */
     if (/button:hover$/u.test(selector)) continue;
     const fill = match[2].match(/background(?:-color)?:\s*([^;]+)/u);
     if (fill && !/transparent|none/u.test(fill[1])) offenders.push(`${selector} → ${fill[1].trim()}`);
@@ -115,57 +106,41 @@ test("카드만을 위한 사이드바를 만들지 않는다", () => {
   assert.doesNotMatch(resultPage, /result-main/u, "문서를 감싸는 래퍼가 되살아났어요");
 });
 
-test("카드가 이력서 오른쪽에 선다", () => {
-  /* 절대 배치로 회색 여백에 겹쳐 띄우던 때는 A4 보기에서만 맞는 계산이었다.
-     읽기 보기의 문서는 `.portfolio-preview`의 1120px이라 훨씬 넓어서, 폭이
-     1560px을 넘으면 카드가 이력서 오른쪽을 덮었다. 칸을 나누면 종이가 자기
-     칸 밖으로 나갈 수 없어 겹칠 방법이 사라진다. */
-  const grid = css.match(
-    /@media screen and \(min-width: (\d+)px\) \{\s*\.portfolio-canvas-wrap:has\(\.follow-up-column\) \{([^}]*)\}/u,
-  );
-  assert.ok(grid, "캔버스를 두 칸으로 나누는 규칙이 없어요");
-  assert.match(grid[2], /grid-template-columns:\s*minmax\(0, 1fr\) 336px/u, "칸이 둘이 아니에요");
-
-  /* 종이 794 + 간격 16 + 카드 336 + 캔버스 좌우 24×2 = 1194. 이보다 좁으면
-     나란히 설 수 없다. */
-  assert.ok(Number(grid[1]) >= 1194, `분기점 ${grid[1]}px에서는 종이와 카드가 안 들어가요`);
-
-  const column = css.match(/\.follow-up-column \{([^}]*)\}/u);
-  assert.ok(column, ".follow-up-column 규칙이 없어요");
-  assert.doesNotMatch(column[1], /position: (?:sticky|fixed|absolute)/u, "칸 안에 서지 않아요");
+test("대화가 문서의 배치를 건드리지 않는다", () => {
+  /* 문서와 대화가 한 배치를 나눠 가지는 한 어느 폭에선가 서로를 밀었다 —
+     전용 컬럼은 툴바까지 밀었고, 절대 배치는 읽기 보기 문서를 덮었고,
+     캔버스 두 칸은 화면 폭에 따라 아래로 밀렸다. 챗봇 방식은 문서 위에
+     떠 있을 뿐 배치를 나누지 않는다. */
+  const dock = css.match(/\.follow-up-dock \{([^}]*)\}/u);
+  assert.ok(dock, "떠 있는 자리가 없어요");
+  assert.match(dock[1], /position: fixed/u, "화면에 고정돼 있지 않아요");
+  assert.doesNotMatch(css, /portfolio-canvas-wrap:has\(/u, "캔버스가 다시 칸을 나눠요");
+  assert.doesNotMatch(css, /\.follow-up-column/u, "옛 칼럼이 남아 있어요");
 });
 
-test("인쇄를 폭 질의에 맡기지 않는다", () => {
-  /* 인쇄할 때 크롬은 종이 폭(794px)으로 다시 배치해서 min-width 질의가 어차피
-     걸리지 않지만, 그 우연에 기대면 안 된다 — 미리보기와 인쇄가 어긋났던
-     사고가 정확히 그 우연에서 나왔다. 카드는 인쇄에서 display: none이어도
-     DOM에 남으므로 `:has()`는 계속 맞고, 종이에 336px 칸이 생긴다. */
-  const rule = new RegExp(String.raw`@media ([^{]*)\{\s*\.portfolio-canvas-wrap:has\(\.follow-up-column\)`, "u");
-  const found = css.match(rule);
-  assert.ok(found, "캔버스를 나누는 질의를 못 찾았어요");
-  assert.match(found[1], /screen and/u, "인쇄를 명시적으로 배제하지 않아요");
+test("플로팅 버튼이 남은 개수를 말한다", () => {
+  /* 닫힌 채로 시작하는 대신, 열어보지 않아도 할 일이 보여야 한다. */
+  assert.match(rail, /className="follow-up-fab"/u, "여는 손잡이가 없어요");
+  assert.match(rail, /remaining > 0 \? <b>\{remaining\}<\/b> : null/u, "배지가 남은 개수를 안 세요");
 });
 
-test("칸을 나눠도 문서가 접히지 않는다", () => {
-  /* 읽기 보기의 문서는 `margin: 0 auto`로 가운데 정렬하는데, 자동 여백은
-     그리드의 stretch를 이겨서 칸 안에서 fit-content로 줄어든다. 그리고 이
-     문서는 컨테이너 질의로 크기가 갇혀 있어 fit-content가 0이다 — 실제로
-     폭 2px에 높이 19000px짜리 띠로 접혔다. */
+test("패널이 대화와 더 쓰기의 두 얼굴을 갖는다", () => {
+  /* 더 쓰기가 대화 카드 아래 조각 카드였을 때는 작고, 겹치고, 담을 수 있는
+     정보가 없었다. 탭이면 패널 전체를 쓴다. */
+  assert.match(rail, /useState<"chat" \| "write">/u, "탭 상태가 없어요");
+  assert.match(rail, /follow-up-tab/u, "탭이 없어요");
+  /* 자리를 열면 대화 탭으로 데려간다. 누른 자리에서 다음 할 일이 바로
+     보여야 "안 열렸다"로 읽히지 않는다. */
+  assert.match(rail, /setView\("chat"\);\s*\n\s*composerRef\.current\?\.focus\(\)/u,
+    "열고 나서 대화로 안 데려가요");
+});
+
+test("좁은 화면에서는 시트가 된다", () => {
+  /* 챗봇 패널의 관례다. 화면이 좁으면 패널이 거의 전체를 쓴다. */
   assert.match(
     css,
-    /:has\(\.follow-up-column\) > \.portfolio-preview \{[^}]*width: 100%/u,
-    "칸 안에서 문서 폭을 되돌리지 않아요",
-  );
-  assert.match(css, /container: result \/ inline-size/u,
-    "컨테이너 선언이 사라졌다면 위 규칙의 이유도 다시 봐야 해요");
-});
-
-test("나란히 설 수 없으면 문서 아래로 내려온다", () => {
-  /* 카드를 줄여서 억지로 옆에 두는 길도 있지만 그러면 대화가 읽히지 않는다. */
-  assert.match(
-    css,
-    /@media \(max-width: 1199px\) \{[\s\S]*?\.follow-up-column \{[^}]*margin: var\(--space-6\) auto 0/u,
-    "좁은 화면 폴백이 없어요",
+    /@media \(max-width: 520px\) \{[\s\S]*?\.follow-up-rail \{[^}]*width: auto/u,
+    "좁은 화면 시트가 없어요",
   );
 });
 
@@ -289,14 +264,19 @@ test("문서 표시가 종이에 찍히지 않는다", () => {
 
 test("빈 자리를 직접 열 수 있다", () => {
   /* 되묻기 질문은 포트폴리오를 만들 때 한 번 생긴다. 모델이 어떤 저장소에
-     대해 결정 묶음을 안 내면 그 프로젝트의 핵심 결정은 영영 빈 채로 남았다.
-     답변에 "추가해줘"라고 써도 답은 그 질문의 자리 하나에만 반영된다. */
+     대해 결정 묶음을 안 내면 그 프로젝트의 핵심 결정은 영영 빈 채로 남았다. */
   assert.match(rail, /requestPortfolioQuestions/u, "자리를 여는 통로가 없어요");
-  assert.match(more, /follow-up-more/u, "빈 자리를 내미는 자리가 없어요");
+  assert.match(more, /follow-up-place/u, "프로젝트별 자리 목록이 없어요");
   assert.match(resultPage, /openSlots/u, "어느 자리가 비었는지 안 넘겨요");
 
-  /* 이미 질문이 있는 자리는 대화가 물을 테니 또 내밀지 않는다. */
-  assert.match(rail, /const asked = new Set\(timeline\.map/u, "이미 물은 자리를 걸러내지 않아요");
+  /* 대화가 물을 예정인 자리는 상태로 말하고 대화로 보낸다 — 같은 자리를
+     두 곳에서 두 번 내밀지 않는다. */
+  assert.match(rail, /const pendingOf = /u, "대화가 물을 자리를 못 가려내요");
+  assert.match(more, /대화에서 답을 기다려요/u);
+
+  /* 여는 것은 문서를 바로 바꾸지 않는다. 그 간극을 미리 말하지 않으면
+     "눌러도 달라지는 게 없다"가 된다. */
+  assert.match(more, /답이 모이면 문서가 바뀌어요/u, "간극을 말해주지 않아요");
 });
 
 test("연 질문이 지금 자리에 들어간다", () => {
@@ -334,7 +314,7 @@ test("바꿔 쓰면 이번에 연 자리만 지운다", () => {
      범위가 넓으면 더 나쁘다. "서버가 답 없다고 한 것 전부"로 잡았더니 아까
      건너뛴 질문의 건너뜀까지 풀려 되살아났고, 그게 커서를 가로채 방금 고른
      결정 대신 엉뚱한 질문이 떠 있었다. */
-  assert.match(rail, /if \(options\.replace\) \{/u);
+  assert.match(rail, /if \(replace\) \{/u);
   assert.match(rail, /!incomingIds\.has\(id\)/u, "이번에 연 자리만 지우지 않아요");
   assert.doesNotMatch(rail, /all\.filter\(\(question\) => !question\.answer\)/u, "범위가 다시 넓어졌어요");
 });
@@ -342,7 +322,7 @@ test("바꿔 쓰면 이번에 연 자리만 지운다", () => {
 test("연 것이든 바꾼 것이든 지금 묻는다", () => {
   /* 바꿔 쓴 질문은 이미 대화 뒤쪽에 있어서 그대로 두면 커서가 안 옮겨가고,
      방금 고른 결정 대신 엉뚱한 질문이 떠 있게 된다. */
-  assert.match(rail, /const incoming = options\.replace/u);
+  assert.match(rail, /const incoming = replace/u);
   assert.match(rail, /filter\(\(question\) => !incomingIds\.has\(question\.id\)\)/u, "옮기지 않고 그 자리에 둬요");
 });
 
@@ -354,23 +334,13 @@ test("바꿔 쓴 질문이 대화에도 반영된다", () => {
 });
 
 test("반응이 행동한 곳에서 난다", () => {
-  /* "뭐 눌러도 반영도 안 되고, 반응을 하는지도 모르겠고." 오류가 대화 카드
-     로그 바닥에 그려졌다 — 버튼은 아래 카드에 있는데 반응은 위 카드 스크롤
-     밖에서 났다. */
+  /* "뭐 눌러도 반영도 안 되고, 반응을 하는지도 모르겠고." 오류와 진행이
+     행동한 화면 안에서 나야 한다. */
   assert.match(rail, /const \[openError, setOpenError\]/u, "여는 오류가 대화 오류와 안 갈라져요");
-  assert.match(more, /error \? <p className="inline-error"/u, "오류가 아래 카드에 안 떠요");
-
-  /* 누른 칩만 "여는 중"이 된다. 전부 흐려지기만 하면 반응하는지 알 수 없다. */
-  assert.match(more, /opening === `\$\{project\.name\} \$\{slot\}`/u, "누른 칩을 못 가려내요");
-  assert.match(more, /여는 중/u);
-
-  /* 새 질문은 위 카드에 나타난다. 포커스가 시선을 데려간다. */
+  assert.match(more, /error \? <p className="inline-error"/u, "오류가 그 화면에 안 떠요");
+  assert.match(more, /여는 중/u, "여는 동안 아무 표시가 없어요");
   assert.match(rail, /composerRef\.current\?\.focus\(\)/u, "성공해도 시선이 안 옮겨가요");
-
-  /* 성공했는데 새 질문이 없으면(경합 등) 조용히 돌아가지 않는다. */
   assert.doesNotMatch(rail, /if \(incoming\.length === 0\) return;/u, "조용한 반환이 되살아났어요");
-
-  /* 후보 불러오기 실패도 침묵하지 않는다 — 원래 없는 것과 구분돼야 한다. */
   assert.match(more, /failed \?/u, "후보 실패가 침묵해요");
 });
 
@@ -397,10 +367,10 @@ test("다음 하나만 예고한다", () => {
   assert.match(rail, /upNext/u);
 });
 
-test("후보에 본문 첫 줄이 보인다", () => {
-  assert.match(more, /candidate\.excerpt \? <small>/u, "발췌를 안 그려요");
+test("후보에 무슨 일이었는지 한 줄이 보인다", () => {
+  assert.match(more, /candidate\.summary \? <small>/u, "요약을 안 그려요");
   const fixtures = read("mocks/api/fixtures/index.ts");
-  assert.match(fixtures, /excerpt: "/u, "목 후보에 발췌가 없어요");
+  assert.match(fixtures, /summary: "/u, "목 후보에 요약이 없어요");
 });
 
 test("안 바뀐 이유를 추측하지 않는다", () => {
@@ -421,18 +391,16 @@ test("한글을 쓰는 중에 Enter로 보내지 않는다", () => {
 });
 
 test("닫은 대화를 다시 열 수 있다", () => {
-  /* 예전에는 "답할 것 N개"라고만 적어 개수를 알리는 배지처럼 보였다. 누를 수
-     있는 것으로 읽히지 않아 한 번 닫으면 다시 못 여는 화면이 됐다. */
-  assert.match(resultPage, /aria-expanded=\{railOpen\}/u, "여닫는 버튼이 상태를 알리지 않아요");
-  assert.match(resultPage, /질문 \$\{openQuestions\.length\}개 답하기/u, "무엇을 하는 버튼인지 동사로 적지 않았어요");
-  // 답을 다 한 뒤에도 무엇을 답했는지 다시 볼 수 있어야 한다.
-  assert.match(resultPage, /답한 질문 보기/u);
-  assert.match(resultPage, /railQuestions\.length > 0 \? \(/u, "답을 다 하면 버튼이 사라져요");
+  /* 닫으면 플로팅 버튼으로 돌아간다. 한 번 닫으면 다시 못 여는 화면이
+     되면 안 된다 — 그 실수를 한 번 했다. */
+  assert.match(rail, /if \(!open\) \{/u, "닫힘이 사라짐이 돼요");
+  assert.match(rail, /onClick=\{onOpen\}/u, "여는 손잡이가 없어요");
+  assert.match(resultPage, /onOpen=\{\(\) => setRailChoice\(true\)\}/u, "화면이 여는 길을 안 줘요");
 });
 
 test("패널이 종이에 찍히지 않는다", () => {
-  // 카드 둘이 한 칸에 서므로 칸째 숨긴다.
-  assert.match(printBlock(), /\.follow-up-column,/u, "패널이 인쇄에서 숨겨지지 않아요");
+  // 버튼째 숨긴다. 종이에 떠 있는 질문 버튼은 채용 담당자용 문서에 없어야 한다.
+  assert.match(printBlock(), /\.follow-up-dock,/u, "패널이 인쇄에서 숨겨지지 않아요");
 });
 
 test("진행 표시를 반드시 되돌린다", () => {

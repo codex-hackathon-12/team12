@@ -63,9 +63,13 @@ test("라우트가 모르는 자리를 받지 않는다", () => {
 test("자리를 여는 데 모델도 근거도 쓰지 않는다", () => {
   /* 크레딧을 쓰지 않고 즉시 열리는 것이 이 설계의 요점이다. 생성 근거가
      남아 있지 않은 오래된 포트폴리오에서도 열려야 한다 — 정작 그런 결과가
-     질문이 없어 막혀 있을 가능성이 높다. */
+     질문이 없어 막혀 있을 가능성이 높다.
+
+     같은 파일의 결정 후보 조회는 모델을 쓴다. 여는 함수만 좁혀 본다. */
   const service = read("server/portfolio/request-questions.ts");
-  assert.doesNotMatch(service, /generatePortfolio|openai|loadEvidence|generation_evidence/u);
+  const opening = service.match(/export async function requestPortfolioQuestions[\s\S]*?\n\}/u);
+  assert.ok(opening, "여는 함수가 없어요");
+  assert.doesNotMatch(opening[0], /classifyDecisionTopics|openai|Evidence/u);
 });
 
 test("오류 코드 목록을 한 곳에서만 정한다", () => {
@@ -120,7 +124,8 @@ test("후보가 없다고 막지 않는다", () => {
   /* 생성 근거가 없는 오래된 포트폴리오가 있다. 후보를 못 뽑는 것과 결정을
      못 쓰는 것은 다른 일이다. */
   const service = read("server/portfolio/request-questions.ts");
-  assert.match(service, /return repository \? selectDecisionCandidates\(repository\) : \[\]/u);
+  assert.match(service, /if \(!repository\) return \[\]/u, "근거가 없으면 빈 목록이어야 해요");
+  assert.match(service, /return selectDecisionCandidates\(repository\)/u, "분류가 안 되면 나열로 물러나야 해요");
 });
 
 test("질문 저장 실패가 조용히 삼켜지지 않는다", () => {

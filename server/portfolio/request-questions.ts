@@ -5,8 +5,11 @@ import {
   type PortfolioQuestionSlot,
 } from "@/contracts/api-contract";
 import type { PortfolioDecisionCandidateDto } from "@/contracts/api-contract";
+import { classifyDecisionTopics, type DecisionTopic } from "@/server/openai/decision-topics";
+import { logOperationFailure } from "@/server/observability/api-logging";
 import { selectDecisionCandidates } from "@/server/portfolio/decision-candidates";
 import { loadGenerationEvidence } from "@/server/portfolio/generation-evidence";
+import { getSupabaseClient } from "@/server/supabase/client";
 import { getPortfolio } from "@/server/portfolio/portfolios";
 import { buildRequestedQuestions } from "@/server/portfolio/questions";
 import {
@@ -97,10 +100,15 @@ export async function requestPortfolioQuestions(
 }
 
 /**
- * 저장소에서 찾은 결정 후보.
+ * 저장소에서 찾은 결정 후보 — 모델이 커밋·PR을 주제로 묶은 결과.
  *
- * 근거가 남아 있지 않으면 빈 목록이다. 막지 않는다 — 후보가 없다고 결정을 못
- * 쓸 이유는 없고, 그때는 두루 묻는 질문으로 연다.
+ * 제목 나열로는 후보의 질을 보장할 수 없었다. 최근 것만 가져오니 잔버그
+ * 수정 제목이 결정 후보로 섰다. 분류는 근거가 바뀌지 않는 한 같으므로
+ * generation_evidence.decision_topics에 캐시해 저장소마다 한 번만 부른다.
+ *
+ * 분류가 안 되면(근거 없음·모델 실패·묶을 것 없음) 제목 나열로 물러난다 —
+ * 후보가 나쁜 것과 결정을 못 쓰는 것은 다른 일이다. 실패는 캐시하지 않아
+ * 다음에 다시 시도된다.
  */
 export async function listDecisionCandidates(
   userId: string,
@@ -115,5 +123,72 @@ export async function listDecisionCandidates(
 
   const evidence = await loadGenerationEvidence(portfolio.generationJobId);
   const repository = evidence?.repositories.find((item) => item.name === repositoryName);
-  return repository ? selectDecisionCandidates(repository) : [];
+  if (!repository) return [];
+
+  const cached = await readTopicCache(portfolio.generationJobId, repositoryName);
+  if (cached) return cached.map(toCandidate);
+
+  try {
+    const topics = await classifyDecisionTopics(repository);
+    if (topics.length > 0) {
+      await writeTopicCache(portfolio.generationJobId, repositoryName, topics);
+      return topics.map(toCandidate);
+    }
+  } catch (error) {
+    /* 분류 실패로 결정 쓰기를 막지 않는다. 로그만 남기고 나열로 물러난다. */
+    logOperationFailure({
+      domain: "portfolios",
+      operation: "decisionTopics.classify",
+      jobId: portfolio.generationJobId,
+      error: error instanceof Error ? error : new Error("Unable to classify decision topics."),
+    });
+  }
+
+  return selectDecisionCandidates(repository);
+}
+
+function toCandidate(topic: DecisionTopic): PortfolioDecisionCandidateDto {
+  return { topic: topic.title, summary: topic.summary || null, evidence: topic.evidence, source: "analysis" };
+}
+
+type TopicCacheRow = { decision_topics: Record<string, DecisionTopic[]> | null };
+
+async function readTopicCache(
+  generationJobId: string,
+  repositoryName: string,
+): Promise<DecisionTopic[] | null> {
+  const { data, error } = await getSupabaseClient()
+    .from("generation_evidence")
+    .select("decision_topics")
+    .eq("generation_job_id", generationJobId)
+    .maybeSingle();
+  if (error) throw new Error("Unable to load decision topic cache.");
+
+  const cached = (data as TopicCacheRow | null)?.decision_topics?.[repositoryName];
+  return Array.isArray(cached) && cached.length > 0 ? cached : null;
+}
+
+/**
+ * 저장소 하나의 분류를 캐시에 합친다.
+ *
+ * 열 전체를 덮어쓰되 읽은 값 위에 합치므로, 두 저장소를 거의 동시에 열면
+ * 한쪽이 질 수 있다 — 그래도 잃는 것은 캐시뿐이라 다음 호출이 다시 채운다.
+ */
+async function writeTopicCache(
+  generationJobId: string,
+  repositoryName: string,
+  topics: DecisionTopic[],
+): Promise<void> {
+  const { data, error } = await getSupabaseClient()
+    .from("generation_evidence")
+    .select("decision_topics")
+    .eq("generation_job_id", generationJobId)
+    .maybeSingle();
+  if (error) return;
+
+  const merged = { ...((data as TopicCacheRow | null)?.decision_topics ?? {}), [repositoryName]: topics };
+  await getSupabaseClient()
+    .from("generation_evidence")
+    .update({ decision_topics: merged })
+    .eq("generation_job_id", generationJobId);
 }
