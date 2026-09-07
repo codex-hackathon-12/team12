@@ -59,8 +59,14 @@ export function MoreToWrite({
   onChoose: (project: RailProject, replace: boolean) => void;
   onOpen: (project: RailProject, slot: PortfolioQuestionSlot, options?: { topic?: string; replace?: boolean }) => void;
   onCancelChoose: () => void;
-  /** 대화가 물을 예정인 자리에서 "대화로" 가는 길. */
-  onGoChat: () => void;
+  /**
+   * 대화가 물을 예정인 자리에서 "대화로" 가는 길.
+   *
+   * 탭만 바꾸면 안 된다 — 그 자리 질문이 대기열 뒤쪽이면 엉뚱한 질문이 떠
+   * 있어 "전환이 안 됐다"로 읽힌다. 어느 자리인지 받아 그 질문을 지금
+   * 차례로 세운다.
+   */
+  onGoChat: (project: RailProject, slot: PortfolioQuestionSlot) => void;
 }) {
   if (choosing) {
     return (
@@ -156,7 +162,7 @@ export function MoreToWrite({
             {decision === "pending" ? (
               <>
                 <span className="follow-up-slot-state">대화에서 답을 기다려요</span>
-                <button type="button" onClick={onGoChat}>대화로</button>
+                <button type="button" onClick={() => onGoChat(project, "keyDecision")}>대화로</button>
               </>
             ) : decision === "filled" ? (
               <>
@@ -180,7 +186,7 @@ export function MoreToWrite({
             {highlights.state === "pending" ? (
               <>
                 <span className="follow-up-slot-state">대화에서 답을 기다려요</span>
-                <button type="button" onClick={onGoChat}>대화로</button>
+                <button type="button" onClick={() => onGoChat(project, "highlights")}>대화로</button>
               </>
             ) : highlights.state === "full" ? (
               <span className="follow-up-slot-state">다 찼어요</span>
