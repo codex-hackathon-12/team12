@@ -390,6 +390,14 @@ test("안 바뀐 이유를 추측하지 않는다", () => {
   }
 });
 
+test("건너뛴 질문에도 다시 답할 수 있다", () => {
+  /* 없으면 건너뛰기가 영영 포기가 된다 — 마음이 바뀌어도 그 질문을 다시
+     세울 방법이 없다. 묶음째 되살리고, "건너뛸게요" 안내는 지운다. */
+  assert.match(rail, /follow-up-skipped-redo/u, "돌아오는 손잡이가 없어요");
+  assert.match(rail, /skipped\[question\.id\] && !answers\[question\.id\]/u, "답한 줄에도 붙어요");
+  assert.match(rail, /entry\.kind === "skipped"/u, "건너뜀 안내가 남아 두 말을 해요");
+});
+
 test("한글을 쓰는 중에 Enter로 보내지 않는다", () => {
   /* 조합 중의 Enter는 글자를 확정하는 키다. 그때 보내면 쓰던 글자가 잘린
      채로 나간다. */

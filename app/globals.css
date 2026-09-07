@@ -3651,6 +3651,25 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 
 .follow-up-note { margin: 0; padding-left: 32px; color: var(--ink-muted); font-size: var(--text-2xs); line-height: 1.6; }
 
+/* 건너뛴 질문으로 돌아오는 손잡이. 건너뜀 안내 바로 아래, 본문과 같은
+   기준선에서 시작한다. */
+.follow-up-skipped-redo {
+  justify-self: start;
+  margin-left: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.follow-up-skipped-redo:hover { color: var(--ink); }
+.follow-up-skipped-redo[aria-disabled="true"] { opacity: 0.4; cursor: default; }
+
 /* 진행과 결과. 아바타 폭(24px)에 간격 8px을 더한 32px 들여쓰기로 말풍선 본문과
    같은 기준선에 선다 — 누가 한 말이 아니라 화면이 알려주는 것이라 아바타가
    없다. */

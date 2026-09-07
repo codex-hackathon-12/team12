@@ -419,6 +419,12 @@ export function FollowUpRail({
     setSkipped((previous) => Object.fromEntries(
       Object.entries(previous).filter(([id]) => !ids.has(id)),
     ) as Record<string, true>);
+    /* "건너뛸게요" 안내는 지운다. 다시 세운 질문 옆에 남아 있으면 지금
+       건너뛴 상태인지 아닌지 화면이 두 말을 한다. 바뀐 내역(changed)은
+       건드리지 않는다. */
+    setResults((previous) => Object.fromEntries(
+      Object.entries(previous).filter(([id, entry]) => !(ids.has(id) && entry.kind === "skipped")),
+    ));
     setTimeline((previous) => {
       const rest = previous.filter((item) => !ids.has(item.id));
       const at = rest.findIndex((item) => !answers[item.id] && !skipped[item.id]);
@@ -679,6 +685,18 @@ export function FollowUpRail({
                 />
               ) : null}
               {result ? <Applied result={result} onShow={showBlock} /> : null}
+              {/* 건너뛴 질문으로 돌아오는 길. 없으면 건너뛰기가 영영 포기가
+                  된다 — 마음이 바뀌어도 그 질문을 다시 세울 방법이 없다. */}
+              {skipped[question.id] && !answers[question.id] ? (
+                <button
+                  className="follow-up-skipped-redo"
+                  type="button"
+                  aria-disabled={submitting}
+                  onClick={() => reopenQuestion(question)}
+                >
+                  다시 답하기
+                </button>
+              ) : null}
             </div>
           );
         })}
