@@ -13,7 +13,6 @@ import type {
 import { PORTFOLIO_HIGHLIGHT_SLOTS } from "@/contracts/api-contract";
 import { apiClient } from "@/lib/api-client";
 import { useAsyncData } from "@/hooks/useAsyncData";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReturnFocus } from "@/hooks/useReturnFocus";
 import { FollowUpRail, type RailProject } from "@/components/portfolio/FollowUpRail";
 import { summarizeRewrite, type RewriteChange } from "@/lib/rewrite-summary";
@@ -40,14 +39,8 @@ export default function PortfolioResultPage() {
     content: PortfolioContentDto;
     questions: PortfolioQuestionDto[];
   } | null>(null);
-  /* 이력서 옆에 설 자리가 있으면 열린 채로 시작한다. 접혀서 시작하면 있는
-     줄도 모른다. 그 아래 폭에서는 카드가 문서 아래로 내려가 읽던 자리를
-     밀어내므로, 열려고 누른 사람에게만 연다. 사용자가 한 번 정하면 그 선택을
-     따른다.
-
-     1200px은 CSS가 칸을 나누기 시작하는 폭과 같은 값이다. 둘이 어긋나면
-     "옆에 자리가 있다고 보고 열었는데 아래에 붙는" 구간이 생긴다. */
-  const roomForRail = useMediaQuery("(min-width: 1200px)");
+  /* 대화는 우측 하단 플로팅 버튼으로 여닫는다. 닫힌 채로 시작한다 — 챗봇
+     방식에서 열림은 사용자의 선택이고, 남은 개수는 버튼의 배지가 말한다. */
   const [railChoice, setRailChoice] = useState<boolean | null>(null);
   /* 마지막으로 반영된 자리. 문서에 "방금 바뀐 곳" 표시를 남기는 데 쓴다.
      반영할 때마다 갈아치우므로 늘 가장 최근 것만 표시된다. */
@@ -133,6 +126,7 @@ export default function PortfolioResultPage() {
       title: project.title,
       openSlots,
       hasDecision: Boolean(project.keyDecision.headline.trim()),
+      highlightCount: project.highlights.length,
     }];
   });
   const order = new Map(railProjects.map((project, index) => [project.name, index]));
@@ -143,22 +137,7 @@ export default function PortfolioResultPage() {
     .filter((project) => openQuestions.some((question) => question.repositoryName === project.name))
     .map((project) => project.url);
 
-  /* 처음에는 답할 것이 있고 옆에 자리가 있을 때만 연다. 사용자가 한 번
-     정하면 그 선택을 따른다 — 닫은 것도 선택이다. */
-  const railOpen = (railChoice ?? (roomForRail && openQuestions.length > 0))
-    && railQuestions.length > 0;
-
-  const railToggleLabel = railOpen
-    ? "질문 닫기"
-    : openQuestions.length > 0
-      ? `질문 ${openQuestions.length}개 답하기`
-      : "답한 질문 보기";
-  /* 두 문구의 폭이 달라 그대로 바꾸면 옆 버튼들이 밀린다. */
-  const railToggleLabels = [
-    "질문 닫기",
-    `질문 ${openQuestions.length}개 답하기`,
-    "답한 질문 보기",
-  ];
+  const railOpen = railChoice === true && railQuestions.length > 0;
 
   const sourceLabel = portfolio.repositories.length > 1
     ? `${portfolio.repository.fullName} 외 ${portfolio.repositories.length - 1}개`
@@ -277,23 +256,6 @@ export default function PortfolioResultPage() {
                   />
                 </button>
               )}
-              {/* 닫은 대화를 다시 여는 자리. 예전에는 "답할 것 N개"라고만 적어
-                  개수를 알리는 배지처럼 보였고, 누를 수 있는 것으로 읽히지
-                  않아 한 번 닫으면 다시 못 여는 화면이 됐다. 무엇을 하는
-                  버튼인지 동사로 적는다.
-
-                  답을 다 한 뒤에도 남긴다. 무엇을 답했는지 다시 보는 길이
-                  없으면 대화가 사라진 것처럼 보인다. */}
-              {railQuestions.length > 0 ? (
-                <button
-                  className="button secondary"
-                  type="button"
-                  aria-expanded={railOpen}
-                  onClick={() => setRailChoice(!railOpen)}
-                >
-                  <SteadyLabel states={railToggleLabels} value={railToggleLabel} />
-                </button>
-              ) : null}
               {/* 파괴적이지 않은 이동은 공유 다음. 삭제는 마지막. */}
               <Link className="button secondary" href="/repositories">{LABEL.create}</Link>
               <button
@@ -376,6 +338,7 @@ export default function PortfolioResultPage() {
               avatarUrl: content.profile.avatarUrl,
             }}
             open={railOpen}
+            onOpen={() => setRailChoice(true)}
             onClose={() => setRailChoice(false)}
             onApplied={applyResult}
           onQuestionsAdded={(added) => setRewritten((previous) => ({

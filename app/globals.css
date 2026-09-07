@@ -2071,9 +2071,6 @@ a {
 }
 
 .portfolio-canvas-wrap {
-  /* 되묻기 카드가 이 상자 안에서 종이 옆 칸을 받는다. 위쪽 여백(42px)이 곧 A4
-     종이의 윗변이라, 카드가 계산 없이 이력서와 같은 높이에서 시작한다.
-     두 칸으로 나누는 규칙은 되묻기 블록에 있다. */
   padding: 42px max(24px, calc((100% - 1360px) / 2));
   background: #d9d8cf;
 }
@@ -3304,137 +3301,221 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   margin: 8mm;
 }
 
-/* 되묻기 — 이력서 오른쪽에 서는 노션 댓글 카드.
+/* 되묻기 — 우측 하단에 떠 있는 대화.
 
-   자리를 세 번 옮겼다. 처음에는 이 카드만을 위한 그리드 컬럼(396px)을 `.result-page`에
-   만들어 툴바·공유 줄·꼬리말까지 전부 왼쪽으로 밀었고, 다음에는 캔버스 회색
-   여백에 절대 배치로 겹쳐 띄웠다. 뒤엣것은 A4 보기에서만 맞는 계산이었다 —
-   읽기 보기의 문서는 `.portfolio-preview`의 1120px이라 훨씬 넓어서, 폭이
-   1560px을 넘으면 카드가 이력서 오른쪽을 132px 덮었다. 같은 규칙이 두 보기에
-   서로 다른 뜻이 됐다.
+   자리를 네 번 옮겼다. 전용 그리드 컬럼(툴바까지 밀림), 캔버스 절대 배치
+   (읽기 보기에서 문서를 덮음), 캔버스 안 두 칸(화면 폭 따라 아래로 밀리고
+   "더 쓸 자리"가 그 밑에 조각 카드로 붙음). 문서와 대화가 한 배치를 나눠
+   가지는 한 어느 폭에선가 서로를 밀었다.
 
-   캔버스 안을 두 칸으로 나눈다. 종이가 자기 칸 밖으로 나갈 수 없으므로 겹칠
-   방법이 없어진다 — 계산으로 피하는 대신 구조로 막는다. 밀리는 것은 회색
-   캔버스 안의 종이뿐이고 툴바·공유 줄·꼬리말은 제 폭 그대로다. 구글 docs가
-   댓글을 열 때 하는 일과 같다.
-
-   sticky를 쓰지 않는다. 문서와 함께 스크롤되어 그 자리에 머문다. */
-/* 카드 둘이 한 칸에 세로로 선다. 대화가 길어져도 화면을 넘지 않게 칸에
-   높이를 걸고, 대화 카드만 줄어들게 한다 — "더 쓸 자리"가 화면 밖으로 밀리면
-   초안이 비워둔 자리를 채울 길이 다시 없어진다. */
-.follow-up-column {
+   챗봇 방식으로 뗀다. 문서는 늘 제 폭을 갖고, 대화는 필요할 때만 화면 위에
+   뜬다. 여는 손잡이는 우측 하단 플로팅 버튼 — 남은 개수가 배지로 붙어
+   열어보지 않아도 할 일이 보인다. */
+.follow-up-dock {
+  position: fixed;
+  z-index: 60;
+  right: var(--space-6);
+  bottom: var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  max-height: calc(100vh - var(--header-height) - var(--space-12));
+  align-items: flex-end;
 }
 
-.follow-up-rail,
-.follow-up-more {
-  border: 1px solid var(--line-dark);
-  border-radius: 12px;
-  background: var(--paper);
-  box-shadow: 0 4px 24px rgb(23 35 29 / 10%);
+.follow-up-fab {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: 12px 20px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 750;
+  box-shadow: 0 8px 28px rgb(23 35 29 / 22%);
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.follow-up-fab:hover { box-shadow: 0 12px 34px rgb(23 35 29 / 28%); transform: translateY(-2px); }
+
+/* 남은 개수 배지. 버튼 안의 작은 잉크 원이다. */
+.follow-up-fab b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--lime);
+  font-size: var(--text-2xs);
+  font-weight: 750;
 }
 
 .follow-up-rail {
   display: flex;
   flex-direction: column;
-  /* 넘치면 로그만 안쪽에서 스크롤된다. */
-  min-height: 0;
+  width: min(400px, calc(100vw - 32px));
+  height: min(640px, calc(100dvh - var(--space-12)));
+  border: 1px solid var(--line-dark);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 0 18px 60px rgb(23 35 29 / 25%);
 }
 
-/* 무엇을 더 쓸지 고르는 카드. 대화와 하는 일이 다르므로 상자를 나눈다 —
-   한 카드가 둘을 다 하면 대화 중간에 조작 줄이 끼어들어 어디까지가 대화인지
-   흐려진다. */
-.follow-up-more {
-  display: grid;
+/* 패널 머리 = 탭. 대화와 더 쓰기가 같은 패널의 두 얼굴이다. */
+.follow-up-tabs {
+  display: flex;
   flex: none;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
 }
 
-/* 대화 카드의 머리와 같은 목소리. 두 카드가 한 벌로 읽힌다. */
-.follow-up-more-head {
-  margin: 0 calc(-1 * var(--space-4)) 0;
-  padding: 0 var(--space-4) var(--space-3);
-  border-bottom: 1px solid var(--line);
-  color: var(--ink-soft);
+.follow-up-tab {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 5px var(--space-3);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
   font-size: var(--text-xs);
   font-weight: 650;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease;
 }
 
-.follow-up-more-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.follow-up-tab:hover { color: var(--ink); }
+.follow-up-tab.is-active { border-color: var(--ink); color: var(--ink); }
 
-.follow-up-more-actions > button {
-  padding: 6px var(--space-3);
+.follow-up-tab b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--lime);
+  font-size: var(--text-2xs);
+  font-weight: 750;
+}
+
+.follow-up-tabs-note {
+  margin-left: auto;
+  color: var(--ink-muted);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+}
+
+.follow-up-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.follow-up-close:hover { color: var(--ink); }
+/* 성과 문구가 없을 때도 닫기는 오른쪽 끝에 선다. */
+.follow-up-tab + .follow-up-close,
+.follow-up-tab.is-active + .follow-up-close { margin-left: auto; }
+
+/* 더 쓰기 탭 — 문서의 자리를 훑고 여는 화면. 패널 전체를 쓴다. */
+.follow-up-write {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.follow-up-write-note,
+.follow-up-write-title {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--text-2xs);
+  line-height: 1.6;
+}
+
+.follow-up-write-title { color: var(--ink); font-size: var(--text-xs); font-weight: 650; }
+
+.follow-up-back {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.follow-up-back:hover { color: var(--ink); }
+
+/* 프로젝트 하나 = 제목 + 자리 두 줄. */
+.follow-up-place { display: grid; gap: var(--space-2); }
+
+.follow-up-place h3 {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.follow-up-slot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: var(--text-2xs);
+}
+
+.follow-up-slot-name { flex: none; color: var(--ink); font-weight: 650; }
+.follow-up-slot-state { overflow: hidden; color: var(--ink-muted); text-overflow: ellipsis; white-space: nowrap; }
+
+.follow-up-slot button {
+  flex: none;
+  margin-left: auto;
+  padding: 4px var(--space-3);
   border: 1px solid var(--line-dark);
   border-radius: 999px;
   background: none;
   color: var(--ink-soft);
   font: inherit;
   font-size: var(--text-2xs);
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
-  transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
 }
 
-/* 이 카드의 유일한 색은 앱의 라임이다. 눌릴 수 있는 것에만 칠한다. */
-.follow-up-more-actions > button:hover { border-color: var(--ink); background: var(--lime-soft); color: var(--ink); }
-.follow-up-more button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
+.follow-up-slot button:hover { border-color: var(--ink); background: var(--lime-soft); color: var(--ink); }
+.follow-up-slot button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
 
-/* 누른 칩만 "여는 중"이 된다. 전부 흐려지기만 하면 반응하는지 알 수 없다. */
-.follow-up-opening {
-  display: inline-flex;
-  gap: var(--space-2);
-  align-items: center;
-  color: var(--ink-muted);
-}
-
-.follow-up-more .inline-error { margin: 0; font-size: var(--text-2xs); }
-
-/* 종이 794 + 간격 16 + 카드 336 + 캔버스 좌우 24×2 = 1194. 그 아래에서는
-   물리적으로 옆에 설 수 없어 문서 아래로 내려간다(그 규칙은 아래에 있다).
-
-   `screen and`를 붙인다. 인쇄할 때 크롬은 종이 폭(794px)으로 다시 배치해서
-   이 질의가 어차피 걸리지 않지만, 그 우연에 기대지 않는다 — 미리보기와 인쇄가
-   어긋났던 사고가 정확히 그 우연에서 나왔다. 카드는 인쇄에서 display: none
-   이어도 DOM에 남으므로 `:has()`는 계속 맞는다.
-
-   위 여백(42px)이 종이 윗변이자 카드 윗변이다. `align-items: start`면 "이력서와
-   같이 시작"이 계산 없이 배치에서 따라온다. */
-@media screen and (min-width: 1200px) {
-  .portfolio-canvas-wrap:has(.follow-up-column) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 336px;
-    gap: var(--space-4);
-    align-items: start;
-  }
-
-  /* 읽기 보기의 문서는 `margin: 0 auto`로 가운데 정렬한다. 그런데 자동 여백은
-     그리드의 stretch를 이겨서 칸 안에서 fit-content로 줄어들고, 이 문서는
-     컨테이너 질의(`container: result / inline-size`)로 크기가 갇혀 있어
-     fit-content가 0이다 — 폭 2px에 높이 19000px짜리 띠로 접힌다. 폭을 명시해
-     stretch를 되돌린다. 가운데 정렬은 자동 여백이 그대로 한다. */
-  .portfolio-canvas-wrap:has(.follow-up-column) > .portfolio-preview { width: 100%; }
-}
-
-/* 남은 개수와 닫기만 얇게. 노션 카드에는 큰 머리가 없다. */
-.follow-up-rail-head {
-  display: flex;
-  flex: none;
-  gap: var(--space-3);
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--line);
-}
-
-.follow-up-rail-head span { color: var(--ink-soft); font-size: var(--text-xs); font-weight: 650; }
-.follow-up-rail-head .text-link { font-size: var(--text-xs); }
+.follow-up-write .inline-error { margin: 0; font-size: var(--text-2xs); }
 
 .follow-up-log {
   display: grid;
+  /* 남는 높이를 로그가 다 가져 입력칸이 바닥에 붙는다 — 대화창의 관례다. */
+  flex: 1;
   align-content: start;
   gap: var(--space-4);
   min-height: 0;
@@ -3688,13 +3769,23 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   font-weight: 650;
 }
 
-/* 본문 첫 줄. 제목만으로 기억이 안 날 때 "아, 그거"를 만든다. */
+/* 무슨 일이 있었는지 한 줄. 제목만으로 기억이 안 날 때 "아, 그거"를 만든다. */
 .follow-up-candidates small {
   display: block;
-  overflow: hidden;
   color: var(--ink-muted);
   font-size: var(--text-2xs);
   line-height: 1.5;
+}
+
+/* 이 주제를 뒷받침하는 커밋·PR 제목 그대로. 저장소에서 찾아볼 실마리라
+   고정폭으로 눕힌다. */
+.follow-up-candidate-evidence { display: grid; gap: 2px; margin-top: 2px; }
+
+.follow-up-candidate-evidence code {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3786,14 +3877,11 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
 
 /* 종이와 카드가 나란히 설 수 없는 폭에서는 문서 아래로 내려온다. 카드를
    줄여서 억지로 옆에 두는 길도 있지만, 그러면 대화가 읽히지 않는다. */
-@media (max-width: 1199px) {
-  .follow-up-column {
-    width: 100%;
-    max-width: 560px;
-    max-height: none;
-    margin: var(--space-6) auto 0;
-  }
-  .follow-up-log { max-height: 60vh; }
+/* 좁은 화면에서는 패널이 화면을 거의 다 쓴다. 챗봇 시트와 같다. */
+@media (max-width: 520px) {
+  .follow-up-dock { right: var(--space-3); bottom: var(--space-3); left: var(--space-3); align-items: stretch; }
+  .follow-up-fab { justify-content: center; align-self: flex-end; }
+  .follow-up-rail { width: auto; height: min(560px, calc(100dvh - var(--space-6))); }
 }
 
 /* 문서 쪽 표시.
@@ -3840,7 +3928,7 @@ div:has(> [data-project-url]) + div:has(> [data-project-url]) .result-project-ca
   .result-toolbar,
   /* 물어보는 칸은 화면에서만 의미가 있다. 종이에 찍히면 채용 담당자가
      지원자에게 던지는 질문 목록이 된다. */
-  .follow-up-column,
+  .follow-up-dock,
   .result-portfolio-nav,
   .result-footer-actions,
   /* 공유 페이지의 안내와 인쇄 버튼은 종이에 남을 이유가 없다. */

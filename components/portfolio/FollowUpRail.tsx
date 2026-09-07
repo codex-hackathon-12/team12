@@ -4,13 +4,14 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
   PORTFOLIO_ANSWER_MAX_LENGTH,
+  PORTFOLIO_HIGHLIGHT_SLOTS,
   type PortfolioQuestionDto,
   type PortfolioQuestionSlot,
   type PortfolioSkipReason,
   type PortfolioStatementResultDto,
 } from "@/contracts/api-contract";
 import { ApiClientError, apiClient } from "@/lib/api-client";
-import { MoreToWrite, type DecisionChoice, type WriteAction } from "@/components/portfolio/MoreToWrite";
+import { MoreToWrite, type DecisionChoice, type ProjectPlace } from "@/components/portfolio/MoreToWrite";
 import { SLOT_LABEL, type RewriteChange } from "@/lib/rewrite-summary";
 
 /**
@@ -105,6 +106,8 @@ export type RailProject = {
    * 결정이 아닐 수 있으므로 "다른 결정으로"를 내민다.
    */
   hasDecision: boolean;
+  /** 쓰여 있는 강조점 수. 더 쓰기 탭이 "n개 쓰여 있어요"와 남은 자리를 말한다. */
+  highlightCount: number;
 };
 
 /** 안 바뀐 이유를 사람 말로. 사용자를 탓하지 않고 무슨 일이 있었는지 말한다. */
@@ -161,6 +164,7 @@ export function FollowUpRail({
   projects,
   profile,
   open,
+  onOpen,
   onClose,
   onApplied,
   onQuestionsAdded,
@@ -172,6 +176,8 @@ export function FollowUpRail({
   projects: RailProject[];
   profile: RailProfile;
   open: boolean;
+  /** 플로팅 버튼이 부른다. */
+  onOpen: () => void;
   onClose: () => void;
   /**
    * 반영된 결과를 넘기고, **무엇이 바뀌었는지 돌려받는다.**
@@ -202,6 +208,12 @@ export function FollowUpRail({
   const [skipped, setSkipped] = useState<Record<string, true>>({});
   /** 지금 고쳐 쓰는 중인 질문. 없으면 첫 미답을 묻는다. */
   const [editing, setEditing] = useState<string | null>(null);
+  /**
+   * 패널의 두 얼굴. "대화"는 묻고 답하는 곳, "더 쓰기"는 문서의 자리를 훑고
+   * 여는 곳이다. 예전에는 후자가 대화 카드 아래 조각 카드로 붙어 있었다 —
+   * 작고, 겹치고, 담을 수 있는 정보가 없었다. 탭이면 패널 전체를 쓴다.
+   */
+  const [view, setView] = useState<"chat" | "write">("chat");
   const [draft, setDraft] = useState("");
   const composerRef = useRef<HTMLTextAreaElement>(null);
   /** 턴마다의 진행과 결과. 답한 말풍선 아래에 그대로 붙는다. */
@@ -235,7 +247,7 @@ export function FollowUpRail({
     if (!editing) endRef.current?.scrollIntoView({ block: "end" });
   }, [pendingIndex, editing]);
 
-  if (!open || questions.length === 0) return null;
+  if (questions.length === 0) return null;
 
   const current = editing
     ? timeline.find((question) => question.id === editing) ?? null
@@ -253,22 +265,26 @@ export function FollowUpRail({
   const projectOf = (question: PortfolioQuestionDto) =>
     projects.find((project) => project.name === question.repositoryName) ?? null;
 
-  /* 아직 질문이 없는 빈 자리만 남긴다. 이미 질문이 있으면 대화가 그것을
-     물을 테니 여기 또 내밀 이유가 없다. */
-  const asked = new Set(timeline.map((question) => `${question.repositoryName} ${question.field}`));
-  const openable = projects.flatMap((project) =>
-    project.openSlots
-      .filter((slot) => (slot === "keyDecision"
-        ? !asked.has(`${project.name} decisionProblem`)
-        : !asked.has(`${project.name} highlights`)))
-      .map((slot) => ({ project, slot, replace: false })),
-  );
-  /* 이미 쓰여 있는 결정도 바꿀 수 있어야 한다. 초안이 저장소에서 스스로 고른
-     것이라 지원자가 말하고 싶은 결정이 아닐 수 있다. */
-  const replaceable = projects
-    .filter((project) => project.hasDecision)
-    .map((project) => ({ project, slot: "keyDecision" as const, replace: true }));
-  const actions: WriteAction[] = [...openable, ...replaceable];
+  /* 더 쓰기 탭의 재료 — 프로젝트마다 두 자리의 상태를 계산한다.
+     "대화가 물을 예정"과 "비어 있음"과 "쓰여 있음"은 할 수 있는 일이 다르다. */
+  const pendingOf = (name: string, fields: string[]) =>
+    timeline.some((question) =>
+      question.repositoryName === name
+      && fields.includes(question.field)
+      && !answers[question.id] && !skipped[question.id]);
+
+  const places: ProjectPlace[] = projects.map((project) => ({
+    project,
+    decision: pendingOf(project.name, ["decisionProblem", "decisionApproach", "decisionOutcome"])
+      ? "pending"
+      : project.hasDecision ? "filled" : "open",
+    highlights: {
+      state: pendingOf(project.name, ["highlights"])
+        ? "pending"
+        : project.highlightCount >= PORTFOLIO_HIGHLIGHT_SLOTS ? "full" : "open",
+      count: project.highlightCount,
+    },
+  }));
 
   /** 같은 결정에 속한 질문 전부. 셋이 한 덩어리다. */
   const groupOf = (question: PortfolioQuestionDto) =>
@@ -391,6 +407,37 @@ export function FollowUpRail({
   };
 
   /**
+   * 이미 있는 질문을 대화의 지금 자리로 다시 세운다.
+   *
+   * "더 쓰기"를 눌렀는데 그 자리 질문이 이미 있으면(답했든 건너뛰었든) 서버에
+   * 새로 만들 것이 없다 — 여기서 또 insert를 부르면 "새 질문 없음" 오류가
+   * 난다. 필요한 것은 질문이 아니라 **차례**다.
+   */
+  const reopenQuestion = (question: PortfolioQuestionDto) => {
+    const group = groupOf(question);
+    const ids = new Set(group.map((item) => item.id));
+    setSkipped((previous) => Object.fromEntries(
+      Object.entries(previous).filter(([id]) => !ids.has(id)),
+    ) as Record<string, true>);
+    setTimeline((previous) => {
+      const rest = previous.filter((item) => !ids.has(item.id));
+      const at = rest.findIndex((item) => !answers[item.id] && !skipped[item.id]);
+      const cut = at === -1 ? rest.length : at;
+      return [...rest.slice(0, cut), ...group, ...rest.slice(cut)];
+    });
+    /* 이미 답한 질문이면 고쳐 쓰기 자리로 세운다. 입력칸은 비워 둔다 —
+       "더 쓰기"의 뜻은 지난 답을 고치는 게 아니라 새 일을 더하는 것이고,
+       강조 병합은 새로 말한 것을 기존 항목 뒤에 붙인다. */
+    if (answers[question.id]) {
+      setEditing(question.id);
+      setDraft("");
+    }
+    setOpenError(null);
+    setView("chat");
+    composerRef.current?.focus();
+  };
+
+  /**
    * 초안이 비워둔 자리를 연다.
    *
    * 새로 생긴 질문을 **지금 묻는 자리에** 끼워 넣는다. 맨 뒤에 붙이면 남은
@@ -403,6 +450,25 @@ export function FollowUpRail({
     options: { topic?: string; replace?: boolean } = {},
   ) => {
     if (opening || submitting) return;
+
+    /* 그 자리 질문이 이미 있으면 서버에 만들 것이 없다 — 차례만 다시 준다. */
+    if (slot === "highlights") {
+      const existing = timeline.find(
+        (question) => question.repositoryName === project.name && question.field === "highlights",
+      );
+      if (existing) {
+        reopenQuestion(existing);
+        return;
+      }
+    }
+    /* 결정 질문이 이미 있는데(건너뛰었든 답했든) 새 주제를 골랐다면 그 묶음을
+       덮어써야 한다. insert는 중복을 무시해 조용히 아무 일도 안 한다. */
+    const hasDecisionQuestions = timeline.some(
+      (question) => question.repositoryName === project.name
+        && ["decisionProblem", "decisionApproach", "decisionOutcome"].includes(question.field),
+    );
+    const replace = slot === "keyDecision" && (options.replace || hasDecisionQuestions);
+
     setOpening(`${project.name} ${slot}`);
     setOpenError(null);
     try {
@@ -410,6 +476,7 @@ export function FollowUpRail({
         repositoryName: project.name,
         slot,
         ...options,
+        replace,
       });
       setChoosing(null);
       const known = new Set(timeline.map((question) => question.id));
@@ -429,7 +496,7 @@ export function FollowUpRail({
       /* 연 것이든 바꾼 것이든 **지금** 묻는다. 바꿔 쓴 질문은 이미 대화
          뒤쪽에 있어서 그대로 두면 커서가 안 옮겨가고, 방금 고른 결정 대신
          엉뚱한 질문이 떠 있게 된다. */
-      const incoming = options.replace
+      const incoming = replace
         ? all.filter((question) => byField.has(`${question.repositoryName} ${question.field}`))
         : added;
       /* 서버가 성공이라는데 새 질문이 없다면 무언가 어긋난 것이다(경합 등).
@@ -457,7 +524,7 @@ export function FollowUpRail({
          **이번에 연 자리만** 지운다. "서버가 답 없다고 한 것 전부"로 잡으면
          아까 건너뛴 질문의 건너뜀까지 풀려 되살아나고, 그게 커서를 가로채
          방금 고른 결정 대신 엉뚱한 질문이 떠 있게 된다. */
-      if (options.replace) {
+      if (replace) {
         const forget = <T,>(previous: Record<string, T>) => Object.fromEntries(
           Object.entries(previous).filter(([id]) => !incomingIds.has(id)),
         );
@@ -466,8 +533,10 @@ export function FollowUpRail({
         setResults(forget);
       }
 
-      /* 새 질문은 위 카드에 나타난다. 시선이 아래 카드에 머물러 있으므로
-         입력칸으로 포커스를 옮겨 따라오게 한다. 로그는 알아서 끝으로 간다. */
+      /* 새 질문은 대화에 나타난다. 더 쓰기 탭에서 눌렀으므로 대화 탭으로
+         데려가고 입력칸에 포커스를 준다 — 누른 자리에서 다음 할 일이 바로
+         보여야 "안 열렸다"로 읽히지 않는다. */
+      setView("chat");
       composerRef.current?.focus();
     } catch (caught) {
       setOpenError(
@@ -522,22 +591,64 @@ export function FollowUpRail({
     setError(null);
   };
 
+  /* 우측 하단에 떠 있는 대화. 문서 옆 칸에 세웠을 때는 화면 폭에 따라
+     아래로 밀리고, "더 쓸 자리"가 그 밑에 붙어 작고 겹치고 담을 것이 없었다.
+     챗봇 방식이면 문서는 늘 제 폭을 갖고 패널은 필요할 때만 뜬다. */
+  if (!open) {
+    return (
+      <div className="follow-up-dock">
+        <button className="follow-up-fab" type="button" onClick={onOpen} aria-haspopup="dialog">
+          질문
+          {/* 남은 개수가 버튼의 배지다. 열어보지 않아도 할 일이 보인다. */}
+          {remaining > 0 ? <b>{remaining}</b> : null}
+        </button>
+      </div>
+    );
+  }
+
   return (
-    /* 카드 둘이 한 칸에 세로로 선다. 대화가 길어지면 대화 카드만 안쪽에서
-       스크롤되고 "더 쓸 자리"는 늘 보인다 — 그 카드가 화면 밖으로 밀리면
-       초안이 비워둔 자리를 채울 길이 다시 없어진다. */
-    <div className="follow-up-column">
+    <div className="follow-up-dock">
       <aside className="follow-up-rail" aria-label="더 알려주기">
-      {/* 노션 카드에는 큰 머리가 없다. 남은 개수와 닫기만 얇게. */}
-      <header className="follow-up-rail-head">
-        {/* 남은 것과 함께 이번 대화의 성과를 적는다. 답이 문서에 쌓이고
-            있다는 것을 남은 개수만으로는 알 수 없다. */}
-        <span>
-          {remaining > 0 ? `답할 것 ${remaining}개` : "다 채웠어요"}
-          {changedSlots > 0 ? ` · 문서 ${changedSlots}곳 바뀜` : ""}
-        </span>
-        <button className="text-link" type="button" onClick={onClose}>닫기</button>
+      {/* 두 얼굴을 탭으로 나눈다. 대화는 묻고 답하는 곳, 더 쓰기는 문서의
+          자리를 훑고 여는 곳 — 한 카드가 둘을 다 하면 대화 중간에 조작이
+          끼어든다. */}
+      <header className="follow-up-tabs">
+        <button
+          type="button"
+          className={view === "chat" ? "follow-up-tab is-active" : "follow-up-tab"}
+          aria-pressed={view === "chat"}
+          onClick={() => setView("chat")}
+        >
+          대화{remaining > 0 ? <b>{remaining}</b> : null}
+        </button>
+        <button
+          type="button"
+          className={view === "write" ? "follow-up-tab is-active" : "follow-up-tab"}
+          aria-pressed={view === "write"}
+          onClick={() => setView("write")}
+        >
+          더 쓰기
+        </button>
+        {/* 이번 대화의 성과. 답이 문서에 쌓이고 있다는 것을 남은 개수만으로는
+            알 수 없다. */}
+        {changedSlots > 0 ? <span className="follow-up-tabs-note">문서 {changedSlots}곳 바뀜</span> : null}
+        <button className="follow-up-close" type="button" aria-label="닫기" onClick={onClose}>×</button>
       </header>
+
+      {view === "write" ? (
+        <MoreToWrite
+          places={places}
+          choosing={choosing}
+          busy={opening !== null || submitting}
+          opening={opening}
+          error={openError}
+          onChoose={(project, replace) => void chooseDecision(project, replace)}
+          onOpen={(project, slot, options) => void openSlot(project, slot, options)}
+          onCancelChoose={() => { setChoosing(null); setOpenError(null); }}
+          onGoChat={() => setView("chat")}
+        />
+      ) : (
+      <>
 
       <div className="follow-up-log">
         {/* 답의 기준은 한 번만 말한다. 질문마다 반복하면 잔소리가 된다. */}
@@ -654,21 +765,9 @@ export function FollowUpRail({
         </p>
         </div>
       ) : null}
+      </>
+      )}
       </aside>
-
-      {/* 무엇을 더 쓸지 고르는 일은 오간 대화를 읽는 일과 다르다. 한 카드가
-          둘을 다 하면 대화 중간에 조작 줄이 끼어들어 어디까지가 대화인지
-          흐려진다. */}
-      <MoreToWrite
-        actions={actions}
-        choosing={choosing}
-        busy={opening !== null || submitting}
-        opening={opening}
-        error={openError}
-        onChoose={(project, replace) => void chooseDecision(project, replace)}
-        onOpen={(project, slot, options) => void openSlot(project, slot, options)}
-        onCancel={() => { setChoosing(null); setOpenError(null); }}
-      />
     </div>
   );
 }
